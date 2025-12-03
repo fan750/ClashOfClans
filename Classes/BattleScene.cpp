@@ -1,11 +1,11 @@
 #include "BattleScene.h"
-#include "HelloWorldScene.h" // 为了能回城
+#include "HelloWorldScene.h"
 #include "BattleManager.h"
-#include "GameManager.h" // 如果想在战斗里显示资源
 #include "Building.h"
 #include "Troop.h"
-#include "ui/CocosGUI.h"
+
 USING_NS_CC;
+using namespace ui; // 使用 UI 命名空间
 
 Scene* BattleScene::createScene() {
     return BattleScene::create();
@@ -16,31 +16,44 @@ bool BattleScene::init() {
 
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
-    // 1. 【重要】进战斗前，先清空 BattleManager 的旧数据
+    // 1. 初始化数据
     BattleManager::getInstance()->clear();
+    m_selectedType = TroopType::BARBARIAN; // 默认选野蛮人
 
-    // 2. 布置敌人的阵地 (Hardcode 一个关卡)
-    // 比如：中间放个大本营，周围放墙和炮
+    // 2. 布置敌人阵地 (保持不变)
     auto enemyTown = Building::create(BuildingType::TOWN_HALL);
-    enemyTown->setPosition(visibleSize / 2);
+    enemyTown->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
     this->addChild(enemyTown);
 
-    auto enemyCannon = Building::create(BuildingType::CANNON);
-    // 直接把偏移量加在坐标里
-    enemyCannon->setPosition(Vec2(visibleSize.width / 2 + 100, visibleSize.height / 2));
-    this->addChild(enemyCannon);
+    // 加几个墙给炸弹人炸
+    for (int i = 0; i < 5; i++) {
+        auto wall = Building::create(BuildingType::WALL);
+        wall->setPosition(Vec2(visibleSize.width / 2 - 100 + i * 40, visibleSize.height / 2 - 100));
+        this->addChild(wall);
+    }
 
-    // 3. 添加一个“撤退”按钮 (回城)
-    auto backBtn = ui::Button::create("CloseNormal.png");
-    backBtn->setTitleText("Retreat");
-    backBtn->setPosition(Vec2(100, visibleSize.height - 50));
-    backBtn->addClickEventListener([=](Ref* sender) {
-        // 切换回家园场景
+    // 3. 【新增】创建提示文字
+    m_infoLabel = Label::createWithSystemFont("Selected: Barbarian", "Arial", 24);
+    m_infoLabel->setPosition(Vec2(visibleSize.width / 2, 50)); // 放在底部中间
+    this->addChild(m_infoLabel, 10);
+
+    // 4. 【新增】创建一排选择按钮
+    // 参数：名字，颜色，类型，第几个(用于排版)
+    createSelectButton("Barb", Color3B::GREEN, TroopType::BARBARIAN, 0);
+    createSelectButton("Arch", Color3B::MAGENTA, TroopType::ARCHER, 1);
+    createSelectButton("Giant", Color3B::ORANGE, TroopType::GIANT, 2);
+    createSelectButton("Bomb", Color3B::GRAY, TroopType::BOMBERMAN, 3); // 白色按钮文字看不清，用灰色代替背景
+
+    // 5. 撤退按钮 (保持不变)
+    auto backBtn = Button::create("CloseNormal.png");
+    backBtn->setTitleText("Back");
+    backBtn->setPosition(Vec2(50, visibleSize.height - 50));
+    backBtn->addClickEventListener([=](Ref*) {
         Director::getInstance()->replaceScene(TransitionFade::create(0.5f, HelloWorld::createScene()));
         });
     this->addChild(backBtn);
 
-    // 4. 设置触摸监听 (点击屏幕放兵)
+    // 6. 触摸监听
     auto listener = EventListenerTouchOneByOne::create();
     listener->onTouchBegan = CC_CALLBACK_2(BattleScene::onTouchBegan, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
@@ -48,12 +61,41 @@ bool BattleScene::init() {
     return true;
 }
 
+// 【新增】辅助函数：快速创建按钮
+void BattleScene::createSelectButton(const std::string& title, Color3B color, TroopType type, int index) {
+    Size visibleSize = Director::getInstance()->getVisibleSize();
+
+    // 创建按钮
+    auto btn = Button::create("CloseNormal.png");
+    btn->setColor(color); // 染成兵种的颜色
+    btn->setTitleText(title);
+    btn->setTitleFontSize(20);
+
+    // 排列在右下角
+    // index * 60 意味着每个按钮间隔 60 像素
+    btn->setPosition(Vec2(visibleSize.width - 250 + index * 60, 50));
+
+    // 点击逻辑
+    btn->addClickEventListener([=](Ref*) {
+        // 1. 更新选中的类型
+        m_selectedType = type;
+
+        // 2. 更新文字提示
+        m_infoLabel->setString("Selected: " + title);
+        m_infoLabel->setColor(color);
+        });
+
+    this->addChild(btn, 10); // ZOrder设为10，防止被兵种遮挡
+}
+
 bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
-    // 获取点击位置
     Vec2 touchLoc = touch->getLocation();
 
-    // 在点击处生成一个野蛮人 (或者你可以做个UI选兵种)
-    auto troop = Troop::create(TroopType::BARBARIAN);
+    // 如果点击到了按钮区域（屏幕下方 80 像素内），就不放兵，防止误触
+    if (touchLoc.y < 80) return false;
+
+    // 【修改】使用当前选中的类型 (m_selectedType)
+    auto troop = Troop::create(m_selectedType);
     troop->setPosition(touchLoc);
     this->addChild(troop);
 
@@ -62,6 +104,5 @@ bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
 
 void BattleScene::onExit() {
     Scene::onExit();
-    // 离开战斗时，再次清理，防止把敌人的建筑带回家
     BattleManager::getInstance()->clear();
 }
