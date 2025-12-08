@@ -125,6 +125,10 @@ void Building::initBuildingProperties() {
         // 建造出来时，让大管家增加 1000 容量
         GameManager::getInstance()->modifyMaxElixir(1000);
         break;
+    case BuildingType::BARRACKS:
+        filename = "Barracks.png";
+        hp = 1000;
+        break;
     default:
         break;
     }

@@ -11,6 +11,7 @@ struct ShopItem {
     BuildingType type;
     int price;
     bool isGold; // true=金币买, false=圣水买
+    std::string iconPath; // 【新增】存放图标文件名的变量
 };
 
 class HelloWorld : public cocos2d::Scene
@@ -74,6 +75,7 @@ private:
     Building* getBarracksAtPosition(cocos2d::Vec2 pos); // 用于处理点击军营的逻辑
     cocos2d::ui::Button* m_barracksShopButton;          // 用于在建造后移除商店按钮
     BarracksUI* m_barracksUI;                           // 军营UI实例
+    void createShopItemButton(const ShopItem& item, cocos2d::Vec2 pos, float iconScale = 0.8f);
 };
 
 #endif // __HELLOWORLD_SCENE_H__

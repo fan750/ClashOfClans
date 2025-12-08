@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="30" tilewidth="16" tileheight="16" infinite="0" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" name="grass" tilewidth="16" tileheight="16" tilecount="1" columns="1">
+  <image source="tile_0001.png" width="16" height="16"/>
+ </tileset>
+ <tileset firstgid="2" name="grass1" tilewidth="16" tileheight="16" tilecount="1" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image source="tile_0000.png" width="16" height="16"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="3" name="grass2" tilewidth="16" tileheight="16" tilecount="1" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image source="tile_0002.png" width="16" height="16"/>
+  </tile>
+ </tileset>
+ <layer id="1" name="Layer1" width="40" height="30">
+  <data encoding="base64" compression="zlib">
+   eJy9l0sOxDAIQ9Pm/neeVaUoAmMbNAs2aT4PbJD6rrVeIZ4jorUH7I/2oe9OsOxVDtN8FQvzHa3tZn2ierC82dlJzVQ9qzqyfAxHFpvM7dNvJ28ijaM3K/4o/6y/1Z5hfMK8eXswu7vLV/mw8s8/+ZT3oh6emIlq/SYjy9H13xdMnyozQOFz6om0UvZ3+O57mPqxbIiP8a0alf6OTyf52LNZHqfPJ3rZ6QOkues/RzdFB5avqqvKkvU1c++Urqq+zJxQ9I72RXp3fJT5UcknYnb7/M4n8xV6n/FJ1U9qzRg+VGvFExN9gDRX+wkxuHMl4rvXEZ87FxWfubkr/r81OfNDjNl/kqpZV2fk10wz1m9OdP1Q+W6CTT33A7nQBuc=
+  </data>
+ </layer>
+</map>

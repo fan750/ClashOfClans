@@ -95,10 +95,10 @@ bool HelloWorld::init() {
         0.3f);
     uiLayer->addChild(menu_music);//添加音乐菜单
     // 3. 【新增】商店按钮 (放在左下角)
-    auto shopBtn = Button::create("CloseNormal.png");
+    auto shopBtn = Button::create("shop_icon.png");
+    shopBtn->setScale(0.1f);
     shopBtn->setTitleText("SHOP");
     shopBtn->setTitleFontSize(24);
-    shopBtn->setColor(Color3B::ORANGE);
     shopBtn->setPosition(Vec2(visibleSize.width - 400, 125));
     shopBtn->addClickEventListener([=](Ref*) {
         this->toggleShop(); // 点击开关商店
@@ -109,8 +109,8 @@ bool HelloWorld::init() {
     initShopUI();
 
     // 5. 进攻按钮 (之前的代码，保持不变)
-    auto attackBtn = Button::create("assault.png");
-    attackBtn->setScale(0.3f);
+    auto attackBtn = Button::create("attack_icon.png");
+    attackBtn->setScale(0.15f);
     attackBtn->setPosition(Vec2(visibleSize.width*0.92f, visibleSize.height*0.1f));
     attackBtn->addClickEventListener([=](Ref*) {
         auto scene = LevelMapScene::createScene();
@@ -149,50 +149,65 @@ bool HelloWorld::init() {
 void HelloWorld::initShopUI() {
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
-    // 1. 创建一个半透明黑色背景板
+    // 1. 创建商店背景板 (依然使用 Layout，方便作为容器)
     m_shopLayer = Layout::create();
+
+    // 假设你的图片叫 "ShopBackground.png"，记得放入 Resources 文件夹
+    m_shopLayer->setBackGroundImage("ShopBackground.png");
+
+    // 设置面板的大小 (如果不设置，默认是图片大小)
+    // 如果你想强制指定大小，可以用下面这行，否则可以注释掉让图片决定大小
     m_shopLayer->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.6));
-    m_shopLayer->setBackGroundColorType(Layout::BackGroundColorType::SOLID);
-    m_shopLayer->setBackGroundColor(Color3B::BLACK);
-    m_shopLayer->setBackGroundColorOpacity(200);
+    // 创建好 layout 后，直接设置整体缩放
+    m_shopLayer->setScale(0.8f); // 缩小到 80%
+
     // 居中显示
-    m_shopLayer->setPosition(Vec2(visibleSize.width * 0.1, visibleSize.height * 0.2));
+    // 注意：如果用图片，AnchorPoint 默认是 (0,0)，为了方便居中，建议改成 (0.5, 0.5)
+    m_shopLayer->setAnchorPoint(Vec2(0.5, 0.5));
+    m_shopLayer->setPosition(visibleSize / 2); // 直接放在屏幕正中间
+
     m_shopLayer->setVisible(false); // 默认看不见
     this->addChild(m_shopLayer, 200); // 层级很高，盖住一切
 
-    // 2. 定义商品列表
+    // 2. 定义商品列表 (增加对应的图标路径)
     std::vector<ShopItem> items = {
-        {"Gold Mine", BuildingType::GOLD_MINE, 100, false}, // 100圣水买金矿
-        {"Cannon", BuildingType::CANNON, 200, true},        // 200金币买加农炮
-        {"Wall", BuildingType::WALL, 50, true},             // 50金币买墙
-        {"Archer Twr", BuildingType::ARCHER_TOWER, 300, true},
-        { "Barracks", BuildingType::BARRACKS, 500, true },            // 500金币购买军营
-        { "Elixir Pump", BuildingType::ELIXIR_COLLECTOR, 100, true }, // 用金币买收集器
-        {"Elixir Tank", BuildingType::ELIXIR_STORAGE, 300, true},   // 用金币买圣水瓶
-        {"Gold Storage", BuildingType::GOLD_STORAGE, 300, false}    // 用圣水买储金罐
+        {"Gold Mine", BuildingType::GOLD_MINE, 100, false, "GoldMine.png"},
+        {"Cannon", BuildingType::CANNON, 200, true, "Cannon.png"},
+        {"Wall", BuildingType::WALL, 50, true, "Wall.png"},
+        {"Archer Twr", BuildingType::ARCHER_TOWER, 300, true, "ArcherTower.png"},
+        {"Barracks", BuildingType::BARRACKS, 500, true, "Barracks.png"},
+        {"Elixir Pump", BuildingType::ELIXIR_COLLECTOR, 100, true, "ElixirCollector.png"},
+        {"Elixir Tank", BuildingType::ELIXIR_STORAGE, 300, true, "ElixirStorage.png"},
+        {"Gold Storage", BuildingType::GOLD_STORAGE, 300, false, "GoldStorage.png"}
     };
 
-    // 3. 循环创建商品按钮
-    for (int i = 0; i < items.size(); i++) {
-        ShopItem item = items[i];
+    // 面板高度 400
+    float row1_Y = 480; // 第一排的高度 (靠上)
+    float row2_Y = 40; // 第二排的高度 (靠下)
 
-        auto btn = Button::create("CloseNormal.png");
-        btn->setTitleText(item.name + "\n$" + std::to_string(item.price));
-        btn->setTitleFontSize(16);
-        // 简单排版：每行放 4 个 (这里简单点，直接横排)
-        btn->setPosition(Vec2(100 + i * 150, m_shopLayer->getContentSize().height / 2));
+    // 起始 X 坐标和间距
+    float start_X = 380;
+    float gap_X = 100;
 
-        // 点击购买
-        btn->addClickEventListener([=](Ref*) {
-            this->tryBuyBuilding(item);
-            });
+    // --- 第一排 (Row 1) ---
+    // 0: 金矿
+    createShopItemButton(items[0], Vec2(start_X + 0 * gap_X, row1_Y),0.6f);
+    // 1: 加农炮
+    createShopItemButton(items[1], Vec2(start_X + 3 * gap_X, row1_Y),0.6f);
+    // 2: 围墙
+    createShopItemButton(items[2], Vec2(start_X + 6 * gap_X, row1_Y),0.6f);
+    // 3: 箭塔
+    createShopItemButton(items[3], Vec2(start_X + 9* gap_X, row1_Y),0.6f);
 
-        m_shopLayer->addChild(btn);
-        if (item.type == BuildingType::BARRACKS)
-        {
-            m_barracksShopButton = btn;
-        }
-    }
+    // --- 第二排 (Row 2) ---
+    // 4: 军营
+    createShopItemButton(items[4], Vec2(start_X + 0 * gap_X, row2_Y),1.8f);
+    // 5: 收集器
+    createShopItemButton(items[5], Vec2(start_X + 3 * gap_X, row2_Y),1.8f);
+    // 6: 圣水瓶
+    createShopItemButton(items[6], Vec2(start_X + 6 * gap_X, row2_Y),1.8f);
+    // 7: 储金罐
+    createShopItemButton(items[7], Vec2(start_X + 9 * gap_X, row2_Y),1.8f);
 }
 
 void HelloWorld::toggleShop() {
@@ -514,4 +529,47 @@ void HelloWorld::playCollectAnimation(int amount, Vec2 startPos, BuildingType ty
 
     // 5. 播放音效 (如果之前加了的话)
     // SimpleAudioEngine::getInstance()->playEffect("collect.wav");
+}
+// 这是一个通用的“造按钮”工厂
+void HelloWorld::createShopItemButton(const ShopItem& item, Vec2 pos, float iconScale) {
+    // 1. 创建统一底座 (相框)
+    auto btn = Button::create("ItemFrame.png");
+    btn->setScale(0.4f);
+    btn->setPosition(pos);
+
+    // 2. 添加专属图标
+    auto icon = Sprite::create(item.iconPath);
+    if (icon) {
+        icon->setPosition(btn->getContentSize() / 2);
+        // 【关键修改】这里使用参数 iconScale，而不是写死的数字
+        icon->setScale(iconScale);
+        btn->addChild(icon);
+    }
+
+    // 3. 添加价格标签
+    std::string currencyStr = item.isGold ? "Gold: " : "Elixir: ";
+    auto priceLabel = Label::createWithSystemFont(currencyStr + std::to_string(item.price), "Arial", 14);
+    // 放在底座下方外部，或者底座内部下方，这里放在底座内部靠下
+    priceLabel->setPosition(Vec2(btn->getContentSize().width / 2, 80));
+    // 如果底座颜色深，字体用白色；如果底座浅，用黑色
+    priceLabel->setColor(Color3B::BLACK);
+    priceLabel->setScale(5);
+    auto name = Label::createWithSystemFont(item.name, "Arial", 18);
+    name->setPosition(Vec2(btn->getContentSize().width / 2, 160));
+    name->setColor(Color3B::BLACK);
+    name->setScale(5);
+
+    btn->addChild(priceLabel);
+    btn->addChild(name);
+
+    // 4. 绑定点击事件
+    btn->addClickEventListener([=](Ref*) {
+        this->tryBuyBuilding(item);
+        });
+
+    // 5. 加到商店面板
+    m_shopLayer->addChild(btn);
+
+    // (可选) 如果是军营，记录下来方便新手引导
+    // if (item.type == BuildingType::BARRACKS) m_barracksShopButton = btn;
 }
