@@ -37,6 +37,16 @@ protected:
     float m_attackInterval;
     float m_attackTimer;
     Building* m_target;
+
+    // 保存基础缩放，用于在播放缩放动画时保持相对比例
+    float m_baseScale;
+
+    // 标记当前是否在播放攻击动画，防止重复触发
+    bool m_isAttacking;
+
+    // store resource filenames for this troop instance
+    std::string m_walkPlist;
+    std::string m_attackPlist;
 };
 
 #endif // __TROOP_H__

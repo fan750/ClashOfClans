@@ -124,6 +124,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     auto scene = Load::createScene();
 
     // run
+    SpriteFrameCache::getInstance()->addSpriteFramesWithFile("hero1-walk.plist");
     director->runWithScene(scene);
 
     return true;
