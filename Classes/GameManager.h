@@ -47,7 +47,7 @@ public:
     void setTroopCount(TroopType type, int count);              // 设置兵种数量（用于战斗结束后同步）
     const std::map<TroopType, int>& getAllTroopCounts() const;  // 获取所有兵种数量
     void resetAllTroops();                                      // 重置所有兵种数量为0（战斗结束后调用）
-
+    void clear();
 private:
     GameManager();
     static GameManager* s_instance;

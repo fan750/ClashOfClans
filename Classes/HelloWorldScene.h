@@ -76,6 +76,16 @@ private:
     cocos2d::ui::Button* m_barracksShopButton;          // 用于在建造后移除商店按钮
     BarracksUI* m_barracksUI;                           // 军营UI实例
     void createShopItemButton(const ShopItem& item, cocos2d::Vec2 pos, float iconScale = 0.8f);
+
+    // 【核心】游戏世界容器层
+    // 背景图和所有建筑都加到这个层上，拖拽时只移动这个层
+    cocos2d::Node* m_gameLayer;
+
+    // 地图的总大小 (背景图的真实尺寸)
+    cocos2d::Size m_mapSize;
+
+    // 记录手指上一次触摸的位置
+    cocos2d::Vec2 m_lastTouchPos;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

@@ -142,7 +142,7 @@ void Building::initBuildingProperties() {
     // 5. 【可选】调整大小 (Scale)
     // 图片可能很大(比如 500x500)，我们需要把它缩放到合适的大小(比如 64x64)
     // 假设你想让所有建筑大约占 60x60 像素：
-    float targetSize = 100.0f;
+    float targetSize = 150.0f;
     Size contentSize = this->getContentSize(); // 获取图片原始大小
     if (contentSize.width > 0) {
         this->setScale(targetSize / contentSize.width);

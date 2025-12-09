@@ -133,3 +133,11 @@ void GameManager::resetAllTroops() // 重置所有兵种数量为0（战斗结束后调用）
     }
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_TROOPS");
 }
+void GameManager::clear() {
+    // 清空建筑列表
+    m_homeBuildings.clear();
+
+    // (可选) 重置金币
+    m_gold = 500;
+    m_elixir = 500;
+}
