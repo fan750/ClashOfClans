@@ -69,6 +69,9 @@
     <ClCompile Include="..\Classes\loadscene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="..\Classes\loadscene.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -111,6 +114,9 @@
       <Filter>src\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\HelloWorldScene.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\loadscene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\loadscene.h">

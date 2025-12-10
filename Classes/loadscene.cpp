@@ -42,7 +42,7 @@ bool Load::init()
         Size texSize = sprite->getContentSize();
         float scaleX = visibleSize.width / texSize.width;
         float scaleY = visibleSize.height / texSize.height;
-        float scale = std::max(scaleX, scaleY); // 等比缩放，完整显示
+        float scale = std::max(scaleX, scaleY); // ??±???·????ê??????
         sprite->setScale(scale);
         sprite->setPosition(visibleSize / 2);
         layer->addChild(sprite);
