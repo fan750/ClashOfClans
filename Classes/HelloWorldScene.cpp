@@ -1,6 +1,7 @@
+//HelloWorldScene.cpp
 #include "HelloWorldScene.h"
 #include "SimpleAudioEngine.h"
-#include "GameEntity.h" // 根据你的实际路径，可能是 "GameEntity.h"
+#include "GameEntity.h"
 #include "Building.h"
 #include "Troop.h"
 #include "GameManager.h"
@@ -26,49 +27,75 @@ static void problemLoading(const char* filename)
 
 // on "init" you need to initialize your instance
 bool HelloWorld::init() {
+
     if (!Scene::init()) return false;
+    // 只在首次启动时初始化
+    if (!GameManager::getInstance()->isInitialized()) {
+        GameManager::getInstance()->initAccount(500, 500);
+    }
 
     Size visibleSize = Director::getInstance()->getVisibleSize();
-    // 1. 创建背景精灵 (确保文件名正确，且图片在 Resources 里)
-    auto background = Sprite::create("battleback1.png");
 
+    // 1. 先初始化数据 (最先做！)
+    GameManager::getInstance()->initAccount(500, 500);
+    m_pendingBuilding = nullptr;
+    m_selectedBuilding = nullptr;
+    m_isConfirming = false;
+    m_confirmLayer = nullptr;
+
+    // 2. 创建游戏容器层 (桌布)
+    m_gameLayer = Node::create();
+    // m_gameLayer->setPosition(Vec2::ZERO);
+    this->addChild(m_gameLayer); // Layer 加到 Scene 上
+
+    // 3. 加载背景图
+    auto background = Sprite::create("background1.png");
     if (background) {
-        // 2. 放在屏幕正中间
-        background->setPosition(visibleSize / 2);
+        background->setAnchorPoint(Vec2(0, 0));
+        background->setPosition(0, 0);
+        float scale = (visibleSize.width * 3.0f) / background->getContentSize().width;
+        background->setScale(scale);
 
-        // 3. 【关键】自动缩放以铺满屏幕
-        // 获取图片原始大小
-        Size bgSize = background->getContentSize();
+        m_mapSize = background->getContentSize() * scale;
+        m_gameLayer->addChild(background, -99); // 加到 m_gameLayer
+        // 公式：Layer位置 = 屏幕中心 - 地图中心
+        Vec2 screenCenter = visibleSize / 2;
+        Vec2 mapCenter = Vec2(m_mapSize.width / 2, m_mapSize.height / 2);
 
-        // 计算需要的缩放倍数
-        float scaleX = visibleSize.width / bgSize.width;
-        float scaleY = visibleSize.height / bgSize.height;
-
-        // 取较大的那个缩放值，确保不留黑边 (Cover 模式)
-        float finalScale = std::max(scaleX, scaleY);
-        background->setScale(finalScale);
-
-        // 4. 放在最底层 (ZOrder = -99)
-        this->addChild(background, -99);
+        // 设置 m_gameLayer 的位置
+        m_gameLayer->setPosition(screenCenter - mapCenter);
     }
     else {
         CCLOG("Error: Background image not found!");
+        m_mapSize = visibleSize * 2;
     }
-    auto myTown = Building::create(BuildingType::TOWN_HALL);
-    myTown->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
-    this->addChild(myTown);
 
-    // 1. 初始化数据
-    // 因为我们在 GameManager 里加了检查，所以这里放心调用，只有第一次会给 2000
-    GameManager::getInstance()->initAccount(500, 500);
-    m_pendingBuilding = nullptr;
+    // 4. 恢复/创建 建筑
+    const auto& savedBuildings = GameManager::getInstance()->getHomeBuildings();
+    if (savedBuildings.empty()) {
+        // --- 第一次玩：新建大本营 ---
+        auto myTown = Building::create(BuildingType::TOWN_HALL);
+        // 【关键】放在地图中心，而不是屏幕中心
+        Vec2 centerMapPos = Vec2(m_mapSize.width / 2, m_mapSize.height / 2);
+        myTown->setPosition(centerMapPos);
 
-    // 新增：当前选中的建筑初始化为 nullptr
-    m_selectedBuilding = nullptr;
+        // 【关键】加到 m_gameLayer，这样它才会跟着地图动！
+        m_gameLayer->addChild(myTown);
 
-    // 【新增】初始化
-    m_isConfirming = false;
-    m_confirmLayer = nullptr;
+        // 立即存档
+        GameManager::getInstance()->addHomeBuilding(BuildingType::TOWN_HALL, centerMapPos);
+    }
+    else {
+        // --- 有存档：恢复建筑 ---
+        for (const auto& data : savedBuildings) {
+            auto b = Building::create(data.type);
+            b->setPosition(data.position);
+            b->setOpacity(255);
+            // 【关键】加到 m_gameLayer
+            m_gameLayer->addChild(b);
+            // b->activateBuilding(); 
+        }
+    }
 
     // 2. 添加 UI 层 (之前的代码)
     auto uiLayer = GameUI::create();
@@ -111,12 +138,16 @@ bool HelloWorld::init() {
     // 5. 进攻按钮 (之前的代码，保持不变)
     auto attackBtn = Button::create("attack_icon.png");
     attackBtn->setScale(0.15f);
-    attackBtn->setPosition(Vec2(visibleSize.width*0.92f, visibleSize.height*0.1f));
-    attackBtn->addClickEventListener([=](Ref*) {
-        auto scene = LevelMapScene::createScene();
-        Director::getInstance()->replaceScene(TransitionFade::create(0.5f, scene));
-        });
+    attackBtn->setPosition(Vec2(visibleSize.width * 0.92f, visibleSize.height * 0.1f));
+    attackBtn->addClickEventListener
+    ([=](Ref*)
+        {
+            auto scene = LevelMapScene::createScene();
+            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, scene));
+        }
+    );
     this->addChild(attackBtn);
+
     // 初始化军营UI，并添加到场景中，但默认隐藏
     m_barracksUI = BarracksUI::create();
     this->addChild(m_barracksUI, 300); // 确保层级最高
@@ -124,23 +155,13 @@ bool HelloWorld::init() {
     // ==========================================
     // 【新增】 关键步骤：恢复之前保存的建筑
     // ==========================================
-    const auto& savedBuildings = GameManager::getInstance()->getHomeBuildings();
-    for (const auto& data : savedBuildings) {
-        // 按照保存的类型和位置，重新创建实体
-        auto b = Building::create(data.type);
-        b->setPosition(data.position);
-        // 因为是恢复出来的，已经是实体的，所以不透明度设为255
-        b->setOpacity(255);
-        this->addChild(b);
-        b->activateBuilding();
-    }
 
-    // 6. 注册触摸监听 (用于放置建筑)
+
+    // 6. 触摸监听 (保持不变)
     auto listener = EventListenerTouchOneByOne::create();
-    // setSwallowTouches(true) 表示如果我在放置建筑，别的东西就别响应触摸了
     listener->setSwallowTouches(true);
     listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
-    listener->onTouchMoved = CC_CALLBACK_2(HelloWorld::onTouchMoved, this); // 移动跟随
+    listener->onTouchMoved = CC_CALLBACK_2(HelloWorld::onTouchMoved, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
     return true;
@@ -175,10 +196,10 @@ void HelloWorld::initShopUI() {
         {"Cannon", BuildingType::CANNON, 200, true, "Cannon.png"},
         {"Wall", BuildingType::WALL, 50, true, "Wall.png"},
         {"Archer Twr", BuildingType::ARCHER_TOWER, 300, true, "ArcherTower.png"},
-        {"Barracks", BuildingType::BARRACKS, 500, true, "Barracks.png"},
         {"Elixir Pump", BuildingType::ELIXIR_COLLECTOR, 100, true, "ElixirCollector.png"},
         {"Elixir Tank", BuildingType::ELIXIR_STORAGE, 300, true, "ElixirStorage.png"},
-        {"Gold Storage", BuildingType::GOLD_STORAGE, 300, false, "GoldStorage.png"}
+        {"Gold Storage", BuildingType::GOLD_STORAGE, 300, false, "GoldStorage.png"},
+        {"Barracks", BuildingType::BARRACKS, 500, true, "Barracks.png"}
     };
 
     // 面板高度 400
@@ -191,23 +212,23 @@ void HelloWorld::initShopUI() {
 
     // --- 第一排 (Row 1) ---
     // 0: 金矿
-    createShopItemButton(items[0], Vec2(start_X + 0 * gap_X, row1_Y),0.6f);
+    createShopItemButton(items[0], Vec2(start_X + 0 * gap_X, row1_Y), 0.6f);
     // 1: 加农炮
-    createShopItemButton(items[1], Vec2(start_X + 3 * gap_X, row1_Y),0.6f);
+    createShopItemButton(items[1], Vec2(start_X + 3 * gap_X, row1_Y), 0.6f);
     // 2: 围墙
-    createShopItemButton(items[2], Vec2(start_X + 6 * gap_X, row1_Y),0.6f);
+    createShopItemButton(items[2], Vec2(start_X + 6 * gap_X, row1_Y), 0.6f);
     // 3: 箭塔
-    createShopItemButton(items[3], Vec2(start_X + 9* gap_X, row1_Y),0.6f);
+    createShopItemButton(items[3], Vec2(start_X + 9 * gap_X, row1_Y), 0.6f);
 
     // --- 第二排 (Row 2) ---
-    // 4: 军营
-    createShopItemButton(items[4], Vec2(start_X + 0 * gap_X, row2_Y),1.8f);
-    // 5: 收集器
-    createShopItemButton(items[5], Vec2(start_X + 3 * gap_X, row2_Y),1.8f);
-    // 6: 圣水瓶
-    createShopItemButton(items[6], Vec2(start_X + 6 * gap_X, row2_Y),1.8f);
-    // 7: 储金罐
-    createShopItemButton(items[7], Vec2(start_X + 9 * gap_X, row2_Y),1.8f);
+    // 4: 收集器
+    createShopItemButton(items[4], Vec2(start_X + 3 * gap_X, row2_Y), 1.8f);
+    // 5: 圣水瓶
+    createShopItemButton(items[5], Vec2(start_X + 6 * gap_X, row2_Y), 1.8f);
+    // 6: 储金罐
+    createShopItemButton(items[6], Vec2(start_X + 9 * gap_X, row2_Y), 1.8f);
+    // 7: 军营
+    createShopItemButton(items[7], Vec2(start_X + 0 * gap_X, row2_Y), 1.8f);
 }
 
 void HelloWorld::toggleShop() {
@@ -224,84 +245,118 @@ void HelloWorld::tryBuyBuilding(const ShopItem& item) {
         // 这里可以做一个 Tip 提示 "资金不足"
         return;
     }
-
-    // 2. 钱够了，关闭商店，进入“放置模式”
     toggleShop();
-
-    // 3. 创建虚影建筑
+    // 3. 创建虚影
     if (m_pendingBuilding) {
-        m_pendingBuilding->removeFromParent(); // 如果之前有一个没放下去，先删了
+        m_pendingBuilding->removeFromParent();
     }
 
     m_pendingBuilding = Building::create(item.type);
-    // 设置半透明，表示还没放好
     m_pendingBuilding->setOpacity(128);
-    // 放在屏幕中心跟随
-    m_pendingBuilding->setPosition(Director::getInstance()->getVisibleSize() / 2);
-    this->addChild(m_pendingBuilding);
 
-    // 4. 记录价格，等放下去的时候再扣
+    // 4. 加到地图层
+    m_gameLayer->addChild(m_pendingBuilding);
+
+    // 5. 设置初始位置 (屏幕中心 -> 转换到地图坐标)
+    Vec2 centerScreen = Director::getInstance()->getVisibleSize() / 2;
+    Vec2 worldPos = m_gameLayer->convertToNodeSpace(centerScreen);
+    m_pendingBuilding->setPosition(worldPos);
+
+    // 6. 记录价格
     m_pendingCost = item.price;
     m_pendingIsGold = item.isGold;
 }
-// 手指移动时，建筑跟着跑
+
 void HelloWorld::onTouchMoved(Touch* touch, Event* event) {
-    if (m_pendingBuilding && !m_isConfirming) {
-        m_pendingBuilding->setPosition(touch->getLocation());
+    // 情况A: 正在拖拽放置建筑
+    if (m_pendingBuilding) {
+        // 1. 获取屏幕触摸点
+        Vec2 screenPos = touch->getLocation();
+
+        // 2. 转换为地图坐标
+        Vec2 worldPos = m_gameLayer->convertToNodeSpace(screenPos);
+
+        // 3. 建筑跟随鼠标
+        m_pendingBuilding->setPosition(worldPos);
+
+        // ==========================================
+        // 【核心修复】 让按钮也跟着走！
+        // ==========================================
+        if (m_confirmLayer) {
+            m_confirmLayer->setPosition(worldPos);
+        }
+
+        return;
+    }
+    // --- 地图拖拽逻辑 ---
+    if (m_gameLayer)
+    {
+        // 1. 计算手指移动了多少
+        Vec2 currentTouchPos = touch->getLocation();
+        Vec2 delta = currentTouchPos - m_lastTouchPos;
+
+        // 2. 计算目标位置
+        Vec2 newPos = m_gameLayer->getPosition() + delta;
+
+        // 3. 【核心】边界限制 (Clamping)
+        Size visibleSize = Director::getInstance()->getVisibleSize();
+
+        // X轴限制：在 [-(地图宽-屏幕宽), 0] 之间
+        float minX = -(m_mapSize.width - visibleSize.width);
+        float maxX = 0;
+
+        // Y轴限制：在 [-(地图高-屏幕高), 0] 之间
+        float minY = -(m_mapSize.height - visibleSize.height);
+        float maxY = 0;
+
+        // 如果地图比屏幕还小，就锁死在 0 (或者居中)
+        if (m_mapSize.width <= visibleSize.width) {
+            minX = 0; maxX = 0;
+        }
+        if (m_mapSize.height <= visibleSize.height) {
+            minY = 0; maxY = 0;
+        }
+
+        // 执行限制
+        newPos.x = std::max(minX, std::min(newPos.x, maxX));
+        newPos.y = std::max(minY, std::min(newPos.y, maxY));
+
+        // 4. 应用位置
+        m_gameLayer->setPosition(newPos);
+
+        // 5. 更新记录点
+        m_lastTouchPos = currentTouchPos;
     }
 }
 
 // 手指按下时
 bool HelloWorld::onTouchBegan(Touch* touch, Event* event) {
-    // 情况A: 正在等待确认中
-    if (m_isConfirming) {
-        return true;
-    }
+    // 记录一下初始位置，供地图拖拽计算用
+    m_lastTouchPos = touch->getLocation();
 
-    // 情况B: 正在拖拽虚影，准备定点
+    // 如果正在放置建筑
     if (m_pendingBuilding) {
-        // 1. 定格位置
-        m_pendingBuilding->setPosition(touch->getLocation());
+        // 1. 【核心修改】同样要进行坐标转换
+        Vec2 screenPos = touch->getLocation();
+        Vec2 worldPos = m_gameLayer->convertToNodeSpace(screenPos);
 
-        // 2. 【关键】进入确认模式
+        // 2. 设置最终确认的位置
+        m_pendingBuilding->setPosition(worldPos);
+
+        // 3. 弹出确认框 (使用之前的逻辑)
         m_isConfirming = true;
+        showConfirmationUI(worldPos); // 确认框也显示在建筑旁边
+        if (m_confirmLayer) {
+            m_confirmLayer->setPosition(worldPos);
+        }
 
-        // 3. 弹出确认菜单
-        showConfirmationUI(touch->getLocation());
+        // 如果还没显示按钮，就显示出来
+        if (!m_isConfirming) {
+            m_isConfirming = true;
+            showConfirmationUI(worldPos);
+        }
 
         return true;
-    }
-    // 如果当前正在放置建筑
-    if (m_pendingBuilding) {
-
-        // 1. 确认放置位置
-        Vec2 location = touch->getLocation();
-        m_pendingBuilding->setPosition(location);
-
-        // 2. 恢复不透明 (表示实体化了)
-        m_pendingBuilding->setOpacity(255);
-
-        // 3. 真正的扣钱
-        if (m_pendingIsGold) {
-            GameManager::getInstance()->addGold(-m_pendingCost); // 负数就是扣钱
-        }
-        else {
-            GameManager::getInstance()->addElixir(-m_pendingCost);
-        }
-
-        // ==========================================
-        // 【新增】 关键步骤：保存到大管家的小本本上
-        // ==========================================
-        GameManager::getInstance()->addHomeBuilding(
-            m_pendingBuilding->getBuildingType(), // 获取类型
-            m_pendingBuilding->getPosition()      // 获取位置
-        );
-
-        // 4. 放置完成，清空指针
-        m_pendingBuilding = nullptr;
-
-        CCLOG("Building Placed!");
-        return true; // 吞噬触摸，防止点到别的东西
     }
 
     // 如果商店是开着的，点击外部可以关闭商店
@@ -314,36 +369,47 @@ bool HelloWorld::onTouchBegan(Touch* touch, Event* event) {
         }
     }
 
-    // 如果没在干别的，就检测是不是点到了建筑 (用于收集资源或选中)
-    Vec2 touchLoc = touch->getLocation();
+    // 1. 获取屏幕坐标
+    Vec2 screenPos = touch->getLocation();
+    // 2. 【关键】转换为地图坐标！
+    // 所有的建筑都在 m_gameLayer 上，所以必须用在这个坐标系下的点去判断
+    Vec2 worldPos = m_gameLayer->convertToNodeSpace(screenPos);
+
     bool hitBuilding = false;
-    if (!m_pendingBuilding && !m_isConfirming && !m_shopLayer->isVisible())
-    {
-        auto clickedBarracks = getBarracksAtPosition(touchLoc);
-        if (clickedBarracks)
-        {
+
+    // 检查是否点了军营 (使用 worldPos)
+    if (!m_pendingBuilding && !m_isConfirming && !m_shopLayer->isVisible()) {
+        // 修改 getBarracksAtPosition，让它接收 worldPos (见下一步)
+        auto clickedBarracks = getBarracksAtPosition(worldPos);
+        if (clickedBarracks) {
             CCLOG("Barracks clicked!");
-            m_barracksUI->show(); // 显示军营UI
-            return true; // 吞噬触摸，防止穿透
+            m_barracksUI->show();
+            return true;
         }
     }
-    for (auto node : this->getChildren()) {
+
+    // 遍历所有建筑 (使用 worldPos)
+    // 注意：这里要遍历 m_gameLayer 的子节点，而不是 this 的子节点！
+    // 因为建筑都加在 m_gameLayer 上了
+    for (auto node : m_gameLayer->getChildren()) {
         auto building = dynamic_cast<Building*>(node);
         if (building) {
             Rect boundingBox = building->getBoundingBox();
-            if (boundingBox.containsPoint(touchLoc)) {
+
+            // 【关键】使用转换后的 worldPos 进行判断
+            if (boundingBox.containsPoint(worldPos)) {
+
                 // 选中该建筑
                 selectBuilding(building);
 
-                // 执行收集！
+                // 收集资源
                 int amount = building->collectResource();
-
                 if (amount > 0) {
                     playCollectAnimation(amount, building->getPosition(), building->getBuildingType());
                 }
 
                 hitBuilding = true;
-                return true; // 吞噬触摸
+                return true;
             }
         }
     }
@@ -389,32 +455,35 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 
 // 显示 √ 和 × 按钮
 void HelloWorld::showConfirmationUI(Vec2 pos) {
-    // 创建一个节点容器，把两个按钮放进去，方便管理
+    if (m_confirmLayer) {
+        m_confirmLayer->removeFromParent();
+        m_confirmLayer = nullptr;
+    }
     m_confirmLayer = Node::create();
-    this->addChild(m_confirmLayer, 200); // 层级很高，保证在最上面
+
+    // 1. 把容器层加到地图上
+    m_gameLayer->addChild(m_confirmLayer, 200);
+
+    // 2. 【关键】容器层直接定位于建筑的位置
+    m_confirmLayer->setPosition(pos);
 
     // --- 1. 确定按钮 (绿色) ---
-    auto btnYes = Button::create("CloseNormal.png");
-    btnYes->setTitleText("YES");
-    btnYes->setTitleFontSize(20);
-    btnYes->setColor(Color3B::GREEN);
-    // 放在建筑右边
-    btnYes->setPosition(pos + Vec2(60, 0));
-    btnYes->addClickEventListener([=](Ref*) {
-        this->onConfirmPlacement();
-        });
+    auto btnYes = Button::create("yes.png");
+    btnYes->setScale(0.1f);
+
+    // 【关键】位置改为相对坐标 (相对于中心点向右偏移 60)
+    btnYes->setPosition(Vec2(80, 0));
+
+    btnYes->addClickEventListener([=](Ref*) { this->onConfirmPlacement(); });
     m_confirmLayer->addChild(btnYes);
 
     // --- 2. 取消按钮 (红色) ---
-    auto btnNo = Button::create("CloseNormal.png");
-    btnNo->setTitleText("NO");
-    btnNo->setTitleFontSize(20);
-    btnNo->setColor(Color3B::RED);
-    // 放在建筑左边
-    btnNo->setPosition(pos + Vec2(-60, 0));
-    btnNo->addClickEventListener([=](Ref*) {
-        this->onCancelPlacement();
-        });
+    auto btnNo = Button::create("no.png");
+    btnNo->setScale(0.07f);
+    // 放在 pos 的左边
+    btnNo->setPosition(Vec2(-80, 0));
+
+    btnNo->addClickEventListener([=](Ref*) { this->onCancelPlacement(); });
     m_confirmLayer->addChild(btnNo);
 }
 
@@ -473,17 +542,16 @@ void HelloWorld::onCancelPlacement() {
 
     CCLOG("Placement Cancelled!");
 }
-Building* HelloWorld::getBarracksAtPosition(Vec2 pos)
-{
-    // 遍历场景的所有子节点
-    for (auto child : this->getChildren())
+
+// 传入参数已经是转换好的 worldPos
+Building* HelloWorld::getBarracksAtPosition(Vec2 worldPos) {
+    // 【修改】遍历 m_gameLayer 的子节点，而不是 this
+    for (auto child : m_gameLayer->getChildren())
     {
-        // 尝试将子节点转换为Building类型
         auto building = dynamic_cast<Building*>(child);
-        if (building && building->getBuildingType() == BuildingType::BARRACKS)
-        {
-            // 检查点击位置是否在军营的包围盒内
-            if (building->getBoundingBox().containsPoint(pos))
+        if (building && building->getBuildingType() == BuildingType::BARRACKS) {
+            // 直接判断
+            if (building->getBoundingBox().containsPoint(worldPos))
             {
                 return building;
             }
@@ -491,6 +559,7 @@ Building* HelloWorld::getBarracksAtPosition(Vec2 pos)
     }
     return nullptr;
 }
+
 void HelloWorld::playCollectAnimation(int amount, Vec2 startPos, BuildingType type) {
     // 1. 决定飞什么图标 (金币还是圣水)
     std::string iconName = (type == BuildingType::GOLD_MINE) ? "coin_icon.png" : "elixir_icon.png";
@@ -498,11 +567,12 @@ void HelloWorld::playCollectAnimation(int amount, Vec2 startPos, BuildingType ty
     // 最好从 GameUI::getInstance() 获取，这里先硬编码近似位置
     Size visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 targetPos = Vec2(visibleSize.width - 100, visibleSize.height - 30);
+    Vec2 screenStartPos = m_gameLayer->convertToWorldSpace(startPos);
 
     auto icon = Sprite::create(iconName);
     icon->setScale(0.03);
 
-    icon->setPosition(startPos);
+    icon->setPosition(screenStartPos);
     this->addChild(icon, 200); // 层级要在最上面
 
     // 3. 飘字 (显示 +100)
@@ -530,6 +600,7 @@ void HelloWorld::playCollectAnimation(int amount, Vec2 startPos, BuildingType ty
     // 5. 播放音效 (如果之前加了的话)
     // SimpleAudioEngine::getInstance()->playEffect("collect.wav");
 }
+
 // 这是一个通用的“造按钮”工厂
 void HelloWorld::createShopItemButton(const ShopItem& item, Vec2 pos, float iconScale) {
     // 1. 创建统一底座 (相框)

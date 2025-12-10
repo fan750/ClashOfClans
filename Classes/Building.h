@@ -1,3 +1,4 @@
+//Building.h
 #ifndef __BUILDING_H__
 #define __BUILDING_H__
 
@@ -5,7 +6,8 @@
 #include "ui/CocosGUI.h"
 
 // 建筑类型枚举
-enum class BuildingType {
+enum class BuildingType
+{
     TOWN_HALL,      // 大本营
     GOLD_MINE,      // 金矿 (生产资源)
     ELIXIR_COLLECTOR, // 圣水收集器
@@ -17,7 +19,8 @@ enum class BuildingType {
     BARRACKS          // 军营
 };
 
-class Building : public GameEntity {
+class Building : public GameEntity
+{
 public:
     Building();
     virtual ~Building();

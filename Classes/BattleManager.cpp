@@ -1,41 +1,49 @@
+//BattleManager.cpp
 #include "BattleManager.h"
-#include "Troop.h" // 【关键修改】在 cpp 里引用 Troop
-#include"GameManager.h"
-
+#include "Troop.h"
+#include "GameManager.h"
+#include "Building.h"
 USING_NS_CC;
 
 BattleManager* BattleManager::s_instance = nullptr;
+BattleManager::BattleManager() {}
 
-BattleManager::BattleManager() {
-}
-
-BattleManager* BattleManager::getInstance() {
-    if (!s_instance) {
+BattleManager* BattleManager::getInstance()
+{
+    if (!s_instance)
+    {
         s_instance = new BattleManager();
     }
     return s_instance;
 }
 
-void BattleManager::addBuilding(Building* building) {
-    if (!m_buildings.contains(building)) {
+void BattleManager::addBuilding(Building* building)
+{
+    if (!m_buildings.contains(building))
+    {
         m_buildings.pushBack(building);
     }
 }
 
-void BattleManager::removeBuilding(Building* building) {
-    if (m_buildings.contains(building)) {
+void BattleManager::removeBuilding(Building* building)
+{
+    if (m_buildings.contains(building))
+    {
         m_buildings.eraseObject(building);
     }
 }
 
-Building* BattleManager::findClosestBuilding(Vec2 position) {
+Building* BattleManager::findClosestBuilding(Vec2 position)
+{
     Building* closestNode = nullptr;
     float minDistance = 999999.0f;
 
-    for (auto building : m_buildings) {
+    for (auto building : m_buildings)
+    {
         if (building->isDead()) continue;
         float distance = position.distance(building->getPosition());
-        if (distance < minDistance) {
+        if (distance < minDistance)
+        {
             minDistance = distance;
             closestNode = building;
         }
@@ -43,15 +51,19 @@ Building* BattleManager::findClosestBuilding(Vec2 position) {
     return closestNode;
 }
 
-Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType type) {
+Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType type)
+{
     Building* closestNode = nullptr;
     float minDistance = 999999.0f;
 
-    for (auto building : m_buildings) {
+    for (auto building : m_buildings)
+    {
         if (building->isDead()) continue;
-        if (building->getBuildingType() == type) {
+        if (building->getBuildingType() == type)
+        {
             float distance = position.distance(building->getPosition());
-            if (distance < minDistance) {
+            if (distance < minDistance)
+            {
                 minDistance = distance;
                 closestNode = building;
             }
@@ -60,26 +72,35 @@ Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType t
     return closestNode;
 }
 
-void BattleManager::addTroop(Troop* troop) {
-    if (!m_troops.contains(troop)) {
+void BattleManager::addTroop(Troop* troop)
+{
+    if (!m_troops.contains(troop))
+    {
         m_troops.pushBack(troop);
     }
 }
 
-void BattleManager::removeTroop(Troop* troop) {
-    if (m_troops.contains(troop)) {
+void BattleManager::removeTroop(Troop* troop)
+{
+    if (m_troops.contains(troop))
+    {
         m_troops.eraseObject(troop);
     }
 }
 
-Troop* BattleManager::findClosestTroop(Vec2 position, float range) {
+Troop* BattleManager::findClosestTroop(Vec2 position, float range, TroopMovementType typeFilter)
+{
     Troop* closestTroop = nullptr;
     float minDistance = range;
 
-    for (auto troop : m_troops) {
-        if (troop->isDead()) continue;
+    // 设置血量、阵营
+    for (Troop* troop : m_troops)
+    {
+        if (!troop || troop->isDead()) continue; // 跳过已死亡士兵
+        if (troop->getMovementType() != typeFilter) continue; // 关键：只找指定移动类型的兵种
         float distance = position.distance(troop->getPosition());
-        if (distance < minDistance) {
+        if (distance < minDistance)
+        {
             minDistance = distance;
             closestTroop = troop;
         }
@@ -87,23 +108,72 @@ Troop* BattleManager::findClosestTroop(Vec2 position, float range) {
     return closestTroop;
 }
 
-void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage) {
-    // 【关键修复】先收集，后扣血，防止迭代器崩溃
+Troop* BattleManager::findClosestTroopForBuilding(Building* building)
+{
+    if (!building) return nullptr;
+
+    float range = 150.0f; // 可以从建筑属性中获取，这里暂时写死
+    Troop* closestTroop = nullptr;
+    float minDistance = range;
+
+    // 根据建筑类型决定可以攻击的目标
+    bool canAttackAir = false;
+    bool canAttackGround = true; // 默认都能打地面
+
+    if (building->getBuildingType() == BuildingType::ARCHER_TOWER)
+    {
+        canAttackAir = true; // 箭塔可以打空中
+    }
+    else if (building->getBuildingType() == BuildingType::CANNON)
+    {
+        canAttackAir = false; // 加农炮不能打空中
+    }
+
+    for (Troop* troop : m_troops)
+    {
+        if (!troop || troop->isDead()) continue;
+
+        // 核心过滤逻辑
+        TroopMovementType troopType = troop->getMovementType();
+        if ((troopType == TroopMovementType::AIR && !canAttackAir) ||
+            (troopType == TroopMovementType::GROUND && !canAttackGround))
+        {
+            continue; // 跳过不能攻击的目标类型
+        }
+
+        float distance = building->getPosition().distance(troop->getPosition());
+        if (distance < minDistance)
+        {
+            minDistance = distance;
+            closestTroop = troop;
+        }
+    }
+
+    return closestTroop;
+}
+
+void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
+{
     std::vector<Building*> targetsToHit;
 
-    for (auto building : m_buildings) {
+    for (auto building : m_buildings)
+    {
         if (building->isDead()) continue;
-        if (building->getPosition().distance(center) <= radius) {
+        if (building->getPosition().distance(center) <= radius)
+        {
             targetsToHit.push_back(building);
         }
     }
 
-    for (auto building : targetsToHit) {
-        if (!building->isDead()) {
+    for (auto building : targetsToHit)
+    {
+        if (!building->isDead())
+        {
             building->takeDamage(damage);
         }
     }
 }
+
 void BattleManager::initAvailableTroops(const std::map<TroopType, int>& availableTroops)
 {
     m_availableTroops = availableTroops;
@@ -114,6 +184,7 @@ void BattleManager::initAvailableTroops(const std::map<TroopType, int>& availabl
     m_deployedTroops[TroopType::ARCHER] = 0;
     m_deployedTroops[TroopType::GIANT] = 0;
     m_deployedTroops[TroopType::BOMBERMAN] = 0;
+    m_deployedTroops[TroopType::DRAGON] = 0;
 
     // 记录初始兵种数量（从经营模式获取的总量）
     m_initialTroops = availableTroops;
@@ -215,10 +286,34 @@ const std::map<TroopType, int>& BattleManager::getAllAvailableTroops() const
     return m_availableTroops;
 }
 
+const Vector<Troop*>& BattleManager::getTroops() const
+{
+    return m_troops;
+}
+
 void BattleManager::clear()
 {
+    // 安全移除所有建筑引用
+    for (auto building : m_buildings)
+    {
+        if (building && building->getReferenceCount() > 0)
+        {
+            building->removeFromParent();
+        }
+    }
     m_buildings.clear();
+
+    // 安全移除所有兵种引用
+    for (auto troop : m_troops)
+    {
+        if (troop && troop->getReferenceCount() > 0)
+        {
+            troop->removeFromParent();
+        }
+    }
     m_troops.clear();
+
+    // 清空数据容器
     m_availableTroops.clear();
     m_deployedTroops.clear();
     m_initialTroops.clear();

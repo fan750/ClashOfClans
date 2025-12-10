@@ -1,17 +1,28 @@
+//Troop.h
 #ifndef __TROOP_H__
 #define __TROOP_H__
-
 #include "GameEntity.h"
 #include "Building.h"
 
-enum class TroopType {
+// 兵种移动类型列举
+enum class TroopMovementType
+{
+    GROUND, // 地面单位
+    AIR     // 空中单位
+};
+
+// 兵种类型列举
+enum class TroopType
+{
     BARBARIAN,
     ARCHER,
     GIANT,
-    BOMBERMAN
+    BOMBERMAN,
+    DRAGON
 };
 
-class Troop : public GameEntity {
+class Troop : public GameEntity
+{
 public:
     Troop();
     virtual ~Troop();
@@ -21,16 +32,15 @@ public:
     virtual void updateLogic(float dt) override;
     virtual void onDeath() override;
     TroopType getTroopType() const { return m_type; } // 获取兵种类型
-
+    TroopMovementType getMovementType() const { return m_movementType; } // 获取移动类型
     void setTarget(Building* target);
 
 protected:
     void initTroopProperties();
     void moveTowardsTarget(float dt);
     void attackTarget(float dt);
-
-protected:
     TroopType m_type;
+    TroopMovementType m_movementType; // 移动类型属性
     float m_moveSpeed;
     float m_attackRange;
     int m_damage;

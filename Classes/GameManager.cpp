@@ -1,6 +1,6 @@
+//GameManager.cpp
 #include "GameManager.h"
 #include"Building.h"
-
 USING_NS_CC;
 
 GameManager* GameManager::s_instance = nullptr;
@@ -14,16 +14,20 @@ GameManager::GameManager()
     m_troopCounts[TroopType::ARCHER] = 0;
     m_troopCounts[TroopType::GIANT] = 0;
     m_troopCounts[TroopType::BOMBERMAN] = 0;
+    m_troopCounts[TroopType::DRAGON] = 0;
 }
 
-GameManager* GameManager::getInstance() {
-    if (!s_instance) {
+GameManager* GameManager::getInstance()
+{
+    if (!s_instance)
+    {
         s_instance = new GameManager();
     }
     return s_instance;
 }
 
-void GameManager::initAccount(int gold, int elixir) {
+void GameManager::initAccount(int gold, int elixir)
+{
     if (m_isInitialized) return;
 
     m_gold = gold;
@@ -125,11 +129,12 @@ const std::map<TroopType, int>& GameManager::getAllTroopCounts() const // 获取所
     return m_troopCounts;
 }
 
-void GameManager::resetAllTroops() // 重置所有兵种数量为0（战斗结束后调用）
+void GameManager::clear()
 {
-    for (auto& pair : m_troopCounts)
-    {
-        pair.second = 0;
-    }
-    Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_TROOPS");
+    // 清空建筑列表
+    m_homeBuildings.clear();
+
+    // (可选) 重置金币
+    m_gold = 500;
+    m_elixir = 500;
 }

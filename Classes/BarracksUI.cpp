@@ -32,7 +32,7 @@ bool BarracksUI::init()
 
     // 4. 创建并添加招募UI，但不持有其指针
     auto recruitUI = RecruitUI::create();
-    if (recruitUI) 
+    if (recruitUI)
     {
         // 给招募UI设置一个唯一的名称，方便后续查找
         recruitUI->setName("RecruitUI_Panel");
@@ -58,12 +58,12 @@ void BarracksUI::initButtons()
     recruitBtn->addClickEventListener
     ([this](Ref*)
         {
-        CCLOG("Recruit Troops button clicked.");
-        auto recruitUI = this->getChildByName<RecruitUI*>("RecruitUI_Panel");
-        if (recruitUI) 
-        {
-            recruitUI->show();
-        }
+            CCLOG("Recruit Troops button clicked.");
+            auto recruitUI = this->getChildByName<RecruitUI*>("RecruitUI_Panel");
+            if (recruitUI)
+            {
+                recruitUI->show();
+            }
         }
     );
     m_mainPanel->addChild(recruitBtn);
@@ -74,9 +74,9 @@ void BarracksUI::initButtons()
     upgradeBarracksBtn->setTitleFontSize(20);
     upgradeBarracksBtn->setPosition(Vec2(panelSize.width / 2, panelSize.height * 0.5));
     upgradeBarracksBtn->addClickEventListener
-    ([](Ref*) 
+    ([](Ref*)
         {
-        CCLOG("Upgrade Barracks button clicked (functionality not implemented).");
+            CCLOG("Upgrade Barracks button clicked (functionality not implemented).");
         }
     );
     m_mainPanel->addChild(upgradeBarracksBtn);
@@ -87,9 +87,9 @@ void BarracksUI::initButtons()
     upgradeTroopsBtn->setTitleFontSize(20);
     upgradeTroopsBtn->setPosition(Vec2(panelSize.width / 2, panelSize.height * 0.3));
     upgradeTroopsBtn->addClickEventListener
-    ([](Ref*) 
+    ([](Ref*)
         {
-        CCLOG("Upgrade Troops button clicked (functionality not implemented).");
+            CCLOG("Upgrade Troops button clicked (functionality not implemented).");
         }
     );
     m_mainPanel->addChild(upgradeTroopsBtn);
@@ -100,9 +100,9 @@ void BarracksUI::initButtons()
     closeBtn->setTitleFontSize(24);
     closeBtn->setPosition(Vec2(panelSize.width - 30, panelSize.height - 30));
     closeBtn->addClickEventListener
-    ([this](Ref*) 
+    ([this](Ref*)
         {
-        this->hide();
+            this->hide();
         }
     );
     m_mainPanel->addChild(closeBtn);
@@ -117,4 +117,3 @@ void BarracksUI::hide()
 {
     this->setVisible(false);
 }
-// BarracksUI.cpp

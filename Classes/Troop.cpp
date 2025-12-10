@@ -1,5 +1,6 @@
+//Troop.cpp
 #include "Troop.h"
-#include "BattleManager.h" // 确保引用了 BattleManager
+#include "BattleManager.h"
 #include <fstream> // 添加文件流支持
 #include <algorithm>
 
@@ -7,6 +8,7 @@ USING_NS_CC;
 
 Troop::Troop()
     : m_type(TroopType::BARBARIAN)
+    , m_movementType(TroopMovementType::GROUND)
     , m_moveSpeed(0.0f)
     , m_attackRange(0.0f)
     , m_damage(0)
@@ -18,14 +20,18 @@ Troop::Troop()
 {
 }
 
-Troop::~Troop() {
+Troop::~Troop()
+{
 }
 
-Troop* Troop::create(TroopType type) {
+Troop* Troop::create(TroopType type)
+{
     Troop* pRet = new(std::nothrow) Troop();
-    if (pRet) {
+    if (pRet)
+    {
         pRet->m_type = type;
-        if (pRet->init()) {
+        if (pRet->init())
+        {
             pRet->autorelease();
             return pRet;
         }
@@ -34,21 +40,27 @@ Troop* Troop::create(TroopType type) {
     return nullptr;
 }
 
-static int extractFirstNumber(const std::string& s) {
+static int extractFirstNumber(const std::string& s)
+{
     int n = 0;
     bool found = false;
-    for (char c : s) {
-        if (c >= '0' && c <= '9') {
+    for (char c : s)
+    {
+        if (c >= '0' && c <= '9')
+        {
             found = true;
             n = n * 10 + (c - '0');
-        } else if (found) {
+        }
+        else if (found)
+        {
             break;
         }
     }
     return n;
 }
 
-bool Troop::init() {
+bool Troop::init()
+{
     if (!GameEntity::init()) return false;
 
     initTroopProperties();
@@ -56,27 +68,14 @@ bool Troop::init() {
     // decide plist names per troop type
     std::string walkPlist;
     std::string attackPlist;
-    switch (m_type) {
-    case TroopType::BARBARIAN:
-        walkPlist = "hero1-walk.plist";
-        attackPlist = "hero1-attack.plist";
-        break;
-    case TroopType::ARCHER:
-        walkPlist = "hero2-walk.plist";
-        attackPlist = "hero2-attack.plist";
-        break;
-    case TroopType::GIANT:
-        walkPlist = "hero3-walk.plist";
-        attackPlist = "hero3-attack.plist";
-        break;
-    case TroopType::BOMBERMAN:
-        walkPlist = "hero4-walk.plist";
-        attackPlist = ""; // no attack
-        break;
-    default:
-        walkPlist = "hero1-walk.plist";
-        attackPlist = "hero1-attack.plist";
-        break;
+    switch (m_type)
+    {
+    case TroopType::BARBARIAN: walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
+    case TroopType::ARCHER:    walkPlist = "hero2-walk.plist";  attackPlist = "hero2-attack.plist";  break;
+    case TroopType::GIANT:     walkPlist = "hero3-walk.plist";  attackPlist = "hero3-attack.plist";  break;
+    case TroopType::BOMBERMAN: walkPlist = "hero4-walk.plist";  attackPlist = "";                    break;
+    case TroopType::DRAGON:    walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
+    default:                   walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
     }
 
     // store in instance members
@@ -98,20 +97,22 @@ bool Troop::init() {
             int num = extractFirstNumber(kv.first);
             keyed.emplace_back(num, kv.first);
         }
-        std::sort(keyed.begin(), keyed.end(), [](const std::pair<int,std::string>& a, const std::pair<int,std::string>& b){
+        std::sort(keyed.begin(), keyed.end(), [](const std::pair<int, std::string>& a, const std::pair<int, std::string>& b) {
             if (a.first != b.first) return a.first < b.first;
             return a.second < b.second;
-        });
+            });
         for (const auto& p : keyed) {
             auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(p.second);
             if (f) {
                 frames.pushBack(f);
                 CCLOG("Troop::init - walk frame added: %s", p.second.c_str());
-            } else {
+            }
+            else {
                 CCLOG("Troop::init - walk frame not in cache: %s", p.second.c_str());
             }
         }
-    } else {
+    }
+    else {
         CCLOG("Troop::init - walk plist has no 'frames' key: %s", walkPlist.c_str());
     }
 
@@ -147,7 +148,8 @@ bool Troop::init() {
         auto walkAction = RepeatForever::create(animate);
         walkAction->setTag(WALK_ACTION_TAG);
         this->runAction(walkAction);
-    } else {
+    }
+    else {
         CCLOG("Troop::init - no walk frames, running fallback action");
         auto seq = Sequence::create(ScaleTo::create(0.4f, 1.2f), ScaleTo::create(0.4f, 1.0f), nullptr);
         this->runAction(RepeatForever::create(seq));
@@ -158,7 +160,8 @@ bool Troop::init() {
     return true;
 }
 
-void Troop::onDeath() {
+void Troop::onDeath()
+{
     BattleManager::getInstance()->removeTroop(this);
     GameEntity::onDeath();
 }
@@ -167,15 +170,18 @@ void Troop::initTroopProperties() {
     // 默认设置
     this->setTextureRect(Rect(0, 0, 20, 20));
 
-    if (m_type == TroopType::BARBARIAN) {
+    if (m_type == TroopType::BARBARIAN)
+    {
         // keep original sprite color
         setProperties(100, CampType::ENEMY);
         m_moveSpeed = 100.0f;
         m_attackRange = 40.0f;
         m_damage = 50;
         m_attackInterval = 1.0f;
+        m_movementType = TroopMovementType::GROUND;
     }
-    else if (m_type == TroopType::ARCHER) {
+    else if (m_type == TroopType::ARCHER)
+    {
         // keep original sprite color
         this->setTextureRect(Rect(0, 0, 15, 20));
         setProperties(60, CampType::ENEMY);
@@ -183,8 +189,10 @@ void Troop::initTroopProperties() {
         m_attackRange = 150.0f;
         m_damage = 25;
         m_attackInterval = 0.8f;
+        m_movementType = TroopMovementType::GROUND;
     }
-    else if (m_type == TroopType::GIANT) {
+    else if (m_type == TroopType::GIANT)
+    {
         // keep original sprite color
         this->setTextureRect(Rect(0, 0, 40, 40));
         setProperties(200, CampType::ENEMY);
@@ -192,8 +200,10 @@ void Troop::initTroopProperties() {
         m_attackRange = 40.0f;
         m_damage = 40;
         m_attackInterval = 1.5f;
+        m_movementType = TroopMovementType::GROUND;
     }
-    else if (m_type == TroopType::BOMBERMAN) {
+    else if (m_type == TroopType::BOMBERMAN)
+    {
         // keep original sprite color
         this->setTextureRect(Rect(0, 0, 15, 15));
         setProperties(40, CampType::ENEMY);
@@ -201,10 +211,23 @@ void Troop::initTroopProperties() {
         m_attackRange = 20.0f;
         m_damage = 500;
         m_attackInterval = 0.1f;
+        m_movementType = TroopMovementType::GROUND;
+    }
+    else if (m_type == TroopType::DRAGON)
+    {
+        // 可以用一张龙的图片代替
+        this->setTextureRect(Rect(0, 0, 50, 50));
+        setProperties(300, CampType::ENEMY);
+        m_moveSpeed = 100.0f;
+        m_attackRange = 120.0f;
+        m_damage = 60; // 中等伤害
+        m_attackInterval = 1.5f;
+        m_movementType = TroopMovementType::AIR; // 设置为空中单位
     }
 }
 
-void Troop::setTarget(Building* target) {
+void Troop::setTarget(Building* target)
+{
     m_target = target;
 }
 
@@ -259,14 +282,41 @@ void Troop::attackTarget(float dt) {
 
         if (m_isAttacking) return; // already attacking
 
-        if (m_type == TroopType::BOMBERMAN) {
+        if (m_type == TroopType::DRAGON)
+        {
+            Vec2 attackPos = m_target->getPosition();
+            float splashRadius = 100.0f / 4.0f; // 炸弹人半径(100)的1/4
+            BattleManager::getInstance()->dealAreaDamage(attackPos, splashRadius, m_damage);
+
+            // 视觉效果：一个小的火焰爆炸
+            auto splash = Sprite::create();
+            splash->setTextureRect(Rect(0, 0, splashRadius * 2, splashRadius * 2));
+            splash->setColor(Color3B::ORANGE);
+            splash->setPosition(attackPos);
+            splash->setOpacity(180);
+            this->getParent()->addChild(splash);
+            splash->runAction(Sequence::create(FadeOut::create(0.5f), RemoveSelf::create(), nullptr));
+
+            // 播放攻击动画 (如果有)
+            // ... (可以像其他单位一样播放攻击动画) ...
+        }
+        if (m_type == TroopType::BOMBERMAN)
+        {
             CCLOG("Bomberman Exploded!");
             Vec2 explosionCenter = this->getPosition();
             BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage);
 
-            auto seq = Sequence::create(
+            auto seq = Sequence::create
+            (
                 Spawn::create(ScaleTo::create(0.1f, m_baseScale * 3.0f), TintTo::create(0.1f, Color3B::RED), nullptr),
-                RemoveSelf::create(),
+                CallFunc::create
+                ([this]()
+                    {
+                        //动画结束后调用死亡逻辑
+                        this->m_currentHp = 0; // 确保血量为0
+                        this->onDeath(); // 调用死亡方法，会触发BattleManager::removeTroop()
+                    }
+                ),
                 nullptr
             );
             this->runAction(seq);
@@ -278,7 +328,8 @@ void Troop::attackTarget(float dt) {
         m_target->takeDamage(m_damage);           // 2. 再伤害
 
         // 动画
-        if (m_type == TroopType::ARCHER) {
+        if (m_type == TroopType::ARCHER)
+        {
             auto arrow = Sprite::create();
             arrow->setTextureRect(Rect(0, 0, 10, 2));
             arrow->setColor(Color3B::YELLOW);
@@ -289,7 +340,8 @@ void Troop::attackTarget(float dt) {
             float duration = distance / 400.0f;
             arrow->runAction(Sequence::create(MoveTo::create(duration, targetPos), RemoveSelf::create(), nullptr));
         }
-        else {
+        else
+        {
             // melee: play attack animation once
             m_isAttacking = true;
             const int WALK_ACTION_TAG = 0x1001;
@@ -329,10 +381,11 @@ void Troop::attackTarget(float dt) {
                     }
                     this->setScale(m_baseScale);
                     m_isAttacking = false;
-                });
+                    });
 
                 this->runAction(Sequence::create(attackAnimate, restore, nullptr));
-            } else {
+            }
+            else {
                 // fallback: simple scale feedback, relative to base scale
                 auto up = ScaleTo::create(0.1f, m_baseScale * 1.2f);
                 auto down = ScaleTo::create(0.1f, m_baseScale);
@@ -345,7 +398,7 @@ void Troop::attackTarget(float dt) {
                         this->runAction(repeat);
                     }
                     m_isAttacking = false;
-                }), nullptr);
+                    }), nullptr);
                 this->runAction(seq);
             }
         }

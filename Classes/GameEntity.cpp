@@ -1,6 +1,7 @@
+//GameEntity.cpp
 #include "GameEntity.h"
-
 USING_NS_CC;
+
 
 GameEntity::GameEntity()
     : m_maxHp(100)
@@ -11,69 +12,72 @@ GameEntity::GameEntity()
 {
 }
 
-GameEntity::~GameEntity() {
+GameEntity::~GameEntity()
+{
     removeHpBar();
 }
 
-bool GameEntity::init() {
-    // 调用父类 Sprite 的 init
-    if (!Sprite::init()) {
-        return false;
-    }
-
-    // 初始化HP条
-    initHpBar();
-
-    // 初始化成功
-    return true;
+bool GameEntity::init()
+{
+    if (!Sprite::init()) { return false; } // 调用父类 Sprite 的 init
+    initHpBar();                           // 初始化血条
+    return true;                           // 初始化成功
 }
 
-void GameEntity::setProperties(int maxHp, CampType camp) {
+void GameEntity::setProperties(int maxHp, CampType camp) // 设置血量、阵营
+{
     this->m_maxHp = maxHp;
     this->m_currentHp = maxHp;
     this->m_camp = camp;
 }
 
-void GameEntity::takeDamage(int damage) {
+void GameEntity::takeDamage(int damage)
+{
     if (isDead()) return;
-
     m_currentHp -= damage;
     CCLOG("Entity Took Damage. Remaining: %d", m_currentHp);
 
-    if (m_currentHp <= 0) {
+    if (m_currentHp <= 0)
+    {
         m_currentHp = 0;
         onDeath();
     }
-    else {
+    else
+    {
         // 更新血条显示
         updateHpBar();
     }
 }
 
-void GameEntity::onDeath() {
+void GameEntity::onDeath()
+{
     removeHpBar();
     this->removeFromParent();
 }
 
-void GameEntity::updateLogic(float dt) {
+void GameEntity::updateLogic(float dt)
+{
     // 默认没有额外逻辑
 }
 
-void GameEntity::update(float dt) {
+void GameEntity::update(float dt)
+{
     this->updateLogic(dt);
     // 每帧刷新血条位置（如果存在）
     updateHpBar();
 }
 
 // HP bar implementation
-void GameEntity::initHpBar() {
+void GameEntity::initHpBar()
+{
     if (m_hpBarDraw) return;
     m_hpBarDraw = DrawNode::create();
     // 初始添加到父节点留到子类或场景中，当 entity 被添加到父节点时，会有父节点
     this->addChild(m_hpBarDraw, 100);
 }
 
-void GameEntity::updateHpBar() {
+void GameEntity::updateHpBar()
+{
     if (!m_hpBarDraw) return;
 
     m_hpBarDraw->clear();
@@ -99,8 +103,10 @@ void GameEntity::updateHpBar() {
     m_hpBarDraw->drawSolidRect(Vec2(-m_hpBarWidth / 2.0f, 0), fgEnd, Color4F(0.0f, 1.0f, 0.0f, 1.0f));
 }
 
-void GameEntity::removeHpBar() {
-    if (m_hpBarDraw) {
+void GameEntity::removeHpBar()
+{
+    if (m_hpBarDraw)
+    {
         m_hpBarDraw->removeFromParent();
         m_hpBarDraw = nullptr;
     }

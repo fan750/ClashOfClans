@@ -1,10 +1,10 @@
+//BattleScene.cpp
 #include "BattleScene.h"
 #include "HelloWorldScene.h"
 #include "BattleManager.h"
 #include "Building.h"
 #include "Troop.h"
-#include"GameManager.h"
-
+#include "GameManager.h"
 USING_NS_CC;
 using namespace ui; // 使用 UI 命名空间
 
@@ -21,14 +21,16 @@ Scene* BattleScene::createScene(int levelIndex) {
     return scene;
 }
 
-bool BattleScene::init() {
+bool BattleScene::init()
+{
     if (!Scene::init()) return false;
 
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     auto background = Sprite::create("battleback1.png");
 
-    if (background) {
+    if (background)
+    {
         // 2. 放在屏幕正中间
         background->setPosition(visibleSize / 2);
 
@@ -54,8 +56,6 @@ bool BattleScene::init() {
     // 1. 初始化数据
     BattleManager::getInstance()->clear();
     m_selectedType = TroopType::BARBARIAN; // 默认选野蛮人
-    BattleManager::getInstance()->clear();
-    m_selectedType = TroopType::BARBARIAN; // 默认选Barbarian
 
     // 从GameManager获取兵种数量并初始化到BattleManager
     auto gm = GameManager::getInstance();
@@ -64,6 +64,7 @@ bool BattleScene::init() {
     availableTroops[TroopType::ARCHER] = gm->getTroopCount(TroopType::ARCHER);
     availableTroops[TroopType::GIANT] = gm->getTroopCount(TroopType::GIANT);
     availableTroops[TroopType::BOMBERMAN] = gm->getTroopCount(TroopType::BOMBERMAN);
+    availableTroops[TroopType::DRAGON] = gm->getTroopCount(TroopType::DRAGON);
     BattleManager::getInstance()->initAvailableTroops(availableTroops);
 
     // 2. 布置敌人阵地 (保持不变)
@@ -89,15 +90,26 @@ bool BattleScene::init() {
     createSelectButton("Barb", Color3B::GREEN, TroopType::BARBARIAN, 0);
     createSelectButton("Arch", Color3B::MAGENTA, TroopType::ARCHER, 1);
     createSelectButton("Giant", Color3B::ORANGE, TroopType::GIANT, 2);
-    createSelectButton("Bomb", Color3B::GRAY, TroopType::BOMBERMAN, 3); // 白色按钮文字看不清，用灰色代替背景
+    createSelectButton("Bomb", Color3B::GRAY, TroopType::BOMBERMAN, 3);
+    createSelectButton("Dragon", Color3B::RED, TroopType::DRAGON, 4);
+
+    // 初始化兵种数量显示
+    initTroopCountLabels();
+    updateTroopCountLabels();
 
     // 5. 撤退按钮 (保持不变)
     auto backBtn = Button::create("back.png");
     backBtn->setScale(0.3f);
     backBtn->setPosition(Vec2(50, visibleSize.height - 50));
-    backBtn->addClickEventListener([=](Ref*) {
-        Director::getInstance()->replaceScene(TransitionFade::create(0.5f, HelloWorld::createScene()));
-        });
+    backBtn->addClickEventListener
+    (
+        [=](Ref*)
+        {
+            // 战斗结束同步逻辑
+            this->onBattleEnd();
+            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, HelloWorld::createScene()));
+        }
+    );
     this->addChild(backBtn);
 
     // 6. 触摸监听
@@ -105,8 +117,11 @@ bool BattleScene::init() {
     listener->onTouchBegan = CC_CALLBACK_2(BattleScene::onTouchBegan, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
+    // 开启每帧更新
+    this->scheduleUpdate();
     return true;
 }
+
 void BattleScene::onBattleEnd()
 {
     // 获取战斗中死亡的兵种数量
@@ -150,7 +165,8 @@ void BattleScene::initTroopCountLabels()
         {TroopType::BARBARIAN, "Barb:", Color3B::GREEN},
         {TroopType::ARCHER, "Arch:", Color3B::MAGENTA},
         {TroopType::GIANT, "Giant:", Color3B::ORANGE},
-        {TroopType::BOMBERMAN, "Bomb:", Color3B::GRAY}
+        {TroopType::BOMBERMAN, "Bomb:", Color3B::GRAY},
+        {TroopType::DRAGON, "Dragon:", Color3B::RED }
     };
 
     // 为每种兵种创建数量标签
@@ -160,7 +176,7 @@ void BattleScene::initTroopCountLabels()
 
         auto label = Label::createWithSystemFont(info.name + " 0", "Arial", 16);
         label->setColor(info.color);
-        label->setPosition(Vec2(visibleSize.width - 250 + i * 60, startY));
+        label->setPosition(Vec2(visibleSize.width - 300 + i * 60, startY));
         label->setAnchorPoint(Vec2(0.5, 0.5));
         this->addChild(label, 10);
 
@@ -189,6 +205,7 @@ void BattleScene::updateTroopCountLabels()
         case TroopType::ARCHER:    troopName = "Arch:";  break;
         case TroopType::GIANT:     troopName = "Giant:"; break;
         case TroopType::BOMBERMAN: troopName = "Bomb:";  break;
+        case TroopType::DRAGON:    troopName = "Dragon:"; break;
         }
 
         label->setString(troopName + std::to_string(count));
@@ -207,13 +224,15 @@ void BattleScene::updateTroopCountLabels()
             case TroopType::ARCHER: label->setColor(Color3B::MAGENTA); break;
             case TroopType::GIANT: label->setColor(Color3B::ORANGE); break;
             case TroopType::BOMBERMAN: label->setColor(Color3B::GRAY); break;
+            case TroopType::DRAGON: label->setColor(Color3B::RED); break;
             }
         }
     }
 }
 
 // 【新增】辅助函数：快速创建按钮
-void BattleScene::createSelectButton(const std::string& title, Color3B color, TroopType type, int index) {
+void BattleScene::createSelectButton(const std::string& title, Color3B color, TroopType type, int index)
+{
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 创建按钮
@@ -224,7 +243,7 @@ void BattleScene::createSelectButton(const std::string& title, Color3B color, Tr
 
     // 排列在右下角
     // index * 60 意味着每个按钮间隔 60 像素
-    btn->setPosition(Vec2(visibleSize.width - 250 + index * 60, 50));
+    btn->setPosition(Vec2(visibleSize.width - 300 + index * 60, 50));
 
     // 点击逻辑
     btn->addClickEventListener([=](Ref*) {
@@ -266,24 +285,35 @@ bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
     return true;
 }
 
-void BattleScene::onExit() {
-    Scene::onExit();
+void BattleScene::onExit()
+{
+    // 确保调度器被停止
+    this->unscheduleAllCallbacks();
+
+    // 清理战斗管理器
     BattleManager::getInstance()->clear();
+
+    // 调用父类方法
+    Scene::onExit();
 }
 
 // 【新增】关卡配置逻辑
-void BattleScene::loadLevel(int levelIndex) {
+void BattleScene::loadLevel(int levelIndex)
+{
     Size visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 center = visibleSize / 2;
 
-    if (levelIndex == 1) {
+
+    if (levelIndex == 1)
+    {
         // --- 第一关：新手村 ---
         // 只有 1 个大本营
         auto town = Building::create(BuildingType::TOWN_HALL);
         town->setPosition(center);
         this->addChild(town);
     }
-    else if (levelIndex == 2) {
+    else if (levelIndex == 2)
+    {
         // --- 第二关：初级挑战 ---
         // 大本营 + 1 个加农炮
         auto town = Building::create(BuildingType::TOWN_HALL);
@@ -294,7 +324,8 @@ void BattleScene::loadLevel(int levelIndex) {
         cannon->setPosition(center + Vec2(150, 0)); // 右边放个炮
         this->addChild(cannon);
     }
-    else if (levelIndex == 3) {
+    else if (levelIndex == 3)
+    {
         // --- 第三关：攻坚战 ---
         // 大本营 + 2 个炮 + 围墙保护
         auto town = Building::create(BuildingType::TOWN_HALL);
@@ -305,12 +336,13 @@ void BattleScene::loadLevel(int levelIndex) {
         auto c1 = Building::create(BuildingType::CANNON);
         c1->setPosition(center + Vec2(150, 50));
         this->addChild(c1);
-        auto c2 = Building::create(BuildingType::CANNON);
+        auto c2 = Building::create(BuildingType::ARCHER_TOWER);
         c2->setPosition(center + Vec2(150, -50));
         this->addChild(c2);
 
         // 前面放一排墙
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++)
+        {
             auto wall = Building::create(BuildingType::WALL);
             wall->setPosition(center + Vec2(80, -100 + i * 50));
             this->addChild(wall);

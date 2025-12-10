@@ -1,3 +1,4 @@
+//LevelMapScene.h
 #ifndef __LEVEL_MAP_SCENE_H__
 #define __LEVEL_MAP_SCENE_H__
 
@@ -15,7 +16,7 @@ public:
 
     CREATE_FUNC(LevelMapScene);
 private:
-   std::vector<cocos2d::ui::Button*> level;
+    std::vector<cocos2d::ui::Button*> level;
 };
 
 #endif // __LEVEL_MAP_SCENE_H__

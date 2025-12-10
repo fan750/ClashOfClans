@@ -1,3 +1,4 @@
+//BattleManager.h
 #ifndef __BATTLE_MANAGER_H__
 #define __BATTLE_MANAGER_H__
 
@@ -5,10 +6,10 @@
 #include "Building.h"
 #include "Troop.h"
 
-// 【关键修改】不要在这里 include Troop.h，防止死循环
 class Troop;
 
-class BattleManager {
+class BattleManager
+{
 public:
     static BattleManager* getInstance();
 
@@ -18,11 +19,12 @@ public:
     Building* findClosestBuilding(cocos2d::Vec2 position);
     Building* findClosestBuildingOfType(cocos2d::Vec2 position, BuildingType type);
     void dealAreaDamage(cocos2d::Vec2 center, float radius, int damage);
+    Troop* findClosestTroopForBuilding(Building* building);
 
     // 兵种管理
     void addTroop(Troop* troop);
     void removeTroop(Troop* troop);
-    Troop* findClosestTroop(cocos2d::Vec2 position, float range);
+    Troop* findClosestTroop(cocos2d::Vec2 position, float range, TroopMovementType typeFilter);
     void initAvailableTroops(const std::map<TroopType, int>& availableTroops); // 初始化可投放兵种数量
     bool canDeployTroop(TroopType type);                                       // 检查是否还能投放指定兵种
     void deployTroop(TroopType type);                                          // 投放兵种（减少可用数量）
@@ -31,7 +33,7 @@ public:
     void onTroopDied(TroopType type);                                          // 记录士兵死亡
     const std::map<TroopType, int>& getDeployedTroops() const;                 // 获取已投放的兵种数量  
     std::map<TroopType, int> getDeathCounts() const;                           // 获取战斗中死亡的兵种数量
-
+    const cocos2d::Vector<Troop*>& getTroops() const;                          // 获取场上所有士兵的引用（用于检查是否还有存活单位）
     void clear();
 
 private:

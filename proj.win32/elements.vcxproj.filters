@@ -10,14 +10,14 @@
     <Filter Include="src">
       <UniqueIdentifier>{bb6c862e-70e9-49d9-81b7-3829a6f50471}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Core">
+    <Filter Include="src\Manager">
       <UniqueIdentifier>{b0b0426c-34c2-45bc-ad82-4e9d98f70276}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Buildings">
-      <UniqueIdentifier>{8eb9752f-a43b-4bdb-9562-e521a2bdef06}</UniqueIdentifier>
+    <Filter Include="src\UI">
+      <UniqueIdentifier>{6791f458-7186-427e-98cb-070348784d24}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Troops">
-      <UniqueIdentifier>{3229c716-4f49-499f-9475-b9c8af0293bd}</UniqueIdentifier>
+    <Filter Include="src\Entity">
+      <UniqueIdentifier>{732c5ae6-6ad7-4afd-ab08-30eece5554e4}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Scenes">
       <UniqueIdentifier>{16adef79-7055-42de-97b4-0b4e6568f7ef}</UniqueIdentifier>
@@ -30,26 +30,11 @@
     <ClCompile Include="..\Classes\AppDelegate.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\HelloWorldScene.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\GameEntity.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\Building.cpp">
-      <Filter>src\Buildings</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\Troop.cpp">
-      <Filter>src\Troops</Filter>
-    </ClCompile>
     <ClCompile Include="..\Classes\BattleManager.cpp">
-      <Filter>src\Core</Filter>
+      <Filter>src\Manager</Filter>
     </ClCompile>
     <ClCompile Include="..\Classes\GameManager.cpp">
-      <Filter>src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\GameUI.cpp">
-      <Filter>src\Scenes</Filter>
+      <Filter>src\Manager</Filter>
     </ClCompile>
     <ClCompile Include="..\Classes\BattleScene.cpp">
       <Filter>src\Scenes</Filter>
@@ -57,17 +42,32 @@
     <ClCompile Include="..\Classes\LevelMapScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\loadscene.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\Classes\Building.cpp">
+      <Filter>src\Entity</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\MenuBuilder.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\Classes\Troop.cpp">
+      <Filter>src\Entity</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\RecruitUI.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\Classes\GameEntity.cpp">
+      <Filter>src\Entity</Filter>
     </ClCompile>
     <ClCompile Include="..\Classes\BarracksUI.cpp">
-      <Filter>src</Filter>
+      <Filter>src\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\RecruitUI.cpp">
+      <Filter>src\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\GameUI.cpp">
+      <Filter>src\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\MenuBuilder.cpp">
+      <Filter>src\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\HelloWorldScene.cpp">
+      <Filter>src\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\loadscene.cpp">
+      <Filter>src\Scenes</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,26 +77,11 @@
     <ClInclude Include="..\Classes\AppDelegate.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\HelloWorldScene.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\GameEntity.h">
-      <Filter>src\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\Building.h">
-      <Filter>src\Buildings</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\Troop.h">
-      <Filter>src\Troops</Filter>
-    </ClInclude>
     <ClInclude Include="..\Classes\BattleManager.h">
-      <Filter>src\Core</Filter>
+      <Filter>src\Manager</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\GameManager.h">
-      <Filter>src\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\GameUI.h">
-      <Filter>src\Scenes</Filter>
+      <Filter>src\Manager</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\BattleScene.h">
       <Filter>src\Scenes</Filter>
@@ -104,17 +89,32 @@
     <ClInclude Include="..\Classes\LevelMapScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\loadscene.h">
-      <Filter>src</Filter>
+    <ClInclude Include="..\Classes\Building.h">
+      <Filter>src\Entity</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\MenuBuilder.h">
-      <Filter>src</Filter>
+    <ClInclude Include="..\Classes\Troop.h">
+      <Filter>src\Entity</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\RecruitUI.h">
-      <Filter>src</Filter>
+    <ClInclude Include="..\Classes\GameEntity.h">
+      <Filter>src\Entity</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\BarracksUI.h">
-      <Filter>src</Filter>
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\RecruitUI.h">
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\GameUI.h">
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\MenuBuilder.h">
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\HelloWorldScene.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\loadscene.h">
+      <Filter>src\Scenes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

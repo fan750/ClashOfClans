@@ -1,8 +1,8 @@
+//LevelMapScene.cpp
 #include "LevelMapScene.h"
 #include "HelloWorldScene.h" // 为了能返回主菜单
 #include "BattleScene.h"     // 为了进入战斗
 #include <algorithm>
-
 USING_NS_CC;
 
 Scene* LevelMapScene::createScene() {
@@ -67,7 +67,7 @@ void LevelMapScene::createLevelButton(int levelIndex, Vec2 pos) {
 
     auto btn = level[idx];
     if (!btn) return;
-    btn->setScale(0.5f); 
+    btn->setScale(0.5f);
     btn->setPosition(pos);
 
     // 点击逻辑

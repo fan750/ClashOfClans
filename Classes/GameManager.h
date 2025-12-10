@@ -1,3 +1,4 @@
+//GameManager.h
 #ifndef __GAME_MANAGER_H__
 #define __GAME_MANAGER_H__
 
@@ -6,7 +7,8 @@
 #include "Troop.h"    // 需要引用 TroopType
 
 // 定义一个结构体，专门存建筑的“档案”
-struct BuildingData {
+struct BuildingData
+{
     BuildingType type;
     cocos2d::Vec2 position;
 };
@@ -19,7 +21,7 @@ public:
     void initAccount(int gold, int elixir);
     bool isInitialized() const { return m_isInitialized; }
 
-  
+
     // 【新增】保存一个建筑
     void addHomeBuilding(BuildingType type, cocos2d::Vec2 pos);
 
@@ -46,7 +48,7 @@ public:
     void consumeTroops(TroopType type, int amount);             // 减少指定兵种数量（用于战斗死亡同步）
     void setTroopCount(TroopType type, int count);              // 设置兵种数量（用于战斗结束后同步）
     const std::map<TroopType, int>& getAllTroopCounts() const;  // 获取所有兵种数量
-    void resetAllTroops();                                      // 重置所有兵种数量为0（战斗结束后调用）
+    void clear();
 
 private:
     GameManager();

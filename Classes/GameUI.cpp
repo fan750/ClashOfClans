@@ -1,6 +1,6 @@
+//GameUI.cpp
 #include "GameUI.h"
 #include "GameManager.h" // 需要读取数据
-
 USING_NS_CC;
 
 bool GameUI::init() {
@@ -92,7 +92,8 @@ void GameUI::initTroopLabels() // 初始化各兵种标签
         {TroopType::BARBARIAN, "Barbarian:", Color3B::GREEN},
         {TroopType::ARCHER, "Archer:", Color3B::MAGENTA},
         {TroopType::GIANT, "Giant:", Color3B::ORANGE},
-        {TroopType::BOMBERMAN, "Bomberman:", Color3B::GRAY}
+        {TroopType::BOMBERMAN, "Bomberman:", Color3B::GRAY},
+        {TroopType::DRAGON, "Dragon:", Color3B::RED}
     };
 
     // 为每种兵种创建标签
@@ -134,6 +135,7 @@ void GameUI::updateLabels() {
         case TroopType::ARCHER:   troopName = "Archer:";   troopColor = Color3B::MAGENTA; break;
         case TroopType::GIANT:    troopName = "Giant:";    troopColor = Color3B::ORANGE; break;
         case TroopType::BOMBERMAN:troopName = "Bomberman:"; troopColor = Color3B::GRAY;   break;
+        case TroopType::DRAGON:   troopName = "Dragon:"; troopColor = Color3B::RED; break;
         }
 
         // 更新标签文本和颜色

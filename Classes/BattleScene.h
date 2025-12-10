@@ -1,22 +1,13 @@
+//BattleScene.h
 #ifndef __BATTLE_SCENE_H__
 #define __BATTLE_SCENE_H__
-
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include "Troop.h"
+#include "Building.h" // È·±£°üº¬
 
-class BattleScene : public cocos2d::Scene {
-public:
-    static cocos2d::Scene* createScene(int levelIndex);
-
-    virtual bool init() override;
-
-    void loadLevel(int levelIndex);
-    virtual void onExit() override;
-    bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* event);
-
-    CREATE_FUNC(BattleScene);
-
+class BattleScene : public cocos2d::Scene
+{
 private:
     // UI helpers
     void createSelectButton(const std::string& title, cocos2d::Color3B color, TroopType type, int index);
@@ -30,6 +21,16 @@ private:
     TroopType m_selectedType;
     cocos2d::Label* m_infoLabel;
     std::map<TroopType, cocos2d::Label*> m_troopCountLabels;
+
+public:
+    static cocos2d::Scene* createScene(int levelIndex);
+    virtual bool init() override;
+
+    void loadLevel(int levelIndex);
+    virtual void onExit() override;
+    bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* event);
+
+    CREATE_FUNC(BattleScene);
 };
 
 #endif // __BATTLE_SCENE_H__
