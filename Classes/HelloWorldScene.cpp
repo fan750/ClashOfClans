@@ -33,7 +33,7 @@ bool HelloWorld::init() {
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 1. 先初始化数据 (最先做！)
-    GameManager::getInstance()->initAccount(500, 500);
+    GameManager::getInstance()->initAccount(5000, 5000);
     m_pendingBuilding = nullptr;
     m_selectedBuilding = nullptr;
     m_isConfirming = false;
