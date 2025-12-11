@@ -64,7 +64,11 @@ bool Troop::init()
     if (!GameEntity::init()) return false;
 
     initTroopProperties();
+    const float DEFAULT_HP_BAR_WIDTH = 300.0f;  // 可根据 UI 需求调整为合适像素
+    const float DEFAULT_HP_BAR_HEIGHT = 120.0f;  // 宽高比可自定义
 
+    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
+    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
     // decide plist names per troop type
     std::string walkPlist;
     std::string attackPlist;

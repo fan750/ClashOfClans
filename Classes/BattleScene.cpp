@@ -72,13 +72,6 @@ bool BattleScene::init()
     enemyTown->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
     this->addChild(enemyTown);
 
-    // 加几个墙给Bomberman炸
-    for (int i = 0; i < 5; i++)
-    {
-        auto wall = Building::create(BuildingType::WALL);
-        wall->setPosition(Vec2(visibleSize.width / 2 - 100 + i * 40, visibleSize.height / 2 - 100));
-        this->addChild(wall);
-    }
 
     // 3. 【新增】创建提示文字
     m_infoLabel = Label::createWithSystemFont("Selected: Barbarian", "Arial", 24);
@@ -332,20 +325,36 @@ void BattleScene::loadLevel(int levelIndex)
         town->setPosition(center);
         this->addChild(town);
 
-        // 两个炮
+        // 左青龙右白虎上朱雀下玄武,四大护法
         auto c1 = Building::create(BuildingType::CANNON);
         c1->setPosition(center + Vec2(150, 50));
         this->addChild(c1);
         auto c2 = Building::create(BuildingType::ARCHER_TOWER);
         c2->setPosition(center + Vec2(150, -50));
         this->addChild(c2);
+        auto c3 = Building::create(BuildingType::CANNON);
+        c3->setPosition(center + Vec2(-150, 50));
+        this->addChild(c3);
+        auto c4 = Building::create(BuildingType::ARCHER_TOWER);
+        c4->setPosition(center + Vec2(-150, -50));
+        this->addChild(c4);
 
-        // 前面放一排墙
+        //放两排墙
         for (int i = 0; i < 5; i++)
         {
-            auto wall = Building::create(BuildingType::WALL);
-            wall->setPosition(center + Vec2(80, -100 + i * 50));
-            this->addChild(wall);
+            auto wall_front = Building::create(BuildingType::WALL);
+            auto wall_back= Building::create(BuildingType::WALL);
+            wall_front->setPosition(center + Vec2(i*200-400,-200));
+            wall_back->setPosition(center + Vec2(i * 200 - 400, 200));
+            this->addChild(wall_front);
+            this->addChild(wall_back);
         }
+        //两边也放墙
+        auto wall_left = Building::create(BuildingType::WALL);
+        auto wall_right = Building::create(BuildingType::WALL);
+        wall_left->setPosition(center + Vec2(-400, 0));
+        wall_right->setPosition(center + Vec2(400, 0));
+        this->addChild(wall_left);
+        this->addChild(wall_right);
     }
 }

@@ -31,13 +31,13 @@ bool HelloWorld::init() {
     if (!Scene::init()) return false;
     // 只在首次启动时初始化
     if (!GameManager::getInstance()->isInitialized()) {
-        GameManager::getInstance()->initAccount(500, 500);
+        GameManager::getInstance()->initAccount(2000, 2000);
     }
 
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 1. 先初始化数据 (最先做！)
-    GameManager::getInstance()->initAccount(500, 500);
+    GameManager::getInstance()->initAccount(2000, 2000);
     m_pendingBuilding = nullptr;
     m_selectedBuilding = nullptr;
     m_isConfirming = false;
@@ -82,8 +82,8 @@ bool HelloWorld::init() {
         // 【关键】加到 m_gameLayer，这样它才会跟着地图动！
         m_gameLayer->addChild(myTown);
 
-        // 立即存档
-        GameManager::getInstance()->addHomeBuilding(BuildingType::TOWN_HALL, centerMapPos);
+        // 立即存档，记录等级信息
+        GameManager::getInstance()->addHomeBuilding(BuildingType::TOWN_HALL, centerMapPos, myTown->getLevel());
     }
     else {
         // --- 有存档：恢复建筑 ---
@@ -91,6 +91,8 @@ bool HelloWorld::init() {
             auto b = Building::create(data.type);
             b->setPosition(data.position);
             b->setOpacity(255);
+            // 恢复等级
+            b->setLevel(data.level);
             // 【关键】加到 m_gameLayer
             m_gameLayer->addChild(b);
             // b->activateBuilding(); 
@@ -502,10 +504,11 @@ void HelloWorld::onConfirmPlacement() {
         GameManager::getInstance()->addElixir(-m_pendingCost);
     }
 
-    // 3. 存档 (保存到 GameManager)
+    // 3. 存档 (保存到 GameManager) - 记录等级信息
     GameManager::getInstance()->addHomeBuilding(
         m_pendingBuilding->getBuildingType(),
-        m_pendingBuilding->getPosition()
+        m_pendingBuilding->getPosition(),
+        m_pendingBuilding->getLevel()
     );
 
     // 4. 清理现场

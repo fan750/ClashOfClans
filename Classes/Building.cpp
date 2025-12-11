@@ -11,6 +11,7 @@ Building::Building()
     , m_timer(0.0f)
     , m_upgradeBtn(nullptr)
     , m_goldListener(nullptr)
+    , m_baseScale(1.0f)
 {
 }
 
@@ -48,6 +49,10 @@ bool Building::init()
     }
 
     initBuildingProperties();                        // 初始化属性
+
+    // 记录基础缩放（initBuildingProperties 已经对 scale 做了初始设定）
+    m_baseScale = this->getScale();
+
     activateBuilding();                              // 激活建筑
     BattleManager::getInstance()->addBuilding(this); // 传递信息：建筑增加
     this->scheduleUpdate();                          // 开启每帧更新 (用于生产资源或攻击)
@@ -101,6 +106,7 @@ void Building::initBuildingProperties()
     case BuildingType::GOLD_MINE:        filename = "GoldMine.png";        hp = 600;  break;
     case BuildingType::ARCHER_TOWER:     filename = "ArcherTower.png";     hp = 700;  break;
     case BuildingType::WALL:             filename = "Wall.png";            hp = 1000; break;
+    case BuildingType::BARRACKS:         filename = "Barracks.png";        hp = 800; break;
     case BuildingType::ELIXIR_COLLECTOR: filename = "ElixirCollector.png"; hp = 600;
         m_productionRate = 10.0f;
         m_maxStorage = 100.0f;
@@ -119,7 +125,13 @@ void Building::initBuildingProperties()
     // 4. 设置其他属性
     this->setProperties(hp, CampType::PLAYER);
 
-    // 5. 【可选】调整大小 (Scale)
+    // 使用统一固定的血条尺寸，避免不同建筑因图片大小或缩放导致血条不一致
+    const float DEFAULT_HP_BAR_WIDTH = 120.0f;  // 可根据 UI 需求调整为合适像素
+    const float DEFAULT_HP_BAR_HEIGHT = 12.0f;  // 宽高比可自定义
+
+    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
+    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
+
     // 图片可能很大(比如 500x500)，我们需要把它缩放到合适的大小(比如 64x64)
     // 假设你想让所有建筑大约占 60x60 像素：
     float targetSize = 150.0f;
@@ -158,6 +170,9 @@ void Building::upgrade()
 
     // 稍微变大一点表示升级
     this->setScale(this->getScale() * 1.1f);
+
+    // 同步到 GameManager 存档记录（位置精确匹配）
+    GameManager::getInstance()->updateHomeBuildingLevel(m_type, this->getPosition(), m_level);
 }
 
 void Building::updateLogic(float dt)
@@ -195,7 +210,6 @@ void Building::updateLogic(float dt)
                 m_currentStored = m_maxStorage;
             }
 
-            // (可选) 可以在这里更新头顶的小图标，如果满了显示“收集气泡”
         }
     }
     // 2. 防御塔逻辑
@@ -386,4 +400,37 @@ void Building::updateUpgradeButtonVisibility()
             hideUpgradeButton();
         }
     }
+}
+
+// 新增：实现 setLevel
+void Building::setLevel(int level)
+{
+    if (level <= 0) return;
+    m_level = level;
+
+    // 根据等级调整血量和显示（简单策略）
+    // 每级增加 200 点最大生命值，并恢复当前生命值为满
+    // 为了避免重复叠加，在 initBuildingProperties 中已经设置了基础 m_maxHp
+    // 我们将 m_maxHp 设置为基础 + (level-1)*200
+
+    int baseHp = 500; // 默认基础血量，如果类型有特定值，需要先取决于类型
+    switch (m_type)
+    {
+    case BuildingType::TOWN_HALL: baseHp = 2000; break;
+    case BuildingType::CANNON: baseHp = 800; break;
+    case BuildingType::GOLD_MINE: baseHp = 600; break;
+    case BuildingType::ARCHER_TOWER: baseHp = 700; break;
+    case BuildingType::WALL: baseHp = 1000; break;
+    case BuildingType::BARRACKS: baseHp = 800; break;
+    case BuildingType::ELIXIR_COLLECTOR: baseHp = 600; break;
+    case BuildingType::ELIXIR_STORAGE: baseHp = 1500; break;
+    default: baseHp = 500; break;
+    }
+
+    m_maxHp = baseHp + (m_level - 1) * 200;
+    m_currentHp = m_maxHp;
+
+    // 根据等级修改显示大小（每级放大 10%）
+    float newScale = m_baseScale * std::pow(1.1f, m_level - 1);
+    this->setScale(newScale);
 }

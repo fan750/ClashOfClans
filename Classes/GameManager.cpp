@@ -72,13 +72,30 @@ void GameManager::modifyMaxGold(int amount) {
 }
 
 // 【新增实现】保存建筑
-void GameManager::addHomeBuilding(BuildingType type, Vec2 pos) {
+void GameManager::addHomeBuilding(BuildingType type, Vec2 pos, int level) {
     BuildingData data;
     data.type = type;
     data.position = pos;
+    data.level = level;
     m_homeBuildings.push_back(data);
+    CCLOG("Saved building: type=%d pos=(%f,%f) level=%d", (int)type, pos.x, pos.y, level);
 }
+
 const std::vector<BuildingData>& GameManager::getHomeBuildings() { return m_homeBuildings; } // 获取当前建筑列表
+
+// 更新已保存建筑的等级（按 type+pos 精确匹配）
+void GameManager::updateHomeBuildingLevel(BuildingType type, Vec2 pos, int level) {
+    for (auto &b : m_homeBuildings) {
+        if (b.type == type && b.position.equals(pos)) {
+            b.level = level;
+            CCLOG("Updated stored building level: type=%d pos=(%f,%f) level=%d", (int)type, pos.x, pos.y, level);
+            return;
+        }
+    }
+    // 如果没找到，追加一个记录，以防止丢失
+    addHomeBuilding(type, pos, level);
+}
+
 // 【新增实现】获取列表
 void GameManager::addTroops(TroopType type, int amount) // 添加各兵种数量
 {
