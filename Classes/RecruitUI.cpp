@@ -50,7 +50,8 @@ void RecruitUI::initUI()
         {"Barbarian", TroopType::BARBARIAN, 50, false},   // 50圣水
         {"Archer", TroopType::ARCHER, 100, false},        // 100圣水
         {"Giant", TroopType::GIANT, 250, false},          // 250圣水
-        {"Bomberman", TroopType::BOMBERMAN, 100, false}   // 100圣水
+        {"Bomberman", TroopType::BOMBERMAN, 100, false},  // 100圣水
+        {"Dragon", TroopType::DRAGON, 500, false }        // 500圣水
     };
 
     // 创建兵种项和招募按钮
