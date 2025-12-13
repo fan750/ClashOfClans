@@ -42,6 +42,9 @@ public:
     BuildingType getBuildingType() const { return m_type; }
     int getLevel() const { return m_level; }
 
+    // 新增：设置等级（用于从存档恢复）
+    void setLevel(int level);
+
     // 【新增】尝试收集资源
     // 返回值：收集到了多少资源 (用于显示飘字)
     int collectResource();
@@ -82,6 +85,9 @@ protected:
 
     // 监听金币变动的 listener（用于自动显示/隐藏）
     cocos2d::EventListenerCustom* m_goldListener;
+
+    // 新增：记录初始化时的基础缩放，保证从等级恢复时大小可复现
+    float m_baseScale;
 };
 
 #endif // __BUILDING_H__

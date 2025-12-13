@@ -1,7 +1,7 @@
-//loadscene.cpp
-#include "loadscene.h"
+//OpenScene.cpp
+#include "OpenScene.h"
 #include "SimpleAudioEngine.h"
-#include"HelloWorldScene.h"
+#include"MainModeScene.h"
 
 USING_NS_CC;
 
@@ -14,7 +14,7 @@ Scene* Load::createScene()
 static void problemLoading(const char* filename)
 {
     printf("Error while loading: %s\n", filename);
-    printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in HelloWorldScene.cpp\n");
+    printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MainModeScene.cpp\n");
 }
 
 // on "init" you need to initialize your instance
@@ -74,5 +74,5 @@ void Load::menuCloseCallback(Ref* pSender)
 
 void Load::onAssaultMenuCallback(Ref* pSender)
 {
-    Director::getInstance()->replaceScene(HelloWorld::createScene());
+    Director::getInstance()->replaceScene(MainMode::createScene());
 }

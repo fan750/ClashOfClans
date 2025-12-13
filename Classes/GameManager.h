@@ -11,6 +11,7 @@ struct BuildingData
 {
     BuildingType type;
     cocos2d::Vec2 position;
+    int level; // 新增：记录建筑等级
 };
 
 class GameManager {
@@ -23,10 +24,13 @@ public:
 
 
     // 【新增】保存一个建筑
-    void addHomeBuilding(BuildingType type, cocos2d::Vec2 pos);
+    void addHomeBuilding(BuildingType type, cocos2d::Vec2 pos, int level = 1);
 
     // 【新增】获取所有保存的建筑
     const std::vector<BuildingData>& getHomeBuildings();
+
+    // 新增：更新已保存建筑的等级（用于升级时同步）
+    void updateHomeBuildingLevel(BuildingType type, cocos2d::Vec2 pos, int level);
 
     // 【修改】增加资源 (带上限检查)
     void addGold(int amount);

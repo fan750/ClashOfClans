@@ -23,6 +23,7 @@ protected:
 
     cocos2d::DrawNode* m_hpBarDraw;
     float m_hpBarWidth;
+    float m_hpBarHeight; // 添加高度成员，Building.cpp 中使用
 public:
     GameEntity();
     virtual ~GameEntity();

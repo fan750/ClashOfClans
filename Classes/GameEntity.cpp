@@ -8,7 +8,8 @@ GameEntity::GameEntity()
     , m_currentHp(100)
     , m_camp(CampType::NEUTRAL)
     , m_hpBarDraw(nullptr)
-    , m_hpBarWidth(40.0f)
+    , m_hpBarWidth(80.0f)
+    , m_hpBarHeight(40.0f) // Initialize height
 {
 }
 
@@ -89,7 +90,9 @@ void GameEntity::updateHpBar()
     // 将 DrawNode 保持为实体的子节点，这样会随着实体移动而移动，确保位置在正上方
     m_hpBarDraw->setPosition(Vec2(0, topOffset));
 
-    float barHeight = 6.0f;
+    // Use member height if provided, otherwise fallback
+    float barHeight = (m_hpBarHeight > 0.0f) ? m_hpBarHeight : 6.0f;
+
     Vec2 bgStart = Vec2(-m_hpBarWidth / 2.0f, 0);
     Vec2 bgEnd = Vec2(m_hpBarWidth / 2.0f, barHeight);
     m_hpBarDraw->drawSolidRect(bgStart, bgEnd, Color4F(0.2f, 0.2f, 0.2f, 1.0f));

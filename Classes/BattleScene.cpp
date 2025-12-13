@@ -1,6 +1,6 @@
 //BattleScene.cpp
 #include "BattleScene.h"
-#include "HelloWorldScene.h"
+#include "MainModeScene.h"
 #include "BattleManager.h"
 #include "Building.h"
 #include "Troop.h"
@@ -72,13 +72,6 @@ bool BattleScene::init()
     enemyTown->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
     this->addChild(enemyTown);
 
-    // 加几个墙给Bomberman炸
-    for (int i = 0; i < 5; i++)
-    {
-        auto wall = Building::create(BuildingType::WALL);
-        wall->setPosition(Vec2(visibleSize.width / 2 - 100 + i * 40, visibleSize.height / 2 - 100));
-        this->addChild(wall);
-    }
 
     // 3. 【新增】创建提示文字
     m_infoLabel = Label::createWithSystemFont("Selected: Barbarian", "Arial", 24);
@@ -107,7 +100,7 @@ bool BattleScene::init()
         {
             // 战斗结束同步逻辑
             this->onBattleEnd();
-            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, HelloWorld::createScene()));
+            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, MainMode::createScene()));
         }
     );
     this->addChild(backBtn);
@@ -120,6 +113,92 @@ bool BattleScene::init()
     // 开启每帧更新
     this->scheduleUpdate();
     return true;
+}
+
+void BattleScene::update(float dt)
+{
+    // 每帧都调用胜负检查
+    checkBattleEnd();
+}
+
+void BattleScene::checkBattleEnd()
+{
+    // 1. 检查胜利条件：敌方大本营是否被摧毁
+    bool townHallDestroyed = true;
+    for (auto building : BattleManager::getInstance()->getBuildings())
+    {
+        if (building->getBuildingType() == BuildingType::TOWN_HALL && !building->isDead())
+        {
+            townHallDestroyed = false;
+            break;
+        }
+    }
+
+    if (townHallDestroyed)
+    {
+        CCLOG("VICTORY!");
+        this->unscheduleUpdate(); // 停止检查
+
+        // 显示胜利提示
+        auto visibleSize = Director::getInstance()->getVisibleSize();
+        auto winLabel = Label::createWithSystemFont("VICTORY!", "Arial", 72);
+        winLabel->setTextColor(Color4B::YELLOW);
+        winLabel->setPosition(visibleSize / 2);
+        this->addChild(winLabel, 1000);
+
+        // 2秒后返回主界面
+        this->scheduleOnce([=](float dt) {
+            this->onBattleEnd(); // 同步死亡兵数
+            Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
+            }, 2.0f, "ReturnToMain");
+        return;
+    }
+
+    // 2. 检查失败条件
+    // 条件：无可部署士兵 && 场上无存活士兵
+    bool canDeployAny = false;
+    auto availableTroops = BattleManager::getInstance()->getAllAvailableTroops();
+    for (const auto& pair : availableTroops)
+    {
+        if (pair.second > 0)
+        {
+            canDeployAny = true;
+            break;
+        }
+    }
+
+    bool anyTroopAlive = false;
+    for (auto troop : BattleManager::getInstance()->getTroops())
+    {
+        if (!troop->isDead())
+        {
+            anyTroopAlive = true;
+            break;
+        }
+    }
+
+    if (!canDeployAny && !anyTroopAlive)
+    {
+        CCLOG("DEFEAT!");
+        this->unscheduleUpdate(); // 停止检查
+
+        // 显示失败提示
+        auto visibleSize = Director::getInstance()->getVisibleSize();
+        auto loseLabel = Label::createWithSystemFont("DEFEAT!", "Arial", 72);
+        loseLabel->setTextColor(Color4B::RED);
+        loseLabel->setPosition(visibleSize / 2);
+        this->addChild(loseLabel, 1000);
+
+        // 2秒后返回主界面
+        this->scheduleOnce
+        ([=](float dt) 
+            {
+            this->onBattleEnd(); // 同步死亡兵数
+            Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
+            }, 2.0f, "ReturnToMain"
+        );
+        return;
+    }
 }
 
 void BattleScene::onBattleEnd()
@@ -332,20 +411,36 @@ void BattleScene::loadLevel(int levelIndex)
         town->setPosition(center);
         this->addChild(town);
 
-        // 两个炮
+        // 左青龙右白虎上朱雀下玄武,四大护法
         auto c1 = Building::create(BuildingType::CANNON);
         c1->setPosition(center + Vec2(150, 50));
         this->addChild(c1);
         auto c2 = Building::create(BuildingType::ARCHER_TOWER);
         c2->setPosition(center + Vec2(150, -50));
         this->addChild(c2);
+        auto c3 = Building::create(BuildingType::CANNON);
+        c3->setPosition(center + Vec2(-150, 50));
+        this->addChild(c3);
+        auto c4 = Building::create(BuildingType::ARCHER_TOWER);
+        c4->setPosition(center + Vec2(-150, -50));
+        this->addChild(c4);
 
-        // 前面放一排墙
+        //放两排墙
         for (int i = 0; i < 5; i++)
         {
-            auto wall = Building::create(BuildingType::WALL);
-            wall->setPosition(center + Vec2(80, -100 + i * 50));
-            this->addChild(wall);
+            auto wall_front = Building::create(BuildingType::WALL);
+            auto wall_back= Building::create(BuildingType::WALL);
+            wall_front->setPosition(center + Vec2(i*200-400,-200));
+            wall_back->setPosition(center + Vec2(i * 200 - 400, 200));
+            this->addChild(wall_front);
+            this->addChild(wall_back);
         }
+        //两边也放墙
+        auto wall_left = Building::create(BuildingType::WALL);
+        auto wall_right = Building::create(BuildingType::WALL);
+        wall_left->setPosition(center + Vec2(-400, 0));
+        wall_right->setPosition(center + Vec2(400, 0));
+        this->addChild(wall_left);
+        this->addChild(wall_right);
     }
 }

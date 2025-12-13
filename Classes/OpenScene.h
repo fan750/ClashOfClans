@@ -1,4 +1,4 @@
-//loadscene.h
+//OpenScene.h
 #ifndef __LOAD_SCENE_H__
 #define __LOAD_SCENE_H__
 
@@ -21,4 +21,4 @@ public:
     CREATE_FUNC(Load);
 };
 
-#endif // __HELLOWORLD_SCENE_H__
+#endif

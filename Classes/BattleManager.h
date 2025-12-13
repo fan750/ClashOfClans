@@ -20,6 +20,7 @@ public:
     Building* findClosestBuildingOfType(cocos2d::Vec2 position, BuildingType type);
     void dealAreaDamage(cocos2d::Vec2 center, float radius, int damage);
     Troop* findClosestTroopForBuilding(Building* building);
+    const cocos2d::Vector<Building*>& getBuildings() const;                     // 获取场上所有建筑
 
     // 兵种管理
     void addTroop(Troop* troop);

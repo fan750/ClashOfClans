@@ -291,29 +291,18 @@ const Vector<Troop*>& BattleManager::getTroops() const
     return m_troops;
 }
 
+const Vector<Building*>& BattleManager::getBuildings() const
+{
+    return m_buildings;
+}
+
 void BattleManager::clear()
 {
-    // 安全移除所有建筑引用
-    for (auto building : m_buildings)
-    {
-        if (building && building->getReferenceCount() > 0)
-        {
-            building->removeFromParent();
-        }
-    }
     m_buildings.clear();
 
-    // 安全移除所有兵种引用
-    for (auto troop : m_troops)
-    {
-        if (troop && troop->getReferenceCount() > 0)
-        {
-            troop->removeFromParent();
-        }
-    }
     m_troops.clear();
 
-    // 清空数据容器
+    // 清空计数器和可用列表
     m_availableTroops.clear();
     m_deployedTroops.clear();
     m_initialTroops.clear();

@@ -1,4 +1,4 @@
-//HelloWorldScene.h
+//MainModeScene.h
 #ifndef __HELLOWORLD_SCENE_H__
 #define __HELLOWORLD_SCENE_H__
 
@@ -15,7 +15,7 @@ struct ShopItem {
     std::string iconPath; // 【新增】存放图标文件名的变量
 };
 
-class HelloWorld : public cocos2d::Scene
+class MainMode : public cocos2d::Scene
 {
 public:
     static cocos2d::Scene* createScene();
@@ -30,7 +30,7 @@ public:
     void menuCloseCallback(cocos2d::Ref* pSender);
     void playCollectAnimation(int amount, cocos2d::Vec2 startPos, BuildingType type);
     // CREATE_FUNC 宏只能出现一次！它会自动生成 create() 函数
-    CREATE_FUNC(HelloWorld);
+    CREATE_FUNC(MainMode);
 
 private:
     // 初始化商店UI
@@ -89,4 +89,4 @@ private:
     cocos2d::Vec2 m_lastTouchPos;
 };
 
-#endif // __HELLOWORLD_SCENE_H__
+#endif

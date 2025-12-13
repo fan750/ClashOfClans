@@ -16,7 +16,8 @@ private:
 
     // battle end handler
     void onBattleEnd();
-
+    // 胜负判定函数
+    void checkBattleEnd();
     // state
     TroopType m_selectedType;
     cocos2d::Label* m_infoLabel;
@@ -25,7 +26,8 @@ private:
 public:
     static cocos2d::Scene* createScene(int levelIndex);
     virtual bool init() override;
-
+    // 【新增】重写 update 方法
+    virtual void update(float dt) override;
     void loadLevel(int levelIndex);
     virtual void onExit() override;
     bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* event);

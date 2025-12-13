@@ -64,7 +64,11 @@ bool Troop::init()
     if (!GameEntity::init()) return false;
 
     initTroopProperties();
+    const float DEFAULT_HP_BAR_WIDTH = 300.0f;  // 可根据 UI 需求调整为合适像素
+    const float DEFAULT_HP_BAR_HEIGHT = 120.0f;  // 宽高比可自定义
 
+    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
+    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
     // decide plist names per troop type
     std::string walkPlist;
     std::string attackPlist;
@@ -282,24 +286,6 @@ void Troop::attackTarget(float dt) {
 
         if (m_isAttacking) return; // already attacking
 
-        if (m_type == TroopType::DRAGON)
-        {
-            Vec2 attackPos = m_target->getPosition();
-            float splashRadius = 100.0f / 4.0f; // 炸弹人半径(100)的1/4
-            BattleManager::getInstance()->dealAreaDamage(attackPos, splashRadius, m_damage);
-
-            // 视觉效果：一个小的火焰爆炸
-            auto splash = Sprite::create();
-            splash->setTextureRect(Rect(0, 0, splashRadius * 2, splashRadius * 2));
-            splash->setColor(Color3B::ORANGE);
-            splash->setPosition(attackPos);
-            splash->setOpacity(180);
-            this->getParent()->addChild(splash);
-            splash->runAction(Sequence::create(FadeOut::create(0.5f), RemoveSelf::create(), nullptr));
-
-            // 播放攻击动画 (如果有)
-            // ... (可以像其他单位一样播放攻击动画) ...
-        }
         if (m_type == TroopType::BOMBERMAN)
         {
             CCLOG("Bomberman Exploded!");
