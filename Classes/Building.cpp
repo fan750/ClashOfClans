@@ -1,8 +1,9 @@
 //Building.cpp
 #include "Building.h"
 #include "BattleManager.h"
-#include"Troop.h"
-#include"GameManager.h"
+#include "Troop.h"
+#include "GameManager.h"
+#include "SimpleAudioEngine.h" // 新增：音效
 USING_NS_CC;
 
 Building::Building()
@@ -53,6 +54,9 @@ bool Building::init()
     // 记录基础缩放（initBuildingProperties 已经对 scale 做了初始设定）
     m_baseScale = this->getScale();
 
+    // 【新增】初始化音效音量（0.0~1.0），可根据需要调整或改为从配置读取
+    CocosDenshion::SimpleAudioEngine::getInstance()->setEffectsVolume(0.6f);
+
     activateBuilding();                              // 激活建筑
     BattleManager::getInstance()->addBuilding(this); // 传递信息：建筑增加
     this->scheduleUpdate();                          // 开启每帧更新 (用于生产资源或攻击)
@@ -70,6 +74,12 @@ void Building::activateBuilding() // 激活建筑
 
 void Building::onDeath()
 {
+    // 陷阱不参与存储上限变更，也不可被摧毁
+    if (m_type == BuildingType::TRAP)
+    {
+        return; // 忽略死亡逻辑
+    }
+
     // 如果是存储建筑，死的时候要扣除上限
     if (m_type == BuildingType::ELIXIR_STORAGE)
     {
@@ -116,6 +126,7 @@ void Building::initBuildingProperties()
         m_productionRate = 0;
         GameManager::getInstance()->modifyMaxElixir(1000);
         break;
+    case BuildingType::TRAP:             filename = "Trap.png";            hp = 200;  break; // 陷阱：默认隐形
     default:break;
     }
 
@@ -124,6 +135,16 @@ void Building::initBuildingProperties()
 
     // 4. 设置其他属性
     this->setProperties(hp, CampType::PLAYER);
+
+    // TRAP 默认隐形，且无血条、不可选中
+    if (m_type == BuildingType::TRAP)
+    {
+        this->setOpacity(0);            // 隐身
+        this->removeHpBar();            // 删除血条机制
+        m_maxHp = 0;                    // 无生命值
+        m_currentHp = 0;                // 无生命值
+        this->setCascadeOpacityEnabled(true);
+    }
 
     // 使用统一固定的血条尺寸，避免不同建筑因图片大小或缩放导致血条不一致
     const float DEFAULT_HP_BAR_WIDTH = 120.0f;  // 可根据 UI 需求调整为合适像素
@@ -139,6 +160,9 @@ void Building::initBuildingProperties()
     if (contentSize.width > 0)
     {
         this->setScale(targetSize / contentSize.width);
+        if (m_type == BuildingType::TRAP) {
+            this->setScale(0.1f);
+        }
     }
     // 默认非资源建筑属性
     m_productionRate = 0;
@@ -178,6 +202,48 @@ void Building::upgrade()
 void Building::updateLogic(float dt)
 {
     m_timer += dt;
+
+    // 陷阱逻辑：敌军单位在范围内时显现，并定期造成范围伤害
+    if (m_type == BuildingType::TRAP)
+    {
+        const float trapRange = 50.0f;     // 设置触发范围
+        const int trapDps = 30;            // 每次触发伤害
+        bool enemyInRange = false;
+
+        this->setCascadeOpacityEnabled(true);
+        this->setTag(-1);
+
+        // 仅对地面单位触发显形（不会因空中单位如 Dragon 显形/攻击）
+        for (auto troop : BattleManager::getInstance()->getTroops())
+        {
+            if (!troop || troop->isDead()) continue;
+            if (troop->getMovementType() == TroopMovementType::AIR) continue; // 跳过空军（Dragon）
+            float dist = this->getPosition().distance(troop->getPosition());
+            if (dist <= trapRange)
+            {
+                enemyInRange = true;
+                break;
+            }
+        }
+
+        this->setOpacity(enemyInRange ? 255 : 0);
+
+        if (enemyInRange && m_timer >= 0.5f)
+        {
+            m_timer = 0.0f;
+
+            // 【修复】避免遍历时移除导致迭代器失效：改为调用 BattleManager::dealAreaDamage（内部先收集再伤害）
+            BattleManager::getInstance()->dealAreaDamage(this->getPosition(), trapRange, trapDps);
+
+            auto seq = Sequence::create(
+                TintTo::create(0.1f, Color3B::RED),
+                TintTo::create(0.1f, this->getColor()),
+                nullptr
+            );
+            this->runAction(seq);
+        }
+        return;
+    }
 
     // 机制：自动生产 & 存满即停
 
@@ -424,6 +490,7 @@ void Building::setLevel(int level)
     case BuildingType::BARRACKS: baseHp = 800; break;
     case BuildingType::ELIXIR_COLLECTOR: baseHp = 600; break;
     case BuildingType::ELIXIR_STORAGE: baseHp = 1500; break;
+    case BuildingType::TRAP: baseHp = 200; break;
     default: baseHp = 500; break;
     }
 
@@ -433,4 +500,20 @@ void Building::setLevel(int level)
     // 根据等级修改显示大小（每级放大 10%）
     float newScale = m_baseScale * std::pow(1.1f, m_level - 1);
     this->setScale(newScale);
+}
+
+void Building::takeDamage(int damage)
+{
+    // 先走基础伤害逻辑
+    GameEntity::takeDamage(damage);
+
+    // 陷阱不播放被攻击音效（不可选中、无血）
+    if (m_type == BuildingType::TRAP) return;
+
+    // 【新增】播放前可按需动态设置音量（示例：降低音量）
+    // CocosDenshion::SimpleAudioEngine::getInstance()->setEffectsVolume(0.5f);
+
+    // 播放被攻击音效（确保资源存在于搜索路径）
+    auto engine = CocosDenshion::SimpleAudioEngine::getInstance();
+    engine->playEffect("attack.wav");
 }

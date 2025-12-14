@@ -442,5 +442,10 @@ void BattleScene::loadLevel(int levelIndex)
         wall_right->setPosition(center + Vec2(400, 0));
         this->addChild(wall_left);
         this->addChild(wall_right);
+
+        // ·ÅÖÃÒ»¸öÏİÚå
+        auto trap = Building::create(BuildingType::TRAP);
+        trap->setPosition(center + Vec2(0, -400));
+        this->addChild(trap);
     }
 }

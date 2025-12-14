@@ -1,8 +1,9 @@
 //Troop.cpp
+// 修复：使用 cocos2d::Vector 而非 std::vector，且这些方法是成员函数
 #include "Troop.h"
 #include "BattleManager.h"
-#include <fstream> // 添加文件流支持
 #include <algorithm>
+#include <fstream> // ensure ofstream is defined
 
 USING_NS_CC;
 
@@ -69,6 +70,12 @@ bool Troop::init()
 
     m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
     m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
+
+    // 【新增】飞龙单独重设血条大小：保持长宽比，缩小到当前的 1/3
+    if (m_type == TroopType::DRAGON) {
+        m_hpBarWidth *= (1.0f / 3.0f);
+        m_hpBarHeight *= (1.0f / 3.0f);
+    }
     // decide plist names per troop type
     std::string walkPlist;
     std::string attackPlist;
@@ -78,7 +85,7 @@ bool Troop::init()
     case TroopType::ARCHER:    walkPlist = "hero2-walk.plist";  attackPlist = "hero2-attack.plist";  break;
     case TroopType::GIANT:     walkPlist = "hero3-walk.plist";  attackPlist = "hero3-attack.plist";  break;
     case TroopType::BOMBERMAN: walkPlist = "hero4-walk.plist";  attackPlist = "";                    break;
-    case TroopType::DRAGON:    walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
+    case TroopType::DRAGON:    walkPlist = "dragon.plist";      attackPlist = "dragon.plist";      break;
     default:                   walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
     }
 
@@ -145,6 +152,14 @@ bool Troop::init()
 
         float scaleFactor = 1.0f / 20.0f;
         this->setScale(this->getScale() * scaleFactor);
+        
+        // 【新增】按兵种单独调整大小
+        if (m_type == TroopType::DRAGON) {
+            this->setScale(this->getScale() * 4.0f);
+        } else if (m_type == TroopType::GIANT) {
+            this->setScale(this->getScale() * 2.0f);
+        }
+
         m_baseScale = this->getScale();
         CCLOG("Troop::init - applied scale factor %f, baseScale=%f", scaleFactor, m_baseScale);
 
@@ -290,7 +305,11 @@ void Troop::attackTarget(float dt) {
         {
             CCLOG("Bomberman Exploded!");
             Vec2 explosionCenter = this->getPosition();
-            BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage);
+            // 跳过自身，避免重复死亡或访问已销毁对象
+            BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage, this);
+
+            // 防止重复触发攻击
+            m_isAttacking = true;
 
             auto seq = Sequence::create
             (
@@ -298,9 +317,9 @@ void Troop::attackTarget(float dt) {
                 CallFunc::create
                 ([this]()
                     {
-                        //动画结束后调用死亡逻辑
-                        this->m_currentHp = 0; // 确保血量为0
-                        this->onDeath(); // 调用死亡方法，会触发BattleManager::removeTroop()
+                        // 仅在此处执行一次死亡流程
+                        this->m_currentHp = 0;
+                        this->onDeath();
                     }
                 ),
                 nullptr
@@ -388,5 +407,55 @@ void Troop::attackTarget(float dt) {
                 this->runAction(seq);
             }
         }
+    }
+}
+
+void Troop::playWalkAnimation()
+{
+    Vector<SpriteFrame*> frames;
+    if (!m_walkPlist.empty()) {
+        SpriteFrameCache::getInstance()->addSpriteFramesWithFile(m_walkPlist);
+    }
+    for (int i = 0; i < 8; ++i) {
+        std::string frameName = StringUtils::format("dragon_%d.png", i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
+        if (frame) frames.pushBack(frame);
+    }
+    if (!frames.empty()) {
+        auto animation = Animation::createWithSpriteFrames(frames, 0.12f);
+        auto animate = Animate::create(animation);
+        const int WALK_ACTION_TAG = 0x1001;
+        this->stopActionByTag(WALK_ACTION_TAG);
+        auto action = RepeatForever::create(animate);
+        action->setTag(WALK_ACTION_TAG);
+        this->runAction(action);
+    }
+}
+
+void Troop::playAttackAnimationOnce()
+{
+    Vector<SpriteFrame*> frames;
+    if (!m_attackPlist.empty()) {
+        SpriteFrameCache::getInstance()->addSpriteFramesWithFile(m_attackPlist);
+    }
+    for (int i = 0; i < 8; ++i) {
+        std::string frameName = StringUtils::format("dragon_attack_%d.png", i);
+        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
+        if (!frame) {
+            frameName = StringUtils::format("dragon_%d.png", i);
+            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
+        }
+        if (frame) frames.pushBack(frame);
+    }
+    if (!frames.empty()) {
+        auto animation = Animation::createWithSpriteFrames(frames, 0.10f);
+        auto animate = Animate::create(animation);
+        const int ATTACK_ACTION_TAG = 0x1002;
+        this->stopActionByTag(ATTACK_ACTION_TAG);
+        auto seq = Sequence::create(animate, CallFunc::create([this]() {
+            this->playWalkAnimation();
+        }), nullptr);
+        seq->setTag(ATTACK_ACTION_TAG);
+        this->runAction(seq);
     }
 }
