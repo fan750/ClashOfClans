@@ -154,10 +154,6 @@ bool HelloWorld::init() {
     m_barracksUI = BarracksUI::create();
     this->addChild(m_barracksUI, 300); // 确保层级最高
 
-    // ==========================================
-    // 【新增】 关键步骤：恢复之前保存的建筑
-    // ==========================================
-
 
     // 6. 触摸监听 (保持不变)
     auto listener = EventListenerTouchOneByOne::create();

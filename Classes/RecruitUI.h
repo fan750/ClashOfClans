@@ -12,6 +12,7 @@ struct RecruitItem
     TroopType type;
     int cost;
     bool isGoldCost; // true=花费金币, false=花费圣水
+    std::string iconPath;
 };
 
 class RecruitUI : public cocos2d::Layer
@@ -26,6 +27,7 @@ public:
     void show();                      // 显示招募UI
     void hide();                      // 隐藏招募UI
     virtual void onExit() override;   // 重写 onExit 以进行安全清理
+    void createRecruitItemButton(const RecruitItem& item, cocos2d::Vec2 pos, Node* parentNode);
 };
 
 #endif // __RECRUIT_UI_H__

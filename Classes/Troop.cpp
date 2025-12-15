@@ -20,8 +20,9 @@ Troop::Troop()
 {
 }
 
-Troop::~Troop()
-{
+Troop::~Troop() {
+    // 士兵死的时候，释放它锁定的目标
+    CC_SAFE_RELEASE(m_target);
 }
 
 Troop* Troop::create(TroopType type)
@@ -232,7 +233,17 @@ void Troop::initTroopProperties() {
 
 void Troop::setTarget(Building* target)
 {
+    if (m_target == target) return;
+
+    // 1. 如果之前有目标，先“松手” (引用计数 -1)
+    CC_SAFE_RELEASE(m_target);
+
+    // 2. 更新目标
     m_target = target;
+
+    // 3. 抓住新目标 (引用计数 +1)
+    // 这样即使它血量归零从屏幕移除，内存里它还在，直到你也松手
+    CC_SAFE_RETAIN(m_target);
 }
 
 void Troop::updateLogic(float dt) {
@@ -284,15 +295,39 @@ void Troop::attackTarget(float dt) {
     if (m_attackTimer >= m_attackInterval) {
         m_attackTimer = 0;
 
+        // ---------------------------------------------------------
+        // 【核心修复】 防止 m_target 已被销毁导致的 0xDDDDDDDD 崩溃
+        // ---------------------------------------------------------
+
+        // 1. 如果目标指针为空，直接返回 (可能已经被 setTarget(nullptr) 了)
+        if (!m_target) {
+            return;
+        }
+
+        // 2. 如果目标逻辑上已经死亡 (血量<=0)，虽然内存还在 (因为我们retain了)，
+        //    但也应该停止攻击，并清空目标
+        if (m_target->getCurrentHp() <= 0) {
+            this->setTarget(nullptr); // 放弃这个死人
+            return;
+        }
+
+        // 3. 再次确认目标是否有效 (防止多线程或回调中的边缘情况)
+        // Cocos2d-x 中可以用 getReferenceCount() > 0 来辅助判断，但一般上面的足够了
+        // ---------------------------------------------------------
+
+
         if (m_isAttacking) return; // already attacking
 
+        // --- 特殊兵种：飞龙 (溅射伤害) ---
         if (m_type == TroopType::DRAGON)
         {
+            // 现在获取 position 是安全的
             Vec2 attackPos = m_target->getPosition();
-            float splashRadius = 100.0f / 4.0f; // 炸弹人半径(100)的1/4
+
+            float splashRadius = 100.0f / 4.0f;
             BattleManager::getInstance()->dealAreaDamage(attackPos, splashRadius, m_damage);
 
-            // 视觉效果：一个小的火焰爆炸
+            // 视觉效果
             auto splash = Sprite::create();
             splash->setTextureRect(Rect(0, 0, splashRadius * 2, splashRadius * 2));
             splash->setColor(Color3B::ORANGE);
@@ -300,11 +335,9 @@ void Troop::attackTarget(float dt) {
             splash->setOpacity(180);
             this->getParent()->addChild(splash);
             splash->runAction(Sequence::create(FadeOut::create(0.5f), RemoveSelf::create(), nullptr));
-
-            // 播放攻击动画 (如果有)
-            // ... (可以像其他单位一样播放攻击动画) ...
         }
-        if (m_type == TroopType::BOMBERMAN)
+        // --- 特殊兵种：炸弹人 (自爆) ---
+        else if (m_type == TroopType::BOMBERMAN)
         {
             CCLOG("Bomberman Exploded!");
             Vec2 explosionCenter = this->getPosition();
@@ -316,9 +349,8 @@ void Troop::attackTarget(float dt) {
                 CallFunc::create
                 ([this]()
                     {
-                        //动画结束后调用死亡逻辑
-                        this->m_currentHp = 0; // 确保血量为0
-                        this->onDeath(); // 调用死亡方法，会触发BattleManager::removeTroop()
+                        this->m_currentHp = 0;
+                        this->onDeath();
                     }
                 ),
                 nullptr
@@ -326,84 +358,84 @@ void Troop::attackTarget(float dt) {
             this->runAction(seq);
             return;
         }
-
-        // 普通攻击
-        Vec2 targetPos = m_target->getPosition(); // 1. 先存位置
-        m_target->takeDamage(m_damage);           // 2. 再伤害
-
-        // 动画
-        if (m_type == TroopType::ARCHER)
-        {
-            auto arrow = Sprite::create();
-            arrow->setTextureRect(Rect(0, 0, 10, 2));
-            arrow->setColor(Color3B::YELLOW);
-            arrow->setPosition(this->getPosition());
-            this->getParent()->addChild(arrow);
-
-            float distance = this->getPosition().distance(targetPos);
-            float duration = distance / 400.0f;
-            arrow->runAction(Sequence::create(MoveTo::create(duration, targetPos), RemoveSelf::create(), nullptr));
-        }
+        // --- 普通攻击 (弓箭手 & 野蛮人 & 巨人) ---
         else
         {
-            // melee: play attack animation once
-            m_isAttacking = true;
-            const int WALK_ACTION_TAG = 0x1001;
-            this->stopActionByTag(WALK_ACTION_TAG);
+            // 1. 安全获取位置 (之前报错就是这行)
+            Vec2 targetPos = m_target->getPosition();
 
-            // 根据 m_type 选择对应的 attack plist
-            std::string attackPlist = m_attackPlist;
-            if (!attackPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(attackPlist);
+            // 2. 造成伤害
+            m_target->takeDamage(m_damage);
 
-            // Build attack frames from plist 'frames' keys
-            Vector<SpriteFrame*> attackFrames;
-            if (!attackPlist.empty()) {
-                ValueMap avm = FileUtils::getInstance()->getValueMapFromFile(attackPlist);
-                if (avm.find("frames") != avm.end()) {
-                    auto framesMap = avm["frames"].asValueMap();
-                    std::vector<std::string> keys;
-                    keys.reserve(framesMap.size());
-                    for (const auto& kv : framesMap) keys.push_back(kv.first);
-                    std::sort(keys.begin(), keys.end());
-                    for (const auto& name : keys) {
-                        auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
-                        if (f) attackFrames.pushBack(f);
+            // 3. 弓箭手特效
+            if (m_type == TroopType::ARCHER)
+            {
+                auto arrow = Sprite::create();
+                arrow->setTextureRect(Rect(0, 0, 10, 2));
+                arrow->setColor(Color3B::YELLOW);
+                arrow->setPosition(this->getPosition());
+                this->getParent()->addChild(arrow);
+
+                float distance = this->getPosition().distance(targetPos);
+                float duration = distance / 400.0f;
+                arrow->runAction(Sequence::create(MoveTo::create(duration, targetPos), RemoveSelf::create(), nullptr));
+            }
+            // 4. 近战攻击动画 (保持你的原代码)
+            else
+            {
+                m_isAttacking = true;
+                const int WALK_ACTION_TAG = 0x1001;
+                this->stopActionByTag(WALK_ACTION_TAG);
+
+                std::string attackPlist = m_attackPlist;
+                if (!attackPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(attackPlist);
+
+                Vector<SpriteFrame*> attackFrames;
+                if (!attackPlist.empty()) {
+                    ValueMap avm = FileUtils::getInstance()->getValueMapFromFile(attackPlist);
+                    if (avm.find("frames") != avm.end()) {
+                        auto framesMap = avm["frames"].asValueMap();
+                        std::vector<std::string> keys;
+                        keys.reserve(framesMap.size());
+                        for (const auto& kv : framesMap) keys.push_back(kv.first);
+                        std::sort(keys.begin(), keys.end());
+                        for (const auto& name : keys) {
+                            auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+                            if (f) attackFrames.pushBack(f);
+                        }
                     }
                 }
-            }
 
-            if (!attackFrames.empty()) {
-                auto attackAnim = Animation::createWithSpriteFrames(attackFrames, 0.08f);
-                auto attackAnimate = Animate::create(attackAnim);
-                // After attack, restore walk animation and clear flag
-                auto restore = CallFunc::create([this, WALK_ACTION_TAG]() {
-                    auto walkAnim = AnimationCache::getInstance()->getAnimation("troop_walk_anim");
-                    if (walkAnim) {
-                        auto repeat = RepeatForever::create(Animate::create(walkAnim));
-                        repeat->setTag(WALK_ACTION_TAG);
-                        this->runAction(repeat);
-                    }
-                    this->setScale(m_baseScale);
-                    m_isAttacking = false;
-                    });
+                if (!attackFrames.empty()) {
+                    auto attackAnim = Animation::createWithSpriteFrames(attackFrames, 0.08f);
+                    auto attackAnimate = Animate::create(attackAnim);
+                    auto restore = CallFunc::create([this, WALK_ACTION_TAG]() {
+                        auto walkAnim = AnimationCache::getInstance()->getAnimation("troop_walk_anim");
+                        if (walkAnim) {
+                            auto repeat = RepeatForever::create(Animate::create(walkAnim));
+                            repeat->setTag(WALK_ACTION_TAG);
+                            this->runAction(repeat);
+                        }
+                        this->setScale(m_baseScale);
+                        m_isAttacking = false;
+                        });
 
-                this->runAction(Sequence::create(attackAnimate, restore, nullptr));
-            }
-            else {
-                // fallback: simple scale feedback, relative to base scale
-                auto up = ScaleTo::create(0.1f, m_baseScale * 1.2f);
-                auto down = ScaleTo::create(0.1f, m_baseScale);
-                auto seq = Sequence::create(up, down, CallFunc::create([this, WALK_ACTION_TAG]() {
-                    // restart walk
-                    auto walkAnim = AnimationCache::getInstance()->getAnimation("troop_walk_anim");
-                    if (walkAnim) {
-                        auto repeat = RepeatForever::create(Animate::create(walkAnim));
-                        repeat->setTag(WALK_ACTION_TAG);
-                        this->runAction(repeat);
-                    }
-                    m_isAttacking = false;
-                    }), nullptr);
-                this->runAction(seq);
+                    this->runAction(Sequence::create(attackAnimate, restore, nullptr));
+                }
+                else {
+                    auto up = ScaleTo::create(0.1f, m_baseScale * 1.2f);
+                    auto down = ScaleTo::create(0.1f, m_baseScale);
+                    auto seq = Sequence::create(up, down, CallFunc::create([this, WALK_ACTION_TAG]() {
+                        auto walkAnim = AnimationCache::getInstance()->getAnimation("troop_walk_anim");
+                        if (walkAnim) {
+                            auto repeat = RepeatForever::create(Animate::create(walkAnim));
+                            repeat->setTag(WALK_ACTION_TAG);
+                            this->runAction(repeat);
+                        }
+                        m_isAttacking = false;
+                        }), nullptr);
+                    this->runAction(seq);
+                }
             }
         }
     }
