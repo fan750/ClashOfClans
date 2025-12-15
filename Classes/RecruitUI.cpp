@@ -42,6 +42,7 @@ void RecruitUI::initUI()
     titleLabel->setColor(Color3B::BLACK); // 建议设为黑色，防止背景太亮看不清
     m_mainPanel->addChild(titleLabel);
 
+<<<<<<< HEAD
     // 2. 定义可招募的兵种数据
     std::vector<RecruitItem> items = {
         // 名字,       类型,                 价格, 锁住,  图片路径
@@ -50,6 +51,16 @@ void RecruitUI::initUI()
         {"Giant",     TroopType::GIANT,     250, false, "giant_icon.png"},
         {"Bomberman", TroopType::BOMBERMAN, 100, false, "bomberman_icon.png"},
         {"Dragon",    TroopType::DRAGON,    300, false, "barbarian_icon.png"}
+=======
+    // 定义可招募的兵种
+    std::vector<RecruitItem> items = 
+    {
+        {"Barbarian", TroopType::BARBARIAN, 50, false},   // 50圣水
+        {"Archer", TroopType::ARCHER, 100, false},        // 100圣水
+        {"Giant", TroopType::GIANT, 250, false},          // 250圣水
+        {"Bomberman", TroopType::BOMBERMAN, 100, false},  // 100圣水
+        {"Dragon", TroopType::DRAGON, 500, false }        // 500圣水
+>>>>>>> 23b181c8b1dc14612c750ca616adb12c8ecc28bb
     };
 
     // 3. 【核心修改】计算网格布局并调用 createRecruitItemButton

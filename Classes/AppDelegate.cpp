@@ -23,7 +23,7 @@
  ****************************************************************************/
 
 #include "AppDelegate.h"
-#include "loadscene.h"
+#include "OpenScene.h"
 #include"SimpleAudioEngine.h"
 
 // #define USE_AUDIO_ENGINE 1

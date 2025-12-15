@@ -16,7 +16,8 @@ enum class BuildingType
     WALL,            // 围墙
     ELIXIR_STORAGE,   // 圣水瓶 (存储) [新增]
     GOLD_STORAGE,      // 储金罐 (存储) [新增]
-    BARRACKS          // 军营
+    BARRACKS,          // 军营
+    TRAP               // 陷阱 (默认隐藏, 靠近敌人时显现, 范围伤害持续)
 };
 
 class Building : public GameEntity
@@ -33,6 +34,10 @@ public:
 
     // 重写基类的 updateLogic，用于处理建筑特有逻辑（如生产资源、索敌）
     virtual void updateLogic(float dt) override;
+
+    // 新增：被攻击时播放音效
+    virtual void takeDamage(int damage) override;
+
     void activateBuilding();                                // 激活建筑，使其开始工作
     // 【核心功能】
     // 升级建筑

@@ -1,6 +1,6 @@
 //LevelMapScene.cpp
 #include "LevelMapScene.h"
-#include "HelloWorldScene.h" // 为了能返回主菜单
+#include "MainModeScene.h" // 为了能返回主菜单
 #include "BattleScene.h"     // 为了进入战斗
 #include <algorithm>
 USING_NS_CC;
@@ -53,7 +53,7 @@ bool LevelMapScene::init() {
     backBtn->setScale(0.3f);
     backBtn->setPosition(Vec2(50, visibleSize.height - 50));
     backBtn->addClickEventListener([=](Ref*) {
-        Director::getInstance()->replaceScene(TransitionFade::create(0.5f, HelloWorld::createScene()));
+        Director::getInstance()->replaceScene(TransitionFade::create(0.5f, MainMode::createScene()));
         });
     this->addChild(backBtn);
 

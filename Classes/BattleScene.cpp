@@ -1,6 +1,6 @@
 //BattleScene.cpp
 #include "BattleScene.h"
-#include "HelloWorldScene.h"
+#include "MainModeScene.h"
 #include "BattleManager.h"
 #include "Building.h"
 #include "Troop.h"
@@ -100,7 +100,7 @@ bool BattleScene::init()
         {
             // 战斗结束同步逻辑
             this->onBattleEnd();
-            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, HelloWorld::createScene()));
+            Director::getInstance()->replaceScene(TransitionFade::create(0.5f, MainMode::createScene()));
         }
     );
     this->addChild(backBtn);
@@ -113,6 +113,92 @@ bool BattleScene::init()
     // 开启每帧更新
     this->scheduleUpdate();
     return true;
+}
+
+void BattleScene::update(float dt)
+{
+    // 每帧都调用胜负检查
+    checkBattleEnd();
+}
+
+void BattleScene::checkBattleEnd()
+{
+    // 1. 检查胜利条件：敌方大本营是否被摧毁
+    bool townHallDestroyed = true;
+    for (auto building : BattleManager::getInstance()->getBuildings())
+    {
+        if (building->getBuildingType() == BuildingType::TOWN_HALL && !building->isDead())
+        {
+            townHallDestroyed = false;
+            break;
+        }
+    }
+
+    if (townHallDestroyed)
+    {
+        CCLOG("VICTORY!");
+        this->unscheduleUpdate(); // 停止检查
+
+        // 显示胜利提示
+        auto visibleSize = Director::getInstance()->getVisibleSize();
+        auto winLabel = Label::createWithSystemFont("VICTORY!", "Arial", 72);
+        winLabel->setTextColor(Color4B::YELLOW);
+        winLabel->setPosition(visibleSize / 2);
+        this->addChild(winLabel, 1000);
+
+        // 2秒后返回主界面
+        this->scheduleOnce([=](float dt) {
+            this->onBattleEnd(); // 同步死亡兵数
+            Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
+            }, 2.0f, "ReturnToMain");
+        return;
+    }
+
+    // 2. 检查失败条件
+    // 条件：无可部署士兵 && 场上无存活士兵
+    bool canDeployAny = false;
+    auto availableTroops = BattleManager::getInstance()->getAllAvailableTroops();
+    for (const auto& pair : availableTroops)
+    {
+        if (pair.second > 0)
+        {
+            canDeployAny = true;
+            break;
+        }
+    }
+
+    bool anyTroopAlive = false;
+    for (auto troop : BattleManager::getInstance()->getTroops())
+    {
+        if (!troop->isDead())
+        {
+            anyTroopAlive = true;
+            break;
+        }
+    }
+
+    if (!canDeployAny && !anyTroopAlive)
+    {
+        CCLOG("DEFEAT!");
+        this->unscheduleUpdate(); // 停止检查
+
+        // 显示失败提示
+        auto visibleSize = Director::getInstance()->getVisibleSize();
+        auto loseLabel = Label::createWithSystemFont("DEFEAT!", "Arial", 72);
+        loseLabel->setTextColor(Color4B::RED);
+        loseLabel->setPosition(visibleSize / 2);
+        this->addChild(loseLabel, 1000);
+
+        // 2秒后返回主界面
+        this->scheduleOnce
+        ([=](float dt) 
+            {
+            this->onBattleEnd(); // 同步死亡兵数
+            Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
+            }, 2.0f, "ReturnToMain"
+        );
+        return;
+    }
 }
 
 void BattleScene::onBattleEnd()
@@ -356,5 +442,10 @@ void BattleScene::loadLevel(int levelIndex)
         wall_right->setPosition(center + Vec2(400, 0));
         this->addChild(wall_left);
         this->addChild(wall_right);
+
+        // 放置一个陷阱
+        auto trap = Building::create(BuildingType::TRAP);
+        trap->setPosition(center + Vec2(0, -400));
+        this->addChild(trap);
     }
 }

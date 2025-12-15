@@ -63,13 +63,10 @@
     <ClCompile Include="..\Classes\MenuBuilder.cpp">
       <Filter>src\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\HelloWorldScene.cpp">
+    <ClCompile Include="..\Classes\MainModeScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\loadscene.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\loadscene.cpp">
+    <ClCompile Include="..\Classes\OpenScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
   </ItemGroup>
@@ -113,13 +110,10 @@
     <ClInclude Include="..\Classes\MenuBuilder.h">
       <Filter>src\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\HelloWorldScene.h">
+    <ClInclude Include="..\Classes\MainModeScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\loadscene.h">
-      <Filter>src\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\loadscene.h">
+    <ClInclude Include="..\Classes\OpenScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
   </ItemGroup>

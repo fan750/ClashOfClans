@@ -1,5 +1,5 @@
-//HelloWorldScene.cpp
-#include "HelloWorldScene.h"
+//MainModeScene.cpp
+#include "MainModeScene.h"
 #include "SimpleAudioEngine.h"
 #include "GameEntity.h"
 #include "Building.h"
@@ -13,20 +13,20 @@
 USING_NS_CC;
 using namespace ui;
 
-Scene* HelloWorld::createScene()
+Scene* MainMode::createScene()
 {
-    return HelloWorld::create();
+    return MainMode::create();
 }
 
 // Print useful error message instead of segfaulting when files are not there.
 static void problemLoading(const char* filename)
 {
     printf("Error while loading: %s\n", filename);
-    printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in HelloWorldScene.cpp\n");
+    printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MainModeScene.cpp\n");
 }
 
 // on "init" you need to initialize your instance
-bool HelloWorld::init() {
+bool MainMode::init() {
 
     if (!Scene::init()) return false;
     // 只在首次启动时初始化
@@ -137,13 +137,61 @@ bool HelloWorld::init() {
     // 4. 【新增】初始化商店面板 (默认隐藏)
     initShopUI();
 
-    // 5. 进攻按钮 (之前的代码，保持不变)
+    // 5. 进攻按钮
     auto attackBtn = Button::create("attack_icon.png");
     attackBtn->setScale(0.15f);
     attackBtn->setPosition(Vec2(visibleSize.width * 0.92f, visibleSize.height * 0.1f));
     attackBtn->addClickEventListener
     ([=](Ref*)
         {
+            // 检查兵力
+            auto gm = GameManager::getInstance();
+            int totalTroops = 
+                gm->getTroopCount(TroopType::BARBARIAN) +
+                gm->getTroopCount(TroopType::ARCHER) +
+                gm->getTroopCount(TroopType::GIANT) +
+                gm->getTroopCount(TroopType::BOMBERMAN) +
+                gm->getTroopCount(TroopType::DRAGON);
+
+            if (totalTroops == 0)
+            {
+                // 没有兵力，显示提示并返回
+                CCLOG("Cannot enter battle without any troops!");
+
+                // 创建一个简单的提示框
+                auto visibleSize = Director::getInstance()->getVisibleSize();
+                auto alertBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+                this->addChild(alertBg, 1000);
+
+                auto alertPanel = Sprite::create("ShopBackground.png"); // 复用一下背景图
+                if (alertPanel) {
+                    alertPanel->setPosition(visibleSize / 2);
+                    alertPanel->setScale(0.5f);
+                    alertBg->addChild(alertPanel);
+                }
+
+                auto alertLabel = Label::createWithSystemFont("You have no troops!\nGo to the Barracks to recruit some!", "Arial", 36);
+                alertLabel->setPosition(visibleSize / 2);
+                alertLabel->setTextColor(Color4B::WHITE);
+                alertLabel->setAlignment(TextHAlignment::CENTER);
+                alertBg->addChild(alertLabel);
+
+                auto okBtn = Button::create("CloseNormal.png");
+                okBtn->setTitleText("OK");
+                okBtn->setTitleFontSize(24);
+                okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+                okBtn->addClickEventListener
+                ([alertBg](Ref*) 
+                    {
+                    alertBg->removeFromParent();
+                    }
+                );
+                alertBg->addChild(okBtn);
+
+                return; // 阻止跳转
+            }
+
+            // 有兵力，正常跳转到关卡选择
             auto scene = LevelMapScene::createScene();
             Director::getInstance()->replaceScene(TransitionFade::create(0.5f, scene));
         }
@@ -158,14 +206,14 @@ bool HelloWorld::init() {
     // 6. 触摸监听 (保持不变)
     auto listener = EventListenerTouchOneByOne::create();
     listener->setSwallowTouches(true);
-    listener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
-    listener->onTouchMoved = CC_CALLBACK_2(HelloWorld::onTouchMoved, this);
+    listener->onTouchBegan = CC_CALLBACK_2(MainMode::onTouchBegan, this);
+    listener->onTouchMoved = CC_CALLBACK_2(MainMode::onTouchMoved, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
     return true;
 }
 
-void HelloWorld::initShopUI() {
+void MainMode::initShopUI() {
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 1. 创建商店背景板 (依然使用 Layout，方便作为容器)
@@ -229,12 +277,12 @@ void HelloWorld::initShopUI() {
     createShopItemButton(items[7], Vec2(start_X + 0 * gap_X, row2_Y), 1.8f);
 }
 
-void HelloWorld::toggleShop() {
+void MainMode::toggleShop() {
     // 切换显示状态
     m_shopLayer->setVisible(!m_shopLayer->isVisible());
 }
 
-void HelloWorld::tryBuyBuilding(const ShopItem& item) {
+void MainMode::tryBuyBuilding(const ShopItem& item) {
     // 1. 检查钱够不够
     int currentRes = item.isGold ? GameManager::getInstance()->getGold() : GameManager::getInstance()->getElixir();
 
@@ -265,7 +313,7 @@ void HelloWorld::tryBuyBuilding(const ShopItem& item) {
     m_pendingIsGold = item.isGold;
 }
 
-void HelloWorld::onTouchMoved(Touch* touch, Event* event) {
+void MainMode::onTouchMoved(Touch* touch, Event* event) {
     // 情况A: 正在拖拽放置建筑
     if (m_pendingBuilding) {
         // 1. 获取屏幕触摸点
@@ -328,7 +376,7 @@ void HelloWorld::onTouchMoved(Touch* touch, Event* event) {
 }
 
 // 手指按下时
-bool HelloWorld::onTouchBegan(Touch* touch, Event* event) {
+bool MainMode::onTouchBegan(Touch* touch, Event* event) {
     // 记录一下初始位置，供地图拖拽计算用
     m_lastTouchPos = touch->getLocation();
 
@@ -423,7 +471,7 @@ bool HelloWorld::onTouchBegan(Touch* touch, Event* event) {
     return true;
 }
 
-void HelloWorld::selectBuilding(Building* building) {
+void MainMode::selectBuilding(Building* building) {
     if (!building) return;
 
     // 如果已经选中了别的，先隐藏它的升级按钮
@@ -438,7 +486,7 @@ void HelloWorld::selectBuilding(Building* building) {
 
 // ...existing code...
 
-void HelloWorld::menuCloseCallback(Ref* pSender)
+void MainMode::menuCloseCallback(Ref* pSender)
 {
     //Close the cocos2d-x game scene and quit the application
     Director::getInstance()->end();
@@ -452,7 +500,7 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 }
 
 // 显示 √ 和 × 按钮
-void HelloWorld::showConfirmationUI(Vec2 pos) {
+void MainMode::showConfirmationUI(Vec2 pos) {
     if (m_confirmLayer) {
         m_confirmLayer->removeFromParent();
         m_confirmLayer = nullptr;
@@ -486,7 +534,7 @@ void HelloWorld::showConfirmationUI(Vec2 pos) {
 }
 
 // 玩家点了 YES
-void HelloWorld::onConfirmPlacement() {
+void MainMode::onConfirmPlacement() {
     if (!m_pendingBuilding) return;
 
     // 1. 恢复实体不透明度
@@ -523,7 +571,7 @@ void HelloWorld::onConfirmPlacement() {
 }
 
 // 玩家点了 NO
-void HelloWorld::onCancelPlacement() {
+void MainMode::onCancelPlacement() {
     // 1. 移除那个虚影建筑
     if (m_pendingBuilding) {
         m_pendingBuilding->removeFromParent();
@@ -543,7 +591,7 @@ void HelloWorld::onCancelPlacement() {
 }
 
 // 传入参数已经是转换好的 worldPos
-Building* HelloWorld::getBarracksAtPosition(Vec2 worldPos) {
+Building* MainMode::getBarracksAtPosition(Vec2 worldPos) {
     // 【修改】遍历 m_gameLayer 的子节点，而不是 this
     for (auto child : m_gameLayer->getChildren())
     {
@@ -559,7 +607,7 @@ Building* HelloWorld::getBarracksAtPosition(Vec2 worldPos) {
     return nullptr;
 }
 
-void HelloWorld::playCollectAnimation(int amount, Vec2 startPos, BuildingType type) {
+void MainMode::playCollectAnimation(int amount, Vec2 startPos, BuildingType type) {
     // 1. 决定飞什么图标 (金币还是圣水)
     std::string iconName = (type == BuildingType::GOLD_MINE) ? "coin_icon.png" : "elixir_icon.png";
     // 假设右上角 UI 的位置是 (VisibleWidth - 50, VisibleHeight - 30)
@@ -601,7 +649,7 @@ void HelloWorld::playCollectAnimation(int amount, Vec2 startPos, BuildingType ty
 }
 
 // 这是一个通用的“造按钮”工厂
-void HelloWorld::createShopItemButton(const ShopItem& item, Vec2 pos, float iconScale) {
+void MainMode::createShopItemButton(const ShopItem& item, Vec2 pos, float iconScale) {
     // 1. 创建统一底座 (相框)
     auto btn = Button::create("ItemFrame.png");
     btn->setScale(0.4f);

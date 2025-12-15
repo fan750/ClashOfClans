@@ -1,8 +1,10 @@
 //Troop.h
 #ifndef __TROOP_H__
 #define __TROOP_H__
+
 #include "GameEntity.h"
 #include "Building.h"
+#include <string>
 
 // 兵种移动类型列举
 enum class TroopMovementType
@@ -26,19 +28,29 @@ class Troop : public GameEntity
 public:
     Troop();
     virtual ~Troop();
-    static Troop* create(TroopType type);
-
     virtual bool init() override;
     virtual void updateLogic(float dt) override;
     virtual void onDeath() override;
+
+    static Troop* create(TroopType type);
+
     TroopType getTroopType() const { return m_type; } // 获取兵种类型
     TroopMovementType getMovementType() const { return m_movementType; } // 获取移动类型
-    void setTarget(Building* target);
 
-protected:
+    void setTarget(Building* target);
     void initTroopProperties();
     void moveTowardsTarget(float dt);
     void attackTarget(float dt);
+
+    // 新增：动画接口声明
+    void playWalkAnimation();
+    void playAttackAnimationOnce();
+
+    // 资源文件名
+    std::string m_walkPlist;
+    std::string m_attackPlist;
+
+    // 基础属性
     TroopType m_type;
     TroopMovementType m_movementType; // 移动类型属性
     float m_moveSpeed;
@@ -53,10 +65,6 @@ protected:
 
     // 标记当前是否在播放攻击动画，防止重复触发
     bool m_isAttacking;
-
-    // store resource filenames for this troop instance
-    std::string m_walkPlist;
-    std::string m_attackPlist;
 };
 
 #endif // __TROOP_H__
