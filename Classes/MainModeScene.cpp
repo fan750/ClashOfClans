@@ -238,11 +238,11 @@ void MainMode::initShopUI() {
 
     // 2. 定义商品列表 (增加对应的图标路径)
     std::vector<ShopItem> items = {
-        {"Gold Mine", BuildingType::GOLD_MINE, 100, false, "GoldMine.png"},
+        {"Gold Mine", BuildingType::GOLD_MINE, 100, false, "gold_anim_0.png"},
         {"Cannon", BuildingType::CANNON, 200, true, "Cannon.png"},
         {"Wall", BuildingType::WALL, 50, true, "Wall.png"},
         {"Archer Twr", BuildingType::ARCHER_TOWER, 300, true, "ArcherTower.png"},
-        {"Elixir Pump", BuildingType::ELIXIR_COLLECTOR, 100, true, "ElixirCollector.png"},
+        {"Elixir Pump", BuildingType::ELIXIR_COLLECTOR, 100, true, "elixir_anim_2.png"},
         {"Elixir Tank", BuildingType::ELIXIR_STORAGE, 300, true, "ElixirStorage.png"},
         {"Gold Storage", BuildingType::GOLD_STORAGE, 300, false, "GoldStorage.png"},
         {"Barracks", BuildingType::BARRACKS, 500, true, "Barracks.png"}
@@ -258,23 +258,23 @@ void MainMode::initShopUI() {
 
     // --- 第一排 (Row 1) ---
     // 0: 金矿
-    createShopItemButton(items[0], Vec2(start_X + 0 * gap_X, row1_Y), 0.6f);
+    createShopItemButton(items[0], Vec2(start_X + 0 * gap_X, row1_Y), 0.3f);
     // 1: 加农炮
     createShopItemButton(items[1], Vec2(start_X + 3 * gap_X, row1_Y), 0.6f);
     // 2: 围墙
-    createShopItemButton(items[2], Vec2(start_X + 6 * gap_X, row1_Y), 0.6f);
+    createShopItemButton(items[2], Vec2(start_X + 6 * gap_X, row1_Y), 1.3f);
     // 3: 箭塔
     createShopItemButton(items[3], Vec2(start_X + 9 * gap_X, row1_Y), 0.6f);
 
     // --- 第二排 (Row 2) ---
     // 4: 收集器
-    createShopItemButton(items[4], Vec2(start_X + 3 * gap_X, row2_Y), 1.8f);
+    createShopItemButton(items[4], Vec2(start_X + 3 * gap_X, row2_Y), 0.3f);
     // 5: 圣水瓶
-    createShopItemButton(items[5], Vec2(start_X + 6 * gap_X, row2_Y), 1.8f);
+    createShopItemButton(items[5], Vec2(start_X + 6 * gap_X, row2_Y), 0.3f);
     // 6: 储金罐
-    createShopItemButton(items[6], Vec2(start_X + 9 * gap_X, row2_Y), 1.8f);
+    createShopItemButton(items[6], Vec2(start_X + 9 * gap_X, row2_Y), 0.3f);
     // 7: 军营
-    createShopItemButton(items[7], Vec2(start_X + 0 * gap_X, row2_Y), 1.8f);
+    createShopItemButton(items[7], Vec2(start_X + 0 * gap_X, row2_Y), 0.6f);
 }
 
 void MainMode::toggleShop() {
@@ -539,6 +539,7 @@ void MainMode::onConfirmPlacement() {
 
     // 1. 恢复实体不透明度
     m_pendingBuilding->setOpacity(255);
+    m_pendingBuilding->playWorkAnimation();
 
     // 2. 扣钱
     if (m_pendingIsGold) {

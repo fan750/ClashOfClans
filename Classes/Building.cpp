@@ -113,11 +113,12 @@ void Building::initBuildingProperties()
     {
     case BuildingType::TOWN_HALL:        filename = "TownHall.png";        hp = 2000; break;
     case BuildingType::CANNON:           filename = "Cannon.png";          hp = 800;  break;
-    case BuildingType::GOLD_MINE:        filename = "GoldMine.png";        hp = 600;  break;
+    case BuildingType::GOLD_MINE:        filename = "gold_anim_0.png";        hp = 600;  break;
+    case BuildingType::GOLD_STORAGE:        filename = "GoldStorage.png";        hp = 600;  break;
     case BuildingType::ARCHER_TOWER:     filename = "ArcherTower.png";     hp = 700;  break;
     case BuildingType::WALL:             filename = "Wall.png";            hp = 1000; break;
     case BuildingType::BARRACKS:         filename = "Barracks.png";        hp = 800; break;
-    case BuildingType::ELIXIR_COLLECTOR: filename = "ElixirCollector.png"; hp = 600;
+    case BuildingType::ELIXIR_COLLECTOR: filename = "elixir_anim_2.png"; hp = 600;
         m_productionRate = 10.0f;
         m_maxStorage = 100.0f;
         break;
@@ -516,4 +517,60 @@ void Building::takeDamage(int damage)
     // 播放被攻击音效（确保资源存在于搜索路径）
     auto engine = CocosDenshion::SimpleAudioEngine::getInstance();
     engine->playEffect("attack.wav");
+}
+
+void Building::playWorkAnimation()
+{
+    // 1. 根据建筑类型决定“图片前缀”和“缩放比例”
+    std::string framePrefix = "";
+    float targetScale = 1.0f; 
+    int frameCount = 4; // 假设每种动画都是4帧，如果不一样可以单独设
+
+    if (m_type == BuildingType::ELIXIR_COLLECTOR) 
+    {
+        framePrefix = "elixir_anim_"; // 圣水瓶图片前缀
+        targetScale = 0.1f;           // 圣水瓶缩放
+    }
+    else if (m_type == BuildingType::GOLD_MINE) 
+    {
+        framePrefix = "gold_anim_";   // 【新增】金矿图片前缀
+        targetScale = 0.1f;           // 【新增】金矿缩放 (你可以根据实际图片大小调整)
+    }
+    else 
+    {
+        return; // 其他建筑（如大本营）没有动画，直接返回
+    }
+
+    // 2. 防止重复播放
+    if (this->getActionByTag(0x999)) return;
+
+    // 3. 加载动画帧
+    Vector<SpriteFrame*> frames;
+    for (int i = 0; i < frameCount; ++i)
+    {
+        // 拼接文件名: "elixir_anim_0.png" 或 "gold_anim_0.png"
+        std::string name = StringUtils::format("%s%d.png", framePrefix.c_str(), i);
+        
+        auto frame = Sprite::create(name)->getSpriteFrame();
+        // 如果是从图集(plist)加载: 
+        // auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        
+        if (frame) {
+            frames.pushBack(frame);
+        }
+    }
+
+    // 4. 播放动画
+    if (!frames.empty())
+    {
+        auto animation = Animation::createWithSpriteFrames(frames, 0.3f);
+        auto animate = Animate::create(animation);
+        auto repeat = RepeatForever::create(animate);
+        
+        repeat->setTag(0x999);
+        this->runAction(repeat);
+
+        // 应用缩放
+        this->setScale(targetScale);
+    }
 }

@@ -182,8 +182,8 @@ bool Troop::init()
 
 void Troop::onDeath()
 {
-    BattleManager::getInstance()->removeTroop(this);
     GameEntity::onDeath();
+    BattleManager::getInstance()->removeTroop(this);
 }
 
 void Troop::initTroopProperties() {
@@ -310,34 +310,24 @@ void Troop::attackTarget(float dt) {
     if (m_attackTimer >= m_attackInterval) {
         m_attackTimer = 0;
 
-        // ---------------------------------------------------------
-        // 【核心修复】 防止 m_target 已被销毁导致的 0xDDDDDDDD 崩溃
-        // ---------------------------------------------------------
-
-        // 1. 如果目标指针为空，直接返回 (可能已经被 setTarget(nullptr) 了)
+        // 1. 如果目标指针为空，直接返回
         if (!m_target) {
             return;
         }
 
-        // 2. 如果目标逻辑上已经死亡 (血量<=0)，虽然内存还在 (因为我们retain了)，
-        //    但也应该停止攻击，并清空目标
+        // 2. 如果目标逻辑上已经死亡
         if (m_target->getCurrentHp() <= 0) {
-            this->setTarget(nullptr); // 放弃这个死人
+            this->setTarget(nullptr);
             return;
         }
 
-        // 3. 再次确认目标是否有效 (防止多线程或回调中的边缘情况)
-        // Cocos2d-x 中可以用 getReferenceCount() > 0 来辅助判断，但一般上面的足够了
-        // ---------------------------------------------------------
-
-
         if (m_isAttacking) return; // already attacking
 
-<<<<<<< HEAD
-        // --- 特殊兵种：飞龙 (溅射伤害) ---
+        // ----------------------------------------------------------------
+        // 【合并解决】保留 HEAD 的飞龙逻辑
+        // ----------------------------------------------------------------
         if (m_type == TroopType::DRAGON)
         {
-            // 现在获取 position 是安全的
             Vec2 attackPos = m_target->getPosition();
 
             float splashRadius = 100.0f / 4.0f;
@@ -352,15 +342,15 @@ void Troop::attackTarget(float dt) {
             this->getParent()->addChild(splash);
             splash->runAction(Sequence::create(FadeOut::create(0.5f), RemoveSelf::create(), nullptr));
         }
-        // --- 特殊兵种：炸弹人 (自爆) ---
+        // ----------------------------------------------------------------
+        // 【合并解决】采用 Incoming 分支优化后的炸弹人逻辑 (带 this 参数和防止重复攻击)
+        // ----------------------------------------------------------------
         else if (m_type == TroopType::BOMBERMAN)
-=======
-        if (m_type == TroopType::BOMBERMAN)
->>>>>>> 23b181c8b1dc14612c750ca616adb12c8ecc28bb
         {
             CCLOG("Bomberman Exploded!");
             Vec2 explosionCenter = this->getPosition();
-            // 跳过自身，避免重复死亡或访问已销毁对象
+
+            // 注意：这里使用了传入 'this' 的版本，确保 BattleManager::dealAreaDamage 支持第4个参数
             BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage, this);
 
             // 防止重复触发攻击
@@ -372,10 +362,7 @@ void Troop::attackTarget(float dt) {
                 CallFunc::create
                 ([this]()
                     {
-<<<<<<< HEAD
-=======
                         // 仅在此处执行一次死亡流程
->>>>>>> 23b181c8b1dc14612c750ca616adb12c8ecc28bb
                         this->m_currentHp = 0;
                         this->onDeath();
                     }
@@ -388,13 +375,12 @@ void Troop::attackTarget(float dt) {
         // --- 普通攻击 (弓箭手 & 野蛮人 & 巨人) ---
         else
         {
-            // 1. 安全获取位置 (之前报错就是这行)
             Vec2 targetPos = m_target->getPosition();
 
-            // 2. 造成伤害
+            // 造成伤害
             m_target->takeDamage(m_damage);
 
-            // 3. 弓箭手特效
+            // 弓箭手特效
             if (m_type == TroopType::ARCHER)
             {
                 auto arrow = Sprite::create();
@@ -407,7 +393,7 @@ void Troop::attackTarget(float dt) {
                 float duration = distance / 400.0f;
                 arrow->runAction(Sequence::create(MoveTo::create(duration, targetPos), RemoveSelf::create(), nullptr));
             }
-            // 4. 近战攻击动画 (保持你的原代码)
+            // 近战攻击动画
             else
             {
                 m_isAttacking = true;

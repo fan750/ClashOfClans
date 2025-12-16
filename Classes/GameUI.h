@@ -19,6 +19,15 @@ private:
     cocos2d::Label* m_goldLabel;
     cocos2d::Label* m_elixirLabel;
     std::map<TroopType, cocos2d::Label*> m_troopLabels; // 兵种标签
+    // 军队详情弹窗面板
+    cocos2d::ui::Layout* m_armyPanel;
+
+    // 打开军队界面的函数
+    void showArmyPanel();
+    // 关闭军队界面的函数
+    void hideArmyPanel();
+    // 刷新兵种数量显示的函数
+    void updateArmyLabels();
 };
 
 #endif // __GAME_UI_H__

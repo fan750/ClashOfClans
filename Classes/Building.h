@@ -65,6 +65,8 @@ public:
     // 根据当前金币自动显示/隐藏升级按钮（会监听 EVENT_UPDATE_GOLD）
     void updateUpgradeButtonVisibility();
 
+    void playWorkAnimation();
+
 protected:
     // 初始化特定类型的属性（血量、图片等）
     void initBuildingProperties();
