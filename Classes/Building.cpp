@@ -192,7 +192,14 @@ void Building::upgrade()
     m_maxHp += 200; // 升级加血上限
     m_currentHp = m_maxHp; // 并回血
     CCLOG("Building Upgraded to Level %d! Max HP is now %d", m_level, m_maxHp);
-
+    if (m_type == BuildingType::GOLD_STORAGE) {
+        int current_max = GameManager::getInstance()->getMaxGold();
+        GameManager::getInstance()->modifyMaxGold(current_max * 1.5);
+    }
+    if (m_type == BuildingType::ELIXIR_STORAGE) {
+        int current_max = GameManager::getInstance()->getMaxElixir();
+        GameManager::getInstance()->modifyMaxElixir(current_max * 1.5);
+    }
     // 稍微变大一点表示升级
     this->setScale(this->getScale() * 1.1f);
 
@@ -252,6 +259,15 @@ void Building::updateLogic(float dt)
     // 核心机制：存满即停
     if (m_productionRate > 0)
     {
+        if (m_rateBoostTimer > 0.0f)
+        {
+            m_rateBoostTimer -= dt;
+            if (m_rateBoostTimer <= 0.0f)
+            {
+                m_rateBoostTimer = 0.0f;
+                m_rateMultiplier = 1.0f;
+            }
+        }
         if (m_currentStored >= m_maxStorage)
         {
             m_currentStored = m_maxStorage;
@@ -263,7 +279,8 @@ void Building::updateLogic(float dt)
         // 2. 累加生产
         // 我们不直接用 m_currentStored += rate * dt，因为 int 丢失精度
         // 我们用一个累加器，攒够 1 块钱再加进去
-        m_productionAccumulator += m_productionRate * dt;
+        float effectiveRate = m_productionRate * ((m_rateBoostTimer > 0.0f) ? m_rateMultiplier : 1.0f);
+        m_productionAccumulator += effectiveRate * dt;
 
         if (m_productionAccumulator >= 1.0f)
         {
@@ -494,10 +511,14 @@ void Building::setLevel(int level)
     case BuildingType::TRAP: baseHp = 200; break;
     default: baseHp = 500; break;
     }
-
     m_maxHp = baseHp + (m_level - 1) * 200;
     m_currentHp = m_maxHp;
-
+    if (m_type == BuildingType::GOLD_STORAGE) {
+        GameManager::getInstance()->modifyMaxGold(1000*pow(1.5,level-1));
+    }
+    if (m_type == BuildingType::ELIXIR_STORAGE) {
+        GameManager::getInstance()->modifyMaxElixir(1000*pow(1.5,level-1));
+    }
     // 根据等级修改显示大小（每级放大 10%）
     float newScale = m_baseScale * std::pow(1.1f, m_level - 1);
     this->setScale(newScale);
@@ -573,4 +594,12 @@ void Building::playWorkAnimation()
         // 应用缩放
         this->setScale(targetScale);
     }
+}
+void Building::applyProductionBoost(float multiplier, float durationSec)//设置加速参数
+{
+    if (m_productionRate <= 0.0f || durationSec <= 0.0f) return;
+    if (multiplier <= 1.0f) multiplier = 1.0f;
+
+    m_rateMultiplier = multiplier;
+    m_rateBoostTimer = durationSec;
 }

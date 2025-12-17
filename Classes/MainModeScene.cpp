@@ -134,8 +134,10 @@ bool MainMode::init() {
         });
     this->addChild(shopBtn, 10);
 
-    // 4. 【新增】初始化商店面板 (默认隐藏)
+
+    // 4. 【新增】初始化商店面板和加速面板(默认隐藏)
     initShopUI();
+    initTime();
 
     // 5. 进攻按钮
     auto attackBtn = Button::create("attack_icon.png");
@@ -201,9 +203,17 @@ bool MainMode::init() {
     // 初始化军营UI，并添加到场景中，但默认隐藏
     m_barracksUI = BarracksUI::create();
     this->addChild(m_barracksUI, 300); // 确保层级最高
-
-
-    // 6. 触摸监听 (保持不变)
+    //6.加速按钮
+    TimeBtn = Button::create("time_icon.png");
+    TimeBtn->setScale(0.7f);
+    TimeBtn->setTitleText("Accelerate");
+    TimeBtn->setTitleFontSize(36);
+    TimeBtn->setPosition(Vec2(visibleSize.width - 900, 125));
+    TimeBtn->addClickEventListener([=](Ref*) {
+        this->toggleTime();
+        });
+    this->addChild(TimeBtn, 10);
+    // 7. 触摸监听 (保持不变)
     auto listener = EventListenerTouchOneByOne::create();
     listener->setSwallowTouches(true);
     listener->onTouchBegan = CC_CALLBACK_2(MainMode::onTouchBegan, this);
@@ -282,6 +292,51 @@ void MainMode::toggleShop() {
     m_shopLayer->setVisible(!m_shopLayer->isVisible());
 }
 
+void MainMode::initTime() {
+    Size visibleSize = Director::getInstance()->getVisibleSize();
+    m_timeLayer = Layout::create();
+    m_timeLayer->setBackGroundImage("accelerate_background.png");
+    m_timeLayer->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.6));
+    // 创建好 layout 后，直接设置整体缩放
+    m_timeLayer->setScale(0.8f); // 缩小到 80%
+
+    // 居中显示
+    // 注意：如果用图片，AnchorPoint 默认是 (0,0)，为了方便居中，建议改成 (0.5, 0.5)
+    m_timeLayer->setAnchorPoint(Vec2(0.5, 0.5));
+    m_timeLayer->setPosition(visibleSize / 2); // 直接放在屏幕正中间
+
+    m_timeLayer->setVisible(false); // 默认看不见
+
+    auto time_btn = Button::create("accelerate.png");
+    time_btn->setScale(0.2f);
+    time_btn->setPosition(Vec2(visibleSize.width * 0.4f, visibleSize.height * 0.1f));
+    time_btn->addClickEventListener([=](Ref*) {
+        m_timeLayer->setVisible(false);
+        TimeBtn->setEnabled(false);
+        TimeBtn->setBright(false);
+
+        this->scheduleOnce([this](float) {
+            if (TimeBtn) {
+                TimeBtn->setEnabled(true);
+                TimeBtn->setBright(true);
+            }
+            }, 60.0f, "AccelerateCooldown");
+
+        for (auto node : m_gameLayer->getChildren()) {
+            if (auto building = dynamic_cast<Building*>(node)) {
+                auto type = building->getBuildingType();
+                if (type == BuildingType::GOLD_MINE || type == BuildingType::ELIXIR_COLLECTOR) {
+                    building->applyProductionBoost(2.0f, 30.0f);
+                }
+            }
+        }
+        });
+    m_timeLayer->addChild(time_btn);
+    this->addChild(m_timeLayer, 201); // 层级很高，盖住一切
+}
+void MainMode::toggleTime() {
+    m_timeLayer->setVisible(!m_timeLayer->isVisible());
+}
 void MainMode::tryBuyBuilding(const ShopItem& item) {
     // 1. 检查钱够不够
     int currentRes = item.isGold ? GameManager::getInstance()->getGold() : GameManager::getInstance()->getElixir();
@@ -411,7 +466,16 @@ bool MainMode::onTouchBegan(Touch* touch, Event* event) {
         Rect box = Rect(0, 0, m_shopLayer->getContentSize().width, m_shopLayer->getContentSize().height);
 
         if (!box.containsPoint(nodePos)) {
-            toggleShop(); // 点到外面了，关掉商店
+            toggleShop(); 
+        }
+    }
+    //如果加速窗口开着,点击外部可以关闭
+    if (m_timeLayer->isVisible()) {
+        Vec2 nodePos = m_timeLayer->convertToNodeSpace(touch->getLocation());
+        Rect box = Rect(0, 0, m_timeLayer->getContentSize().width, m_timeLayer->getContentSize().height);
+
+        if (!box.containsPoint(nodePos)) {
+            toggleTime();
         }
     }
 

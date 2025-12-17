@@ -61,13 +61,13 @@ void GameManager::addElixir(int amount) {
 
 // 当建造了圣水瓶，上限增加
 void GameManager::modifyMaxElixir(int amount) {
-    m_maxElixir += amount;
+    m_maxElixir = amount;
     // 也可以发个事件更新UI，显示容量变化
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_ELIXIR");
 }
 
 void GameManager::modifyMaxGold(int amount) {
-    m_maxGold += amount;
+    m_maxGold = amount;
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_GOLD");
 }
 

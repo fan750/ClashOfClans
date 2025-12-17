@@ -58,7 +58,7 @@ void GameUI::initResourceLabels()
     m_goldLabel = Label::createWithSystemFont("Gold: 0", "Arial", 36);
     m_goldLabel->setColor(Color3B::YELLOW);
     // 放在右上角
-    m_goldLabel->setPosition(Vec2(visibleSize.width - 80, visibleSize.height - 40));
+    m_goldLabel->setPosition(Vec2(visibleSize.width - 150, visibleSize.height - 40));
     // 锚点设为右对齐
     m_goldLabel->setAnchorPoint(Vec2(1, 0.5));
     this->addChild(m_goldLabel);
@@ -66,16 +66,16 @@ void GameUI::initResourceLabels()
     // 2. 创建圣水标签
     m_elixirLabel = Label::createWithSystemFont("Elixir: 0", "Arial", 36);
     m_elixirLabel->setColor(Color3B::MAGENTA);
-    m_elixirLabel->setPosition(Vec2(visibleSize.width - 80, visibleSize.height - 100));
+    m_elixirLabel->setPosition(Vec2(visibleSize.width - 150, visibleSize.height - 100));
     m_elixirLabel->setAnchorPoint(Vec2(1, 0.5));
     this->addChild(m_elixirLabel);
     //为金币和圣水添加图片
     auto gold = Sprite::create("coin_icon.png");
-    gold->setPosition(Vec2(visibleSize.width * 0.86f, visibleSize.height * 0.97f));
+    gold->setPosition(Vec2(visibleSize.width * 0.80f, visibleSize.height * 0.97f));
     gold->setScale(0.05f);
     this->addChild(gold);
     auto water = Sprite::create("elixir_icon.png");
-    water->setPosition(Vec2(visibleSize.width * 0.86f, visibleSize.height * 0.92f));
+    water->setPosition(Vec2(visibleSize.width * 0.80f, visibleSize.height * 0.92f));
     water->setScale(0.06f);
     this->addChild(water);
 }
@@ -271,8 +271,10 @@ void GameUI::updateLabels() {
     // 从 GameManager 取出金币、圣水数量并更新
     int gold = GameManager::getInstance()->getGold();
     int elixir = GameManager::getInstance()->getElixir();
-    m_goldLabel->setString("Gold: " + std::to_string(gold));
-    m_elixirLabel->setString("Elixir: " + std::to_string(elixir));
+    int maxgold= GameManager::getInstance()->getMaxGold();
+    int maxelixir= GameManager::getInstance()->getMaxElixir();
+    m_goldLabel->setString("Gold: " + std::to_string(gold)+"/"+std::to_string(maxgold));
+    m_elixirLabel->setString("Elixir: " + std::to_string(elixir)+"/"+std::to_string(maxelixir));
     // 更新各兵种数量
     auto gm = GameManager::getInstance();
     for (const auto& pair : m_troopLabels)

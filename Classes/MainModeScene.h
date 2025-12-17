@@ -37,6 +37,10 @@ private:
     void initShopUI();
     // 显示/隐藏商店
     void toggleShop();
+    //初始化加速面板
+    void initTime();
+    //显示/隐藏加速面板
+    void toggleTime();
     // 尝试购买建筑
     void tryBuyBuilding(const ShopItem& item);
 
@@ -46,7 +50,8 @@ private:
 private:
     // 商店的主面板
     cocos2d::ui::Layout* m_shopLayer;
-
+    //加速的主面板
+    cocos2d::ui::Layout* m_timeLayer;
     // 【关键】当前正在放置的“虚影”建筑
     // 如果这个指针不为空，说明玩家正在选位置
     Building* m_pendingBuilding;
@@ -76,6 +81,7 @@ private:
     Building* getBarracksAtPosition(cocos2d::Vec2 pos); // 用于处理点击军营的逻辑
     cocos2d::ui::Button* m_barracksShopButton;          // 用于在建造后移除商店按钮
     BarracksUI* m_barracksUI;                           // 军营UI实例
+    cocos2d::ui::Button* TimeBtn;
     void createShopItemButton(const ShopItem& item, cocos2d::Vec2 pos, float iconScale = 0.8f);
 
     // 【核心】游戏世界容器层

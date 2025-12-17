@@ -66,6 +66,7 @@ public:
     void updateUpgradeButtonVisibility();
 
     void playWorkAnimation();
+    void applyProductionBoost(float multiplier, float durationSec);
 
 protected:
     // 初始化特定类型的属性（血量、图片等）
@@ -86,6 +87,8 @@ protected:
 
     // 生产计时器累加器
     float m_productionAccumulator;
+    float m_rateMultiplier;//加速倍率
+    float m_rateBoostTimer;//加速时间
 
     // 升级按钮
     cocos2d::ui::Button* m_upgradeBtn;
