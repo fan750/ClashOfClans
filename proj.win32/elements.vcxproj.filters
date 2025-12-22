@@ -74,9 +74,6 @@
     <ClInclude Include="main.h">
       <Filter>win32</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\AppDelegate.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\Classes\BattleManager.h">
       <Filter>src\Manager</Filter>
     </ClInclude>
@@ -115,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="..\Classes\OpenScene.h">
       <Filter>src\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\AppDelegate.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

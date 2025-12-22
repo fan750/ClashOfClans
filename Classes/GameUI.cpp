@@ -6,9 +6,6 @@
 USING_NS_CC;
 using namespace ui;
 
-// GameUI.cpp
-
-
 bool GameUI::init() {
     if (!Layer::init()) {
         return false;

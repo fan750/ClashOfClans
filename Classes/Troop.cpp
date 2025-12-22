@@ -22,8 +22,6 @@ Troop::Troop()
 }
 
 Troop::~Troop() {
-    // 士兵死的时候，释放它锁定的目标
-    CC_SAFE_RELEASE(m_target);
 }
 
 Troop* Troop::create(TroopType type)
@@ -182,8 +180,8 @@ bool Troop::init()
 
 void Troop::onDeath()
 {
-    GameEntity::onDeath();
     BattleManager::getInstance()->removeTroop(this);
+    GameEntity::onDeath();
 }
 
 void Troop::initTroopProperties() {
@@ -248,17 +246,7 @@ void Troop::initTroopProperties() {
 
 void Troop::setTarget(Building* target)
 {
-    if (m_target == target) return;
-
-    // 1. 如果之前有目标，先“松手” (引用计数 -1)
-    CC_SAFE_RELEASE(m_target);
-
-    // 2. 更新目标
     m_target = target;
-
-    // 3. 抓住新目标 (引用计数 +1)
-    // 这样即使它血量归零从屏幕移除，内存里它还在，直到你也松手
-    CC_SAFE_RETAIN(m_target);
 }
 
 void Troop::updateLogic(float dt) {
@@ -323,35 +311,13 @@ void Troop::attackTarget(float dt) {
 
         if (m_isAttacking) return; // already attacking
 
-        // ----------------------------------------------------------------
-        // 【合并解决】保留 HEAD 的飞龙逻辑
-        // ----------------------------------------------------------------
-        if (m_type == TroopType::DRAGON)
-        {
-            Vec2 attackPos = m_target->getPosition();
-
-            float splashRadius = 100.0f / 4.0f;
-            BattleManager::getInstance()->dealAreaDamage(attackPos, splashRadius, m_damage);
-
-            // 视觉效果
-            auto splash = Sprite::create();
-            splash->setTextureRect(Rect(0, 0, splashRadius * 2, splashRadius * 2));
-            splash->setColor(Color3B::ORANGE);
-            splash->setPosition(attackPos);
-            splash->setOpacity(180);
-            this->getParent()->addChild(splash);
-            splash->runAction(Sequence::create(FadeOut::create(0.5f), RemoveSelf::create(), nullptr));
-        }
-        // ----------------------------------------------------------------
-        // 【合并解决】采用 Incoming 分支优化后的炸弹人逻辑 (带 this 参数和防止重复攻击)
-        // ----------------------------------------------------------------
-        else if (m_type == TroopType::BOMBERMAN)
+        if (m_type == TroopType::BOMBERMAN)
         {
             CCLOG("Bomberman Exploded!");
             Vec2 explosionCenter = this->getPosition();
 
             // 注意：这里使用了传入 'this' 的版本，确保 BattleManager::dealAreaDamage 支持第4个参数
-            BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage, this);
+            BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage);
 
             // 防止重复触发攻击
             m_isAttacking = true;
@@ -362,9 +328,9 @@ void Troop::attackTarget(float dt) {
                 CallFunc::create
                 ([this]()
                     {
-                        // 仅在此处执行一次死亡流程
-                        this->m_currentHp = 0;
-                        this->onDeath();
+                        //动画结束后调用死亡逻辑
+                        this->m_currentHp = 0; // 确保血量为0
+                        this->onDeath(); // 调用死亡方法，会触发BattleManager::removeTroop()
                     }
                 ),
                 nullptr

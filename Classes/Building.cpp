@@ -255,8 +255,8 @@ void Building::updateLogic(float dt)
 
     // 机制：自动生产 & 存满即停
 
-      // 只有资源类建筑才生产
-    // 核心机制：存满即停
+    // 只有资源类建筑才生产
+    //核心机制：存满即停
     if (m_productionRate > 0)
     {
         if (m_rateBoostTimer > 0.0f)

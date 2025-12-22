@@ -152,28 +152,24 @@ Troop* BattleManager::findClosestTroopForBuilding(Building* building)
     return closestTroop;
 }
 
-void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage, Troop* exclude)
+void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
 {
-    // 收集受击部队，避免遍历时移除导致迭代器失效
-    std::vector<Troop*> troopsToHit;
+    std::vector<Building*> targetsToHit;
 
-    for (auto troop : m_troops)
+    for (auto building : m_buildings)
     {
-        if (!troop || troop->isDead()) continue;
-        if (exclude && troop == exclude) continue; // 跳过排除者（如自爆者）
-        if (troop->getCamp() != CampType::PLAYER && troop->getCamp() != CampType::ENEMY)
-            continue; // 只作用于有效阵营
-        if (troop->getPosition().distance(center) <= radius)
+        if (building->isDead()) continue;
+        if (building->getPosition().distance(center) <= radius)
         {
-            troopsToHit.push_back(troop);
+            targetsToHit.push_back(building);
         }
     }
 
-    for (auto troop : troopsToHit)
+    for (auto building : targetsToHit)
     {
-        if (troop && !troop->isDead())
+        if (!building->isDead())
         {
-            troop->takeDamage(damage);
+            building->takeDamage(damage);
         }
     }
 }
