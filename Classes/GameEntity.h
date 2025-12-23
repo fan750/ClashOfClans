@@ -24,6 +24,9 @@ protected:
     cocos2d::DrawNode* m_hpBarDraw;
     float m_hpBarWidth;
     float m_hpBarHeight; // 添加高度成员，Building.cpp 中使用
+    // 【新增】血条垂直偏移量
+    float m_hpBarOffsetY;
+    float m_hpBarOffsetX;
 public:
     GameEntity();
     virtual ~GameEntity();
@@ -38,8 +41,16 @@ public:
     CampType getCamp() const { return m_camp; }      // 获取实例类型
     int getCurrentHp() const { return m_currentHp; } // 获取当前血量
     int getMaxHp() const { return m_maxHp; }         // 获取最大血量
+    // 【新增】设置偏移量的函数供子类调用
+    void setHpBarOffsetY(float y) { m_hpBarOffsetY = y; }
+    void setHpBarOffsetX(float x) { m_hpBarOffsetX = x; }
+
+    // 新增:
+    cocos2d::Sprite* m_hpBgSprite;           // 血条背景图
+    cocos2d::ProgressTimer* m_hpBarTimer;    // 血条进度条
 
     CREATE_FUNC(GameEntity);
+
 };
 
 #endif // __GAME_ENTITY_H__

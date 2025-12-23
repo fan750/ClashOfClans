@@ -7,9 +7,12 @@ GameEntity::GameEntity()
     : m_maxHp(100)
     , m_currentHp(100)
     , m_camp(CampType::NEUTRAL)
-    , m_hpBarDraw(nullptr)
+    ,m_hpBgSprite(nullptr)    
+    , m_hpBarTimer(nullptr)
     , m_hpBarWidth(80.0f)
     , m_hpBarHeight(40.0f) // Initialize height
+    , m_hpBarOffsetY(15.0f) // 【新增】默认给个 15 的基础高度
+    ,m_hpBarOffsetX(15.0f)
 {
 }
 
@@ -71,46 +74,87 @@ void GameEntity::update(float dt)
 // HP bar implementation
 void GameEntity::initHpBar()
 {
-    if (m_hpBarDraw) return;
-    m_hpBarDraw = DrawNode::create();
-    // 初始添加到父节点留到子类或场景中，当 entity 被添加到父节点时，会有父节点
-    this->addChild(m_hpBarDraw, 100);
-}
+    if (m_hpBarTimer) return;
 
+    // 1. 创建背景
+    m_hpBgSprite = Sprite::create("hp_bg.png");
+    if (m_hpBgSprite)
+    {
+        this->addChild(m_hpBgSprite, 100);
+
+        // =========================================================
+        // 【核心修改】根据 m_hpBarWidth 强行缩放图片
+        // =========================================================
+        Size imgSize = m_hpBgSprite->getContentSize();
+        if (imgSize.width > 0 && imgSize.height > 0)
+        {
+            // 如果你在 Building/Troop 里设置了 m_hpBarWidth (比如 120)
+            // 这里就会计算出缩放比例，把图片拉伸或缩小到 120
+            float scaleX = m_hpBarWidth/100;
+            float scaleY = m_hpBarHeight/100 ;
+            
+            m_hpBgSprite->setScale(scaleX, scaleY);
+        }
+    }
+
+    // 2. 创建进度条 (完全一样的逻辑)
+    auto fillSprite = Sprite::create("hp_fill.png");
+    if (fillSprite)
+    {
+        m_hpBarTimer = ProgressTimer::create(fillSprite);
+        m_hpBarTimer->setType(ProgressTimer::Type::BAR);
+        m_hpBarTimer->setMidpoint(Vec2(0, 0.5f));
+        m_hpBarTimer->setBarChangeRate(Vec2(1, 0));
+        m_hpBarTimer->setPercentage(100.0f);
+        
+        // 【核心修改】进度条也要应用完全一样的缩放，否则会对不齐
+        Size imgSize = fillSprite->getContentSize();
+        if (imgSize.width > 0 && imgSize.height > 0)
+        {
+            float scaleX = m_hpBarWidth/100;
+            float scaleY = m_hpBarHeight/100;
+            m_hpBarTimer->setScale(scaleX, scaleY);
+        }
+
+        // 位置设置 (利用上一轮我们加的 Offset)
+        // ... (updateHpBar 会负责设置位置，这里可以不设，或者设为0) ...
+        
+        this->addChild(m_hpBarTimer, 101);
+    }
+}
 void GameEntity::updateHpBar()
 {
-    if (!m_hpBarDraw) return;
+    if (!m_hpBarTimer) return;
 
-    m_hpBarDraw->clear();
-
-    // 计算在实体顶部的本地偏移
+    // 计算基准位置 (物体顶部)
     Size contentSize = this->getContentSize();
-    float topOffset = contentSize.height * this->getScaleY() / 2.0f + 10.0f;
 
-    // 将 DrawNode 保持为实体的子节点，这样会随着实体移动而移动，确保位置在正上方
-    m_hpBarDraw->setPosition(Vec2(0, topOffset));
+    // 【核心修改】位置公式 = (高度的一半 * 缩放) + 手动偏移量
+    float topPos = (contentSize.height * this->getScaleY()+500.0f) + m_hpBarOffsetY;
 
-    // Use member height if provided, otherwise fallback
-    float barHeight = (m_hpBarHeight > 0.0f) ? m_hpBarHeight : 6.0f;
+    // 更新位置 (背景和进度条都要设)
+    if (m_hpBgSprite) m_hpBgSprite->setPosition(Vec2(400+m_hpBarOffsetX, topPos));
+    m_hpBarTimer->setPosition(Vec2(400 + m_hpBarOffsetX, topPos));
 
-    Vec2 bgStart = Vec2(-m_hpBarWidth / 2.0f, 0);
-    Vec2 bgEnd = Vec2(m_hpBarWidth / 2.0f, barHeight);
-    m_hpBarDraw->drawSolidRect(bgStart, bgEnd, Color4F(0.2f, 0.2f, 0.2f, 1.0f));
-
-    float hpPercent = 1.0f;
-    if (m_maxHp > 0) hpPercent = static_cast<float>(m_currentHp) / static_cast<float>(m_maxHp);
-    hpPercent = std::max(0.0f, std::min(1.0f, hpPercent));
-
-    float fgWidth = m_hpBarWidth * hpPercent;
-    Vec2 fgEnd = Vec2(-m_hpBarWidth / 2.0f + fgWidth, barHeight);
-    m_hpBarDraw->drawSolidRect(Vec2(-m_hpBarWidth / 2.0f, 0), fgEnd, Color4F(0.0f, 1.0f, 0.0f, 1.0f));
+    // 2. 计算并设置百分比
+    float hpPercent = 100.0f;
+    if (m_maxHp > 0)
+    {
+        hpPercent = (static_cast<float>(m_currentHp) / m_maxHp) * 100.0f;
+    }
+    // ProgressTimer 会自动裁剪图片
+    m_hpBarTimer->setPercentage(hpPercent);
 }
 
+// 别忘了在 removeHpBar 里把它们都 remove 掉
 void GameEntity::removeHpBar()
 {
-    if (m_hpBarDraw)
-    {
-        m_hpBarDraw->removeFromParent();
-        m_hpBarDraw = nullptr;
+    if (m_hpBgSprite) {
+        m_hpBgSprite->removeFromParent();
+        m_hpBgSprite = nullptr;
+    }
+    if (m_hpBarTimer) {
+        m_hpBarTimer->removeFromParent();
+        m_hpBarTimer = nullptr;
     }
 }

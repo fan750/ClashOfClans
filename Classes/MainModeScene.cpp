@@ -93,6 +93,7 @@ bool MainMode::init() {
             b->setOpacity(255);
             // 恢复等级
             b->setLevel(data.level);
+            b->playWorkAnimation();
             // 【关键】加到 m_gameLayer
             m_gameLayer->addChild(b);
             // b->activateBuilding(); 

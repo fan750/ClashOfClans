@@ -68,11 +68,11 @@ void GameUI::initResourceLabels()
     this->addChild(m_elixirLabel);
     //为金币和圣水添加图片
     auto gold = Sprite::create("coin_icon.png");
-    gold->setPosition(Vec2(visibleSize.width * 0.80f, visibleSize.height * 0.97f));
+    gold->setPosition(Vec2(visibleSize.width * 0.80f-40, visibleSize.height * 0.97f));
     gold->setScale(0.05f);
     this->addChild(gold);
     auto water = Sprite::create("elixir_icon.png");
-    water->setPosition(Vec2(visibleSize.width * 0.80f, visibleSize.height * 0.92f));
+    water->setPosition(Vec2(visibleSize.width * 0.80f-40, visibleSize.height * 0.92f));
     water->setScale(0.06f);
     this->addChild(water);
 }
@@ -215,8 +215,8 @@ void GameUI::initTroopLabels()
                 CCLOG("Not enough resources!");
                 // 这里可以做一个简单的缩放动画提示钱不够
                 trainBtn->runAction(Sequence::create(
-                    ScaleTo::create(0.1f, 0.5f),
-                    ScaleTo::create(0.1f, 0.4f),
+                    ScaleTo::create(0.1f, 0.12f),
+                    ScaleTo::create(0.1f, 0.1f),
                     nullptr
                 ));
             }
