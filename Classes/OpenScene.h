@@ -8,16 +8,15 @@ class Load : public cocos2d::Scene
 {
 public:
     static cocos2d::Scene* createScene();
-
     virtual bool init();
 
-    // a selector callback
+    // 你的回调函数
     void menuCloseCallback(cocos2d::Ref* pSender);
-
-    // callback for assault menu
     void onAssaultMenuCallback(cocos2d::Ref* pSender);
 
-    // implement the "static create()" method manually
+    // 【新增】用于定时器调用的函数
+    void enterMainMode(float dt);
+
     CREATE_FUNC(Load);
 };
 

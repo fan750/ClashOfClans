@@ -654,7 +654,7 @@ void Building::playWorkAnimation()
     // 4. ²¥·Å¶¯»­
     if (!frames.empty())
     {
-        auto animation = Animation::createWithSpriteFrames(frames, 0.3f);
+        auto animation = Animation::createWithSpriteFrames(frames, 0.2f);
         auto animate = Animate::create(animation);
         auto repeat = RepeatForever::create(animate);
         

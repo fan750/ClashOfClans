@@ -6,6 +6,7 @@
 #include "Building.h"
 #include "Troop.h"
 
+
 class Troop;
 
 class BattleManager

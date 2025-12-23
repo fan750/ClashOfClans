@@ -82,7 +82,7 @@ void GameUI::initTroopLabels()
 
     // 1. 创建入口按钮 (保持不变)
     auto armyBtn = Button::create("troop_icon.png");
-    armyBtn->setPosition(Vec2(visibleSize.width - 650, 125));
+    armyBtn->setPosition(Vec2(visibleSize.width - 550, 125));
     armyBtn->setScale(0.15f);
     armyBtn->addClickEventListener([=](Ref*) {
         this->showArmyPanel();

@@ -1,10 +1,11 @@
-//BattleScene.cpp
+ //BattleScene.cpp
 #include "BattleScene.h"
 #include "MainModeScene.h"
 #include "BattleManager.h"
 #include "Building.h"
 #include "Troop.h"
 #include "GameManager.h"
+#include "ui/CocosGUI.h"
 USING_NS_CC;
 using namespace ui; // 使用 UI 命名空间
 
@@ -141,10 +142,25 @@ void BattleScene::checkBattleEnd()
 
         // 显示胜利提示
         auto visibleSize = Director::getInstance()->getVisibleSize();
-        auto winLabel = Label::createWithSystemFont("VICTORY!", "Arial", 72);
-        winLabel->setTextColor(Color4B::YELLOW);
-        winLabel->setPosition(visibleSize / 2);
-        this->addChild(winLabel, 1000);
+        auto winSprite = Sprite::create("victory.png"); // 确保文件名正确
+        if (winSprite)
+        {
+            winSprite->setPosition(visibleSize / 2);
+            winSprite->setScale(0.0f); // 初始设为0，为了后面的弹出动画
+            this->addChild(winSprite, 1000);
+
+            // 添加一个 "Q弹" 的弹出动画效果
+            // 0.3秒放大到1.2倍，然后0.1秒恢复到1.0倍
+            winSprite->runAction(Sequence::create(
+                ScaleTo::create(0.3f, 0.8f),
+                ScaleTo::create(0.1f, 0.6f),
+                nullptr
+            ));
+        }
+        else
+        {
+            CCLOG("Error: victory.png not found!");
+        }
 
         // 2秒后返回主界面
         this->scheduleOnce([=](float dt) {
@@ -184,10 +200,29 @@ void BattleScene::checkBattleEnd()
 
         // 显示失败提示
         auto visibleSize = Director::getInstance()->getVisibleSize();
-        auto loseLabel = Label::createWithSystemFont("DEFEAT!", "Arial", 72);
-        loseLabel->setTextColor(Color4B::RED);
-        loseLabel->setPosition(visibleSize / 2);
-        this->addChild(loseLabel, 1000);
+        auto loseSprite = Sprite::create("defeat.png"); // 确保文件名正确
+        if (loseSprite)
+        {
+            loseSprite->setPosition(visibleSize / 2);
+            loseSprite->setScale(0.0f); // 初始设为0
+            this->addChild(loseSprite, 1000);
+
+            // 添加一个灰色的半透明背景层，让失败文字更清晰（可选）
+            /*
+            auto darkLayer = LayerColor::create(Color4B(0, 0, 0, 150));
+            this->addChild(darkLayer, 999); // 层级比图片低1
+            */
+
+            // 添加弹出动画
+            loseSprite->runAction(Sequence::create(
+                EaseBackOut::create(ScaleTo::create(0.4f,0.6f)), // 使用回弹缓动效果
+                nullptr
+            ));
+        }
+        else
+        {
+            CCLOG("Error: defeat.png not found!");
+        }
 
         // 2秒后返回主界面
         this->scheduleOnce
@@ -315,10 +350,10 @@ void BattleScene::createSelectButton(const std::string& title, Color3B color, Tr
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 创建按钮
-    auto btn = Button::create("CloseNormal.png");
-    btn->setColor(color); // 染成兵种的颜色
+    auto btn = Button::create("btn3.png");
+    btn->setScale(0.1f);
     btn->setTitleText(title);
-    btn->setTitleFontSize(20);
+    btn->setTitleFontSize(180);
 
     // 排列在右下角
     // index * 60 意味着每个按钮间隔 60 像素
