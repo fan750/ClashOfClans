@@ -98,21 +98,7 @@ void Building::onDeath()
     {
         return; // 忽略死亡逻辑
     }
-
-    // 如果是存储建筑，死的时候要扣除上限
-    if (m_type == BuildingType::ELIXIR_STORAGE)
-    {
-        GameManager::getInstance()->modifyMaxElixir(-1000);
-    }
-    else if (m_type == BuildingType::GOLD_STORAGE)
-    {
-        GameManager::getInstance()->modifyMaxGold(-1000);
-    }
-
     BattleManager::getInstance()->removeBuilding(this);
-
-    // 如果是主基地模式，还需要通知 GameManager 移除记录 (addHomeBuilding 的反向操作)
-    // 这里暂时省略，视你是否实现了移除建筑功能而定
 
     GameEntity::onDeath();
 }
@@ -258,17 +244,21 @@ void Building::initBuildingProperties()
 
 void Building::upgrade()
 {
+    if (m_type == BuildingType::TOWN_HALL) {
+        int maxlevel = GameManager::getInstance()->getTown_Hall_Level();
+        GameManager::getInstance()->setTown_Hall_Level(++maxlevel);
+    }
     m_level++;
     m_maxHp += 200; // 升级加血上限
     m_currentHp = m_maxHp; // 并回血
     CCLOG("Building Upgraded to Level %d! Max HP is now %d", m_level, m_maxHp);
     if (m_type == BuildingType::GOLD_STORAGE) {
         int current_max = GameManager::getInstance()->getMaxGold();
-        GameManager::getInstance()->modifyMaxGold(current_max * 1.5);
+        GameManager::getInstance()->modifyMaxGold(current_max+500);
     }
     if (m_type == BuildingType::ELIXIR_STORAGE) {
         int current_max = GameManager::getInstance()->getMaxElixir();
-        GameManager::getInstance()->modifyMaxElixir(current_max * 1.5);
+        GameManager::getInstance()->modifyMaxElixir(current_max+500);
     }
     // 稍微变大一点表示升级
     this->setScale(this->getScale() * 1.1f);
@@ -470,6 +460,31 @@ void Building::showUpgradeButton()
     m_upgradeBtn->addClickEventListener
     ([this](Ref*)
         {
+            int max_level = GameManager::getInstance()->getTown_Hall_Level();
+            if (m_type!=BuildingType::TOWN_HALL&&m_level == max_level) {
+                    auto warning = Label::createWithSystemFont("the level of buildings can't exceed the level of town_hall", "Arial", 24);
+                    warning->setTextColor(Color4B::YELLOW);
+                    warning->setOpacity(0);
+                    warning->setAnchorPoint(Vec2(0.5f, 0.5f));
+                    Size visibleSize = Director::getInstance()->getVisibleSize();
+                    warning->setPosition(Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f));
+                    warning->enableOutline(Color4B::BLACK, 2);
+                    if (auto scene = Director::getInstance()->getRunningScene())
+                    {
+                        scene->addChild(warning, 1000);
+                    }
+ 
+                     warning->runAction(Sequence::create
+                     (
+                         FadeIn::create(0.1f),
+                         DelayTime::create(1.0f),
+                         FadeOut::create(0.2f),
+                         RemoveSelf::create(),
+                         nullptr
+                     ));
+                     return;
+                 }
+
             int cost = this->getUpgradeCost();
             if (GameManager::getInstance()->getGold() >= cost)
             {
@@ -584,10 +599,12 @@ void Building::setLevel(int level)
     m_maxHp = baseHp + (m_level - 1) * 200;
     m_currentHp = m_maxHp;
     if (m_type == BuildingType::GOLD_STORAGE) {
-        GameManager::getInstance()->modifyMaxGold(1000*pow(1.5,level-1));
+        int original = GameManager::getInstance()->getMaxGold();
+        GameManager::getInstance()->modifyMaxGold(original+500*level);
     }
     if (m_type == BuildingType::ELIXIR_STORAGE) {
-        GameManager::getInstance()->modifyMaxElixir(1000*pow(1.5,level-1));
+        int original = GameManager::getInstance()->getMaxElixir();
+        GameManager::getInstance()->modifyMaxElixir(original+500*level);
     }
     // 根据等级修改显示大小（每级放大 10%）
     float newScale = m_baseScale * std::pow(1.1f, m_level - 1);

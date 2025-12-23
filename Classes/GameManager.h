@@ -53,6 +53,8 @@ public:
     void setTroopCount(TroopType type, int count);              // 设置兵种数量（用于战斗结束后同步）
     const std::map<TroopType, int>& getAllTroopCounts() const;  // 获取所有兵种数量
     void clear();
+    int getTown_Hall_Level() { return town_hall_level; }   
+    void setTown_Hall_Level(int level) { town_hall_level = level; }
 private:
     GameManager();
     static GameManager* s_instance;
@@ -60,6 +62,7 @@ private:
     bool m_isInitialized; // 标记是否已经初始化过
     int m_gold;
     int m_elixir;
+    int town_hall_level = 1;          //大本营等级,其他建筑的等级无法超过大本营的等级
 
     // 【新增】资源上限
     int m_maxGold;

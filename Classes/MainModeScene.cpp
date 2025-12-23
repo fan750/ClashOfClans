@@ -87,6 +87,8 @@ bool MainMode::init() {
     }
     else {
         // --- 有存档：恢复建筑 ---
+        GameManager::getInstance()->modifyMaxElixir(1000);//将上限重置为1000,防止和之前的上限叠加
+        GameManager::getInstance()->modifyMaxGold(1000);
         for (const auto& data : savedBuildings) {
             auto b = Building::create(data.type);
             b->setPosition(data.position);
@@ -96,6 +98,9 @@ bool MainMode::init() {
             b->playWorkAnimation();
             // 【关键】加到 m_gameLayer
             m_gameLayer->addChild(b);
+            if (data.type == BuildingType::GOLD_MINE || data.type == BuildingType::ELIXIR_COLLECTOR) {
+                b->playWorkAnimation();
+            }
             // b->activateBuilding(); 
         }
     }
@@ -620,8 +625,16 @@ void MainMode::onConfirmPlacement() {
         m_pendingBuilding->getPosition(),
         m_pendingBuilding->getLevel()
     );
-
-    // 4. 清理现场
+    //4.如果是储存相关建筑,增加上限
+    if (m_pendingBuilding->getBuildingType() == BuildingType::GOLD_STORAGE) {
+        int current_max = GameManager::getInstance()->getMaxGold();
+        GameManager::getInstance()->modifyMaxGold(current_max + 500);
+    }
+    if (m_pendingBuilding->getBuildingType() == BuildingType::ELIXIR_STORAGE) {
+        int current_max = GameManager::getInstance()->getMaxElixir();
+        GameManager::getInstance()->modifyMaxElixir(current_max + 500);
+    }
+    // 5. 清理现场
     m_pendingBuilding = nullptr; // 指针置空，表示放置结束
 
     // 移除确认按钮
