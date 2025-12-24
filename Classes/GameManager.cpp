@@ -77,6 +77,8 @@ void GameManager::addHomeBuilding(BuildingType type, Vec2 pos, int level) {
     data.type = type;
     data.position = pos;
     data.level = level;
+    // 【新增】军营默认等级为1，其他建筑为0
+    data.barrackLevel = (type == BuildingType::BARRACKS) ? 1 : 0;
     m_homeBuildings.push_back(data);
     CCLOG("Saved building: type=%d pos=(%f,%f) level=%d", (int)type, pos.x, pos.y, level);
 }
@@ -96,6 +98,38 @@ void GameManager::updateHomeBuildingLevel(BuildingType type, Vec2 pos, int level
     addHomeBuilding(type, pos, level);
 }
 
+// 【新增】获取当前军营等级
+int GameManager::getBarrackLevel() const {
+    // 查找军营建筑
+    for (const auto& building : m_homeBuildings) {
+        if (building.type == BuildingType::BARRACKS) {
+            return building.barrackLevel;
+        }
+    }
+    return 0; // 没有军营返回0
+}
+
+// 【新增】更新军营等级
+void GameManager::updateBarrackLevel(Vec2 pos, int level) {
+    // 更新存储的军营等级
+    for (auto& building : m_homeBuildings) {
+        if (building.type == BuildingType::BARRACKS && building.position.equals(pos)) {
+            building.barrackLevel = level;
+            CCLOG("Updated barrack level to %d at position (%f, %f)", level, pos.x, pos.y);
+            return;
+        }
+    }
+
+    // 如果没找到，可能是新建造的军营
+    CCLOG("Barracks not found at position (%f, %f), adding new record", pos.x, pos.y);
+    BuildingData newData;
+    newData.type = BuildingType::BARRACKS;
+    newData.position = pos;
+    newData.level = 1;
+    newData.barrackLevel = level;
+    m_homeBuildings.push_back(newData);
+}
+
 // 【新增实现】获取列表
 void GameManager::addTroops(TroopType type, int amount) // 添加各兵种数量
 {
@@ -104,6 +138,8 @@ void GameManager::addTroops(TroopType type, int amount) // 添加各兵种数量
     {
         m_troopCounts[type] = 0; // 防止数量为负
     }
+    // 发送事件通知军营更新cost
+    Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_TROOPS");
 }
 
 void GameManager::consumeTroops(TroopType type, int amount) // 减少各兵种数量

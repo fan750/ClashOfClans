@@ -6,6 +6,14 @@
 #include "SimpleAudioEngine.h" // 新增：音效
 USING_NS_CC;
 
+// 【新增】实现军营升级配置表
+const std::map<int, Building::BarrackUpgradeConfig> Building::BARRACK_UPGRADE_CONFIGS = {
+    {0, {0, 0}},                              // 未建造：cost上限0
+    {1, {0, 10}},                             // 一级：免费，cost上限10
+    {2, {500, 25}},                           // 二级：500金币，cost上限25
+    {3, {1000, 50}}                           // 三级：1000金币，cost上限50
+};
+
 Building::Building()
     : m_type(BuildingType::TOWN_HALL)
     , m_level(1)
@@ -13,6 +21,9 @@ Building::Building()
     , m_upgradeBtn(nullptr)
     , m_goldListener(nullptr)
     , m_baseScale(1.0f)
+    , m_barrackLevel(0)
+    , m_currentCostUsed(0)
+    , m_maxCostLimit(0)
 {
 }
 
@@ -122,13 +133,24 @@ void Building::initBuildingProperties()
     case BuildingType::GOLD_STORAGE:        filename = "GoldStorage.png";        hp = 600;  break;
     case BuildingType::ARCHER_TOWER:     filename = "ArcherTower.png";     hp = 700;  break;
     case BuildingType::WALL:             filename = "Wall.png";            hp = 1000; break;
-    case BuildingType::BARRACKS:         filename = "Barracks.png";        hp = 800; break;
-    case BuildingType::ELIXIR_COLLECTOR: filename = "elixir_anim_2.png"; hp = 600;
+    case BuildingType::BARRACKS:
+        filename = "Barracks.png";
+        hp = 800;
+        // 【新增】初始化军营属性
+        m_barrackLevel = 1;          // 初始为一级军营
+        m_maxCostLimit = BARRACK_UPGRADE_CONFIGS.at(1).maxCostLimit;  // cost上限为10
+        m_currentCostUsed = 0;       // 初始使用cost为0
+        break;   
+    case BuildingType::ELIXIR_COLLECTOR: 
+        filename = "elixir_anim_2.png"; 
+        hp = 600;
         m_productionRate = 10.0f;
         m_maxStorage = 100.0f;
         break;
 
-    case BuildingType::ELIXIR_STORAGE:   filename = "ElixirStorage.png";   hp = 1500;
+    case BuildingType::ELIXIR_STORAGE:  
+        filename = "ElixirStorage.png"; 
+        hp = 1500;
         m_productionRate = 0;
         GameManager::getInstance()->modifyMaxElixir(1000);
         break;
@@ -671,7 +693,7 @@ void Building::playWorkAnimation()
     // 4. 播放动画
     if (!frames.empty())
     {
-        auto animation = Animation::createWithSpriteFrames(frames, 0.3f);
+        auto animation = Animation::createWithSpriteFrames(frames, 0.2f);
         auto animate = Animate::create(animation);
         auto repeat = RepeatForever::create(animate);
         
@@ -682,6 +704,7 @@ void Building::playWorkAnimation()
         this->setScale(targetScale);
     }
 }
+
 void Building::applyProductionBoost(float multiplier, float durationSec)//设置加速参数
 {
     if (m_productionRate <= 0.0f || durationSec <= 0.0f) return;
@@ -689,4 +712,88 @@ void Building::applyProductionBoost(float multiplier, float durationSec)//设置加
 
     m_rateMultiplier = multiplier;
     m_rateBoostTimer = durationSec;
+}
+
+// 【新增】设置军营等级（用于从存档恢复）
+void Building::setBarrackLevel(int level) {
+    if (level < 0 || level > 3) return;
+    m_barrackLevel = level;
+
+    // 根据等级设置cost上限
+    if (BARRACK_UPGRADE_CONFIGS.find(level) != BARRACK_UPGRADE_CONFIGS.end()) {
+        m_maxCostLimit = BARRACK_UPGRADE_CONFIGS.at(level).maxCostLimit;
+    }
+
+    // 更新当前使用的cost
+    updateCurrentCostUsed();
+}
+
+// 【新增】更新当前使用的cost
+void Building::updateCurrentCostUsed() {
+    m_currentCostUsed = 0;
+    auto gm = GameManager::getInstance();
+
+    // 遍历所有兵种，计算总cost
+    for (const auto& pair : Troop::TROOP_CONFIGS) {
+        TroopType type = pair.first;
+        int troopCost = pair.second.cost;
+        int troopCount = gm->getTroopCount(type);
+        m_currentCostUsed += troopCost * troopCount;
+
+        CCLOG("Troop %d: count=%d, cost=%d, total=%d",
+            (int)type, troopCount, troopCost, m_currentCostUsed);
+    }
+
+    CCLOG("Final cost usage: %d/%d", m_currentCostUsed, m_maxCostLimit);
+
+    // 发送事件通知UI更新
+    Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_COST_UPDATED");
+}
+
+// 【新增】检查是否可以升级军营
+bool Building::canUpgradeBarrack() const {
+    // 只有军营才能升级
+    if (m_type != BuildingType::BARRACKS) return false;
+
+    // 已达最高级
+    if (m_barrackLevel >= 3) return false;
+
+    // 检查下一级的升级配置
+    int nextLevel = m_barrackLevel + 1;
+    if (BARRACK_UPGRADE_CONFIGS.find(nextLevel) != BARRACK_UPGRADE_CONFIGS.end()) {
+        int upgradeCost = BARRACK_UPGRADE_CONFIGS.at(nextLevel).goldCost;
+        int currentGold = GameManager::getInstance()->getGold();
+        return currentGold >= upgradeCost;
+    }
+
+    return false;
+}
+
+// 【新增】升级军营
+void Building::upgradeBarrack() {
+    if (!canUpgradeBarrack()) return;
+
+    int nextLevel = m_barrackLevel + 1;
+    auto config = BARRACK_UPGRADE_CONFIGS.at(nextLevel);
+
+    // 扣除升级费用
+    GameManager::getInstance()->addGold(-config.goldCost);
+
+    // 更新军营等级和cost上限
+    m_barrackLevel = nextLevel;
+    m_maxCostLimit = config.maxCostLimit;
+
+    CCLOG("Barracks upgraded to level %d, new cost limit: %d", m_barrackLevel, m_maxCostLimit);
+
+    // 重新计算当前cost使用（可能因为升级解锁了新兵种）
+    updateCurrentCostUsed();
+
+    // 播放升级特效
+    auto scaleUp = ScaleTo::create(0.2f, this->getScale() * 1.2f);
+    auto scaleDown = ScaleTo::create(0.2f, this->getScale());
+    this->runAction(Sequence::create(scaleUp, scaleDown, nullptr));
+
+    // 发送事件通知UI更新
+    Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_BARRACK_UPGRADED");
+    Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_COST_UPDATED");
 }

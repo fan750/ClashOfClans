@@ -10,15 +10,19 @@ public:
     virtual bool init() override;
     void initResourceLabels();                          // 初始化资源标签
     void initTroopLabels();                             // 初始化兵种标签
+
+    void onEnter();
     CREATE_FUNC(GameUI);
 
     // 刷新显示的文字
     void updateLabels();
-
+    void updateCostDisplay();
 private:
     cocos2d::Label* m_goldLabel;
     cocos2d::Label* m_elixirLabel;
     std::map<TroopType, cocos2d::Label*> m_troopLabels; // 兵种标签
+    std::map<TroopType, cocos2d::Label*> m_costLabels;  // 兵种cost标签
+
     // 军队详情弹窗面板
     cocos2d::ui::Layout* m_armyPanel;
 

@@ -25,6 +25,17 @@ static void problemLoading(const char* filename)
     printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MainModeScene.cpp\n");
 }
 
+// 【新增】获取军营建筑
+Building* MainMode::getBarracksBuilding() const {
+    for (auto node : m_gameLayer->getChildren()) {
+        auto building = dynamic_cast<Building*>(node);
+        if (building && building->getBuildingType() == BuildingType::BARRACKS) {
+            return building;
+        }
+    }
+    return nullptr;
+}
+
 // on "init" you need to initialize your instance
 bool MainMode::init() {
 
@@ -96,6 +107,10 @@ bool MainMode::init() {
             // 恢复等级
             b->setLevel(data.level);
             b->playWorkAnimation();
+            // 【新增】恢复军营等级
+            if (data.type == BuildingType::BARRACKS) {
+                b->setBarrackLevel(data.barrackLevel);
+            }
             // 【关键】加到 m_gameLayer
             m_gameLayer->addChild(b);
             if (data.type == BuildingType::GOLD_MINE || data.type == BuildingType::ELIXIR_COLLECTOR) {
@@ -134,7 +149,7 @@ bool MainMode::init() {
     shopBtn->setScale(0.1f);
     shopBtn->setTitleText("SHOP");
     shopBtn->setTitleFontSize(24);
-    shopBtn->setPosition(Vec2(visibleSize.width - 400, 125));
+    shopBtn->setPosition(Vec2(visibleSize.width - 350, 125));
     shopBtn->addClickEventListener([=](Ref*) {
         this->toggleShop(); // 点击开关商店
         });
@@ -171,22 +186,21 @@ bool MainMode::init() {
                 auto alertBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
                 this->addChild(alertBg, 1000);
 
-                auto alertPanel = Sprite::create("ShopBackground.png"); // 复用一下背景图
+                auto alertPanel = Sprite::create("barracksBoard.png"); // 复用一下背景图
                 if (alertPanel) {
                     alertPanel->setPosition(visibleSize / 2);
-                    alertPanel->setScale(0.5f);
+                    alertPanel->setScale(1.0f);
                     alertBg->addChild(alertPanel);
                 }
 
-                auto alertLabel = Label::createWithSystemFont("You have no troops!\nGo to the Barracks to recruit some!", "Arial", 36);
+                auto alertLabel = Label::createWithSystemFont("You have no troops!\nGo to the Barracks to recruit some!", "Arial", 46);
                 alertLabel->setPosition(visibleSize / 2);
-                alertLabel->setTextColor(Color4B::WHITE);
+                alertLabel->setTextColor(Color4B::BLACK);
                 alertLabel->setAlignment(TextHAlignment::CENTER);
                 alertBg->addChild(alertLabel);
 
-                auto okBtn = Button::create("CloseNormal.png");
-                okBtn->setTitleText("OK");
-                okBtn->setTitleFontSize(24);
+                auto okBtn = Button::create("yes.png");
+                okBtn->setScale(0.1f);
                 okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
                 okBtn->addClickEventListener
                 ([alertBg](Ref*) 
@@ -214,7 +228,7 @@ bool MainMode::init() {
     TimeBtn->setScale(0.7f);
     TimeBtn->setTitleText("Accelerate");
     TimeBtn->setTitleFontSize(36);
-    TimeBtn->setPosition(Vec2(visibleSize.width - 900, 125));
+    TimeBtn->setPosition(Vec2(visibleSize.width - 750, 125));
     TimeBtn->addClickEventListener([=](Ref*) {
         this->toggleTime();
         });

@@ -5,6 +5,7 @@
 #include "ui/CocosGUI.h"
 #include "Troop.h"
 #include "Building.h" // 确保包含
+#include <vector>
 
 class BattleScene : public cocos2d::Scene
 {
@@ -22,6 +23,7 @@ private:
     TroopType m_selectedType;
     cocos2d::Label* m_infoLabel;
     std::map<TroopType, cocos2d::Label*> m_troopCountLabels;
+    cocos2d::DrawNode* m_deployAreaVisual; // 投放区域可视化
 
 public:
     static cocos2d::Scene* createScene(int levelIndex);

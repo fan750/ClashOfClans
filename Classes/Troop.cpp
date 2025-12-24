@@ -7,6 +7,16 @@
 
 USING_NS_CC;
 
+// 【新增】实现兵种配置表
+const std::map<TroopType, TroopConfig> Troop::TROOP_CONFIGS = 
+{
+    {TroopType::BARBARIAN,  {1, 1}},    // 野蛮人：1cost，1级军营解锁
+    {TroopType::ARCHER,     {1, 1}},    // 弓箭手：1cost，1级军营解锁
+    {TroopType::BOMBERMAN,  {2, 2}},    // 炸弹人：2cost，2级军营解锁
+    {TroopType::GIANT,      {3, 2}},    // 巨人：3cost，2级军营解锁
+    {TroopType::DRAGON,     {5, 3}}     // 飞龙：5cost，3级军营解锁
+};
+
 Troop::Troop()
     : m_type(TroopType::BARBARIAN)
     , m_movementType(TroopMovementType::GROUND)
@@ -92,8 +102,7 @@ bool Troop::init()
     case TroopType::ARCHER:    walkPlist = "hero2-walk.plist";  attackPlist = "hero2-attack.plist";  break;
     case TroopType::GIANT:     walkPlist = "hero3-walk.plist";  attackPlist = "hero3-attack.plist";  break;
     case TroopType::BOMBERMAN: walkPlist = "hero4-walk.plist";  attackPlist = "";                    break;
-    case TroopType::DRAGON:    walkPlist = "dragon.plist";      attackPlist = "dragon.plist";      break;
-    default:                   walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
+    case TroopType::DRAGON:    walkPlist = "dragon.plist";      attackPlist = "dragon.plist";        break;
     }
 
     // store in instance members
@@ -267,6 +276,18 @@ void Troop::initTroopProperties() {
     }
 }
 
+// 【新增】获取兵种名称的辅助方法
+std::string Troop::getTroopName(TroopType type) {
+    switch (type) {
+    case TroopType::BARBARIAN: return "Barbarian";
+    case TroopType::ARCHER:    return "Archer";
+    case TroopType::GIANT:     return "Giant";
+    case TroopType::BOMBERMAN: return "Bomberman";
+    case TroopType::DRAGON:    return "Dragon";
+    default: return "Unknown";
+    }
+}
+
 void Troop::setTarget(Building* target)
 {
     m_target = target;
@@ -314,14 +335,17 @@ void Troop::moveTowardsTarget(float dt) {
     this->setPosition(newPos);
 }
 
-void Troop::attackTarget(float dt) {
+void Troop::attackTarget(float dt) 
+{
     m_attackTimer += dt;
 
-    if (m_attackTimer >= m_attackInterval) {
+    if (m_attackTimer >= m_attackInterval) 
+    {
         m_attackTimer = 0;
 
         // 1. 如果目标指针为空，直接返回
-        if (!m_target) {
+        if (!m_target) 
+        {
             return;
         }
 
@@ -392,15 +416,18 @@ void Troop::attackTarget(float dt) {
                 if (!attackPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(attackPlist);
 
                 Vector<SpriteFrame*> attackFrames;
-                if (!attackPlist.empty()) {
+                if (!attackPlist.empty()) 
+                {
                     ValueMap avm = FileUtils::getInstance()->getValueMapFromFile(attackPlist);
-                    if (avm.find("frames") != avm.end()) {
+                    if (avm.find("frames") != avm.end())
+                    {
                         auto framesMap = avm["frames"].asValueMap();
                         std::vector<std::string> keys;
                         keys.reserve(framesMap.size());
                         for (const auto& kv : framesMap) keys.push_back(kv.first);
                         std::sort(keys.begin(), keys.end());
-                        for (const auto& name : keys) {
+                        for (const auto& name : keys) 
+                        {
                             auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
                             if (f) attackFrames.pushBack(f);
                         }
@@ -498,4 +525,22 @@ void Troop::playAttackAnimationOnce()
         seq->setTag(ATTACK_ACTION_TAG);
         this->runAction(seq);
     }
+}
+
+// 【新增】获取兵种cost的静态方法
+int Troop::getTroopCost(TroopType type) {
+    auto it = TROOP_CONFIGS.find(type);
+    if (it != TROOP_CONFIGS.end()) {
+        return it->second.cost;
+    }
+    return 0; // 默认返回0
+}
+
+// 【新增】获取最低军营等级的静态方法
+int Troop::getMinBarrackLevel(TroopType type) {
+    auto it = TROOP_CONFIGS.find(type);
+    if (it != TROOP_CONFIGS.end()) {
+        return it->second.minBarrackLevel;
+    }
+    return 1; // 默认返回1级
 }

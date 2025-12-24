@@ -2,7 +2,9 @@
 #include "GameUI.h"
 #include "GameManager.h" // 一定要包含这个，用来获取兵种数量
 #include "GameEntity.h"  // 包含 TroopType 定义
-
+#include "MainModeScene.h"
+#include "Troop.h"
+#include "Building.h"
 USING_NS_CC;
 using namespace ui;
 
@@ -47,6 +49,7 @@ bool GameUI::init() {
 
     return true;
 }
+
 void GameUI::initResourceLabels()
 {
     Size visibleSize = Director::getInstance()->getVisibleSize();
@@ -76,18 +79,26 @@ void GameUI::initResourceLabels()
     water->setScale(0.06f);
     this->addChild(water);
 }
+
 void GameUI::initTroopLabels()
 {
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
-    // 1. 创建入口按钮 (保持不变)
+    // 1. 创建入口按钮
     auto armyBtn = Button::create("troop_icon.png");
-    armyBtn->setPosition(Vec2(visibleSize.width - 650, 125));
+    armyBtn->setPosition(Vec2(visibleSize.width - 550, 125));
     armyBtn->setScale(0.15f);
     armyBtn->addClickEventListener([=](Ref*) {
         this->showArmyPanel();
         });
     this->addChild(armyBtn);
+
+    // 【新增】添加cost显示标签
+    auto costLabel = Label::createWithSystemFont("Cost: --/--", "Arial", 24);
+    costLabel->setPosition(Vec2(visibleSize.width - 550, 80));
+    costLabel->setColor(Color3B::BLUE);
+    costLabel->setTag(1001); // 用于后续更新
+    this->addChild(costLabel);
 
     // ==========================================
     // 2. 创建弹窗面板 (加宽一点，方便放按钮)
@@ -115,25 +126,22 @@ void GameUI::initTroopLabels()
     closeBtn->addClickEventListener([=](Ref*) { this->hideArmyPanel(); });
     m_armyPanel->addChild(closeBtn);
 
-    // ==========================================
-    // 3. 兵种列表 (带价格和购买功能)
-    // ==========================================
-
-    // 【修改】结构体增加价格信息，直接把 RecruitUI 里的数据拿过来
+    // 3. 兵种列表
+    // 【修改】兵种信息显示结构体
     struct TroopInfo {
         TroopType type;
         std::string name;
         std::string iconPath;
-        int cost;           // 新增：价格
-        bool isGoldCost;    // 新增：是否金币
+        int cost;           // 兵种cost值
+        int minLevel;       // 最低军营等级
     };
 
     std::vector<TroopInfo> troopInfos = {
-        {TroopType::BARBARIAN, "Barbarian", "barbarian_icon.png", 50,  false},
-        {TroopType::ARCHER,    "Archer",    "archer_icon.png",    100, false},
-        {TroopType::GIANT,     "Giant",     "giant_icon.png",     250, false},
-        {TroopType::BOMBERMAN, "Bomberman", "bomberman_icon.png", 100, false},
-        {TroopType::DRAGON,    "Dragon",    "dragon_icon.png",    300, false}
+        {TroopType::BARBARIAN, "Barbarian", "barbarian_icon.png", 1, 1},
+        {TroopType::ARCHER,    "Archer",    "archer_icon.png",    1, 1},
+        {TroopType::GIANT,     "Giant",     "giant_icon.png",     3, 2},
+        {TroopType::BOMBERMAN, "Bomberman", "bomberman_icon.png", 2, 2},
+        {TroopType::DRAGON,    "Dragon",    "dragon_icon.png",    5, 3}
     };
 
     float startX = 280;
@@ -163,66 +171,38 @@ void GameUI::initTroopLabels()
         nameLabel->setScale(1.2f);
         m_armyPanel->addChild(nameLabel);
 
-        // C. 价格显示 (新增)
-        std::string costStr = (info.isGoldCost ? "Gold: " : "Elixir: ") + std::to_string(info.cost);
-        auto costLabel = Label::createWithSystemFont(costStr, "Arial", 14);
+        // C. 【新增】兵种Cost显示
+        auto costLabel = Label::createWithSystemFont("Cost: " + std::to_string(info.cost), "Arial", 16);
         costLabel->setAnchorPoint(Vec2(0, 0.5));
         costLabel->setScale(1.5f);
-        costLabel->setPosition(Vec2(startX + 140, y - 15)); // 放在名字下面
-        // 金币用深黄，圣水用深紫
-        costLabel->setColor(info.isGoldCost ? Color3B(200, 150, 0) : Color3B(150, 0, 150));
+        costLabel->setPosition(Vec2(startX + 140, y - 15));
+        costLabel->setColor(Color3B::BLACK);
         m_armyPanel->addChild(costLabel);
+        m_costLabels[info.type] = costLabel;
 
-        // D. 当前数量 (向右移)
+        // D. 【修改】当前数量显示（移除招募按钮）
         auto countLabel = Label::createWithSystemFont("x 0", "Arial", 22);
         countLabel->setAnchorPoint(Vec2(0, 0.5));
         countLabel->setPosition(Vec2(startX + 380, y));
-        countLabel->setColor(Color3B::BLUE);
+        countLabel->setColor(Color3B::BLACK);
         countLabel->setScale(1.5f);
         m_armyPanel->addChild(countLabel);
-
-        // 存入 Map 方便刷新
         m_troopLabels[info.type] = countLabel;
 
-        // E. 【核心】训练按钮 (新增)
-        auto trainBtn = Button::create("yes.png"); // 或者用 "upgrade_btn.png"
-        trainBtn->setScale(0.1f); // 按钮不用太大
-        trainBtn->setTitleText("Train");
-        trainBtn->setTitleFontSize(24);
-        trainBtn->setPosition(Vec2(startX + 750, y)); // 放在最右边
-
-        // 绑定购买逻辑 (复用之前的逻辑)
-        trainBtn->addClickEventListener([=](Ref*) {
-            auto gm = GameManager::getInstance();
-            int currentRes = info.isGoldCost ? gm->getGold() : gm->getElixir();
-
-            // 1. 检查钱够不够
-            if (currentRes >= info.cost) {
-                // 2. 扣钱
-                if (info.isGoldCost) gm->addGold(-info.cost);
-                else gm->addElixir(-info.cost);
-
-                // 3. 加兵
-                gm->addTroops(info.type, 1);
-
-                // 4. 【关键】立刻刷新界面上的数量
-                // 这样你点一下，数量就会从 x5 变成 x6，反馈感很强
-                this->updateArmyLabels();
-
-                CCLOG("Trained 1 %s", info.name.c_str());
-            }
-            else {
-                CCLOG("Not enough resources!");
-                // 这里可以做一个简单的缩放动画提示钱不够
-                trainBtn->runAction(Sequence::create(
-                    ScaleTo::create(0.1f, 0.12f),
-                    ScaleTo::create(0.1f, 0.1f),
-                    nullptr
-                ));
-            }
-            });
-        m_armyPanel->addChild(trainBtn);
+        // E. 【新增】解锁状态显示
+        auto unlockLabel = Label::createWithSystemFont("To Unlock Needs Barrack Level:" + std::to_string(info.minLevel), "Arial", 16);
+        unlockLabel->setAnchorPoint(Vec2(0, 0.5));
+        unlockLabel->setScale(1.2f);
+        unlockLabel->setPosition(Vec2(startX + 520, y));
+        unlockLabel->setColor(Color3B::BLACK);
+        m_armyPanel->addChild(unlockLabel);
     }
+    // 【新增】添加总体Cost使用情况显示
+    auto totalCostLabel = Label::createWithSystemFont("Total Cost: --/--", "Arial", 24);
+    totalCostLabel->setTag(1002); // 用于后续更新
+    totalCostLabel->setPosition(Vec2(m_armyPanel->getContentSize().width / 2, 100));
+    totalCostLabel->setColor(Color3B::GREEN);
+    m_armyPanel->addChild(totalCostLabel);
 }
 
 // 显示弹窗并刷新数据
@@ -230,6 +210,7 @@ void GameUI::showArmyPanel()
 {
     if (m_armyPanel) {
         updateArmyLabels(); // 打开前先刷新一下数据
+        updateCostDisplay(); // 【新增】更新cost显示
         m_armyPanel->setVisible(true);
 
         // 简单的弹窗动画：从小变大
@@ -250,50 +231,111 @@ void GameUI::hideArmyPanel()
 void GameUI::updateArmyLabels()
 {
     auto gm = GameManager::getInstance();
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
 
-    // 遍历我们在 init 里存好的所有标签
+    // 获取军营等级用于解锁状态检查
+    int barrackLevel = 0;
+    if (mainScene) {
+        auto barracks = mainScene->getBarracksBuilding();
+        if (barracks) {
+            barrackLevel = barracks->getBarrackLevel();
+        }
+    }
+
+    // 遍历所有兵种标签
     for (auto& pair : m_troopLabels)
     {
         TroopType type = pair.first;
-        Label* label = pair.second;
+        Label* countLabel = pair.second;
 
-        // 1. 从 GameManager 获取该兵种的真实拥有数量
+        // 1. 更新数量
         int count = gm->getTroopCount(type);
+        countLabel->setString("x " + std::to_string(count));
 
-        // 2. 更新文字
-        label->setString("x " + std::to_string(count));
+        // 2. 【新增】更新解锁状态颜色
+        int minLevel = Troop::getMinBarrackLevel(type);
+        if (barrackLevel >= minLevel) {
+            countLabel->setColor(Color3B::BLUE); // 已解锁：蓝色
+        }
+        else {
+            countLabel->setColor(Color3B::GRAY);  // 未解锁：灰色
+        }
+    }
+
+    // 【新增】更新cost标签的解锁状态
+    for (auto& pair : m_costLabels) {
+        TroopType type = pair.first;
+        Label* costLabel = pair.second;
+
+        int minLevel = Troop::getMinBarrackLevel(type);
+        if (barrackLevel >= minLevel) {
+            costLabel->setColor(Color3B::BLUE); // 已解锁：蓝色
+        }
+        else {
+            costLabel->setColor(Color3B::GRAY);  // 未解锁：灰色
+        }
     }
 }
+
 void GameUI::updateLabels() {
     // 从 GameManager 取出金币、圣水数量并更新
     int gold = GameManager::getInstance()->getGold();
     int elixir = GameManager::getInstance()->getElixir();
-    int maxgold= GameManager::getInstance()->getMaxGold();
-    int maxelixir= GameManager::getInstance()->getMaxElixir();
+    int maxgold = GameManager::getInstance()->getMaxGold();
+    int maxelixir = GameManager::getInstance()->getMaxElixir();
     m_goldLabel->setString("Gold: " + std::to_string(gold)+"/"+std::to_string(maxgold));
     m_elixirLabel->setString("Elixir: " + std::to_string(elixir)+"/"+std::to_string(maxelixir));
+    
     // 更新各兵种数量
-    auto gm = GameManager::getInstance();
-    for (const auto& pair : m_troopLabels)
-    {
-        TroopType type = pair.first;
-        Label* label = pair.second;
-        int count = gm->getTroopCount(type);
+    updateArmyLabels();
+    
+    // 【新增】更新cost显示
+    updateCostDisplay();
+}
 
-        // 获取兵种名称
-        std::string troopName;
-        Color3B troopColor;
-        switch (type)
-        {
-        case TroopType::BARBARIAN:troopName = "Barbarian:"; troopColor = Color3B::GREEN;  break;
-        case TroopType::ARCHER:   troopName = "Archer:";   troopColor = Color3B::MAGENTA; break;
-        case TroopType::GIANT:    troopName = "Giant:";    troopColor = Color3B::ORANGE; break;
-        case TroopType::BOMBERMAN:troopName = "Bomberman:"; troopColor = Color3B::GRAY;   break;
-        case TroopType::DRAGON:   troopName = "Dragon:"; troopColor = Color3B::RED; break;
+// 【新增】更新cost显示的方法
+void GameUI::updateCostDisplay() {
+    // 更新总体cost显示
+    auto totalCostLabel = m_armyPanel->getChildByTag<Label*>(1002);
+    if (totalCostLabel) {
+        auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+        if (mainScene) {
+            auto barracks = mainScene->getBarracksBuilding();
+            if (barracks) {
+                int currentCost = barracks->getCurrentCostUsed();
+                int maxCost = barracks->getMaxCostLimit();
+                int level = barracks->getBarrackLevel();
+
+                totalCostLabel->setString("Total Cost: " + std::to_string(currentCost) + "/" +
+                    std::to_string(maxCost) + " (Lv." + std::to_string(level) + ")");
+
+                // 根据使用情况改变颜色
+                if (currentCost >= maxCost) {
+                    totalCostLabel->setColor(Color3B::RED);
+                }
+                else if (currentCost >= maxCost * 0.8) {
+                    totalCostLabel->setColor(Color3B::ORANGE);
+                }
+                else {
+                    totalCostLabel->setColor(Color3B::GREEN);
+                }
+            }
+            else {
+                totalCostLabel->setString("Total Cost: No Barracks");
+                totalCostLabel->setColor(Color3B::GRAY);
+            }
         }
-
-        // 更新标签文本和颜色
-        label->setString(troopName + " " + std::to_string(count));
-        label->setColor(troopColor);
     }
+}
+
+// 【新增】监听cost更新事件
+void GameUI::onEnter() {
+    Layer::onEnter();
+
+    // 监听军营升级事件
+    auto barrackListener = EventListenerCustom::create("EVENT_BARRACK_UPGRADED", [this](EventCustom* event) {
+        updateArmyLabels();
+        updateCostDisplay();
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(barrackListener, this);
 }

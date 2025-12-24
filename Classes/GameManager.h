@@ -12,6 +12,7 @@ struct BuildingData
     BuildingType type;
     cocos2d::Vec2 position;
     int level; // 新增：记录建筑等级
+    int barrackLevel;    // 【新增】军营等级（仅对军营有效）
 };
 
 class GameManager {
@@ -31,6 +32,12 @@ public:
 
     // 新增：更新已保存建筑的等级（用于升级时同步）
     void updateHomeBuildingLevel(BuildingType type, cocos2d::Vec2 pos, int level);
+
+    // 【新增】获取当前军营等级
+    int getBarrackLevel() const;
+
+    // 【新增】更新军营等级
+    void updateBarrackLevel(cocos2d::Vec2 pos, int level);
 
     // 【修改】增加资源 (带上限检查)
     void addGold(int amount);

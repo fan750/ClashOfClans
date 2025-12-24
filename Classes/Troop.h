@@ -23,6 +23,12 @@ enum class TroopType
     DRAGON
 };
 
+// 【新增】兵种配置结构
+struct TroopConfig {
+    int cost;               // 兵种cost值
+    int minBarrackLevel;    // 最低需要的军营等级
+};
+
 class Troop : public GameEntity
 {
 public:
@@ -33,7 +39,7 @@ public:
     virtual void onDeath() override;
 
     static Troop* create(TroopType type);
-
+    static std::string getTroopName(TroopType type);
     TroopType getTroopType() const { return m_type; } // 获取兵种类型
     TroopMovementType getMovementType() const { return m_movementType; } // 获取移动类型
 
@@ -65,6 +71,13 @@ public:
 
     // 标记当前是否在播放攻击动画，防止重复触发
     bool m_isAttacking;
+
+    // 【新增】静态配置表
+    static const std::map<TroopType, TroopConfig> TROOP_CONFIGS;
+
+    // 【新增】获取兵种cost
+    static int getTroopCost(TroopType type);
+    static int getMinBarrackLevel(TroopType type);
 };
 
 #endif // __TROOP_H__

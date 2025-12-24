@@ -1,7 +1,10 @@
 // RecruitUI.cpp
 #include "RecruitUI.h"
 #include "GameManager.h"
-#include "GameUI.h" // 为了将来可能的UI联动
+#include "GameUI.h"
+#include "MainModeScene.h"
+#include "Troop.h"
+#include "Building.h"
 #include "ui/CocosGUI.h"
 USING_NS_CC;
 using namespace ui;
@@ -21,6 +24,15 @@ bool RecruitUI::init()
     m_mainPanel->setAnchorPoint(Vec2(0.5, 0.5));
     m_mainPanel->setPosition(visibleSize / 2); // 直接放在屏幕正中间
     this->addChild(m_mainPanel);
+
+    // 【新增】添加Cost信息显示区域
+    float infoY = m_mainPanel->getContentSize().height - 80;
+
+    // 当前Cost使用显示
+    m_currentCostLabel = Label::createWithSystemFont("Current Cost: --/--", "Arial", 28);
+    m_currentCostLabel->setPosition(Vec2(m_mainPanel->getContentSize().width / 2, infoY - 40));
+    m_currentCostLabel->setColor(Color3B::GREEN);
+    m_mainPanel->addChild(m_currentCostLabel);
 
     // 3. 初始化UI内容
     initUI();
@@ -43,14 +55,14 @@ void RecruitUI::initUI()
     m_mainPanel->addChild(titleLabel);
 
     // 2. 定义可招募的兵种数据
-    std::vector<RecruitItem> items = {
-        // 名字,       类型,                 价格, 锁住,  图片路径
-        {"Barbarian", TroopType::BARBARIAN, 50,  false, "barbarian_icon.png"},
-        {"Archer",    TroopType::ARCHER,    100, false, "archer_icon.png"},
-        {"Giant",     TroopType::GIANT,     250, false, "giant_icon.png"},
-        {"Bomberman", TroopType::BOMBERMAN, 100, false, "bomberman_icon.png"},
-        {"Dragon",    TroopType::DRAGON,    500, false, "dragon_icon.png"}
-
+    std::vector<RecruitItem> items = 
+    {
+        // 名字,       类型,          招募花费, 兵种cost, 锁住,  图片路径
+        {"Barbarian", TroopType::BARBARIAN, 50,  1, false, "barbarian_icon.png"},
+        {"Archer",    TroopType::ARCHER,    100, 1, false, "archer_icon.png"},
+        {"Giant",     TroopType::GIANT,     250, 3, false, "giant_icon.png"},
+        {"Bomberman", TroopType::BOMBERMAN, 100, 2, false, "bomberman_icon.png"},
+        {"Dragon",    TroopType::DRAGON,    500, 5, false, "dragon_icon.png"}
     };
 
     // 3. 【核心修改】计算网格布局并调用 createRecruitItemButton
@@ -59,7 +71,7 @@ void RecruitUI::initUI()
 
     // 起始位置参数 (根据你的面板大小微调)
     float startX = panelSize.width * 0.32f; // 从左边 32% 处开始
-    float startY = panelSize.height * 0.63f; // 从高度 63% 处开始 (第一排)
+    float startY = panelSize.height * 0.55f; // 从高度 55% 处开始 (第一排)
     float gapX = 160.0f; // 左右间距
     float gapY = 220.0f; // 上下间距
 
@@ -88,9 +100,122 @@ void RecruitUI::initUI()
     m_mainPanel->addChild(closeBtn);
 }
 
+// 【新增】更新Cost显示
+void RecruitUI::updateCostDisplay() {
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+    if (!mainScene) return;
+
+    auto barracks = mainScene->getBarracksBuilding();
+    if (!barracks) {
+        m_costLimitLabel->setString("Cost Limit: No Barracks");
+        m_currentCostLabel->setString("Current Cost: --/--");
+        return;
+    }
+
+    int currentCost = barracks->getCurrentCostUsed();
+    int maxCost = barracks->getMaxCostLimit();
+    int level = barracks->getBarrackLevel();
+
+    m_currentCostLabel->setString("Current Cost: " + std::to_string(currentCost) + "/" + std::to_string(maxCost));
+
+    // 根据cost使用情况改变颜色
+    if (currentCost >= maxCost) {
+        m_currentCostLabel->setColor(Color3B::RED);
+    }
+    else if (currentCost >= maxCost * 0.8) {
+        m_currentCostLabel->setColor(Color3B::ORANGE);
+    }
+    else {
+        m_currentCostLabel->setColor(Color3B::GREEN);
+    }
+}
+
+// 【新增】检查是否可以招募兵种
+bool RecruitUI::canRecruitTroop(TroopType type) {
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+    if (!mainScene) return false;
+
+    auto barracks = mainScene->getBarracksBuilding();
+    if (!barracks) return false;
+
+    // 1. 检查军营等级是否足够
+    int requiredLevel = Troop::getMinBarrackLevel(type);
+    int currentLevel = barracks->getBarrackLevel();
+    if (currentLevel < requiredLevel) {
+        CCLOG("Cannot recruit %s: need barracks level %d, current level %d",
+            Troop::getTroopName(type).c_str(), requiredLevel, currentLevel);
+        return false;
+    }
+
+    // 2. 检查cost是否足够
+    int troopCost = Troop::getTroopCost(type);
+    int currentCost = barracks->getCurrentCostUsed();
+    int maxCost = barracks->getMaxCostLimit();
+    if (currentCost + troopCost > maxCost) {
+        CCLOG("Cannot recruit %s: not enough cost (need %d, available %d)",
+            Troop::getTroopName(type).c_str(), troopCost, maxCost - currentCost);
+        return false;
+    }
+
+    return true;
+}
+
+// 【新增】更新招募按钮状态
+void RecruitUI::updateRecruitButtonState(ui::Button* btn, TroopType type) {
+    if (!btn) return;
+
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+    if (!mainScene) {
+        btn->setEnabled(false);
+        btn->setBright(false);
+        return;
+    }
+
+    auto barracks = mainScene->getBarracksBuilding();
+    if (!barracks) {
+        btn->setEnabled(false);
+        btn->setBright(false);
+        return;
+    }
+
+    // 检查解锁状态
+    int requiredLevel = Troop::getMinBarrackLevel(type);
+    int currentLevel = barracks->getBarrackLevel();
+    bool isUnlocked = currentLevel >= requiredLevel;
+
+    // 检查cost限制
+    bool hasEnoughCost = canRecruitTroop(type);
+
+    // 设置按钮状态
+    btn->setEnabled(isUnlocked && hasEnoughCost);
+    btn->setBright(isUnlocked && hasEnoughCost);
+
+    // 更新按钮颜色表示状态
+    if (!isUnlocked) {
+        btn->setColor(Color3B::GRAY); // 未解锁：灰色
+    }
+    else if (!hasEnoughCost) {
+        btn->setColor(Color3B::YELLOW); // cost不足：黄色（实际并不会显示黄色，而是介于白灰之间）
+    }
+    else {
+        btn->setColor(Color3B::WHITE); // 可招募：白色
+    }
+}
+
 void RecruitUI::show()
 {
     this->setVisible(true);
+    // 显示时更新cost显示和按钮状态
+    updateCostDisplay();
+
+    // 更新所有按钮状态
+    for (auto child : m_mainPanel->getChildren()) {
+        auto btn = dynamic_cast<ui::Button*>(child);
+        if (btn && btn->getTag() >= 1000) { // 假设招募按钮的tag >= 1000
+            TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
+            updateRecruitButtonState(btn, type);
+        }
+    }
 }
 
 void RecruitUI::hide()
@@ -115,6 +240,9 @@ void RecruitUI::createRecruitItemButton(const RecruitItem& item, Vec2 pos, Node*
     btn->setScale(0.2f);
     btn->setPosition(pos);
 
+    // 【新增】设置按钮tag用于识别兵种类型
+    btn->setTag(1000 + static_cast<int>(item.type));
+
     // 2. 添加图标 (直接使用 item.iconPath，无需辅助函数！)
     auto icon = Sprite::create(item.iconPath);
     if (icon) {
@@ -126,33 +254,45 @@ void RecruitUI::createRecruitItemButton(const RecruitItem& item, Vec2 pos, Node*
         btn->addChild(icon);
     }
 
-    // 3. 添加价格标签
+    // 3. 【修改】添加兵种cost显示
+    auto costLabel = Label::createWithSystemFont("Cost: " + std::to_string(item.troopCost), "Arial", 16);
+    costLabel->setPosition(Vec2(btn->getContentSize().width / 2, 95));
+    costLabel->setColor(Color3B::BLACK);
+    costLabel->setScale(4);
+    btn->addChild(costLabel);
+
+    // 4. 添加价格标签
     auto priceLabel = Label::createWithSystemFont("Elixir: " + std::to_string(item.cost), "Arial", 14);
-    priceLabel->setPosition(Vec2(btn->getContentSize().width / 2, 80));
+    priceLabel->setPosition(Vec2(btn->getContentSize().width / 2, 40));
     priceLabel->setColor(Color3B::BLACK);
     priceLabel->setScale(5);
     btn->addChild(priceLabel);
 
-    // 4. 添加名称标签
+    // 5. 添加名称标签
     auto nameLabel = Label::createWithSystemFont(item.name, "Arial", 18);
     nameLabel->setPosition(Vec2(btn->getContentSize().width / 2, 160));
     nameLabel->setColor(Color3B::BLACK);
     nameLabel->setScale(5);
     btn->addChild(nameLabel);
 
-    // 5. 绑定点击事件
+    // 6. 【修改】绑定点击事件 - 添加完整检测
     btn->addClickEventListener([=](Ref*) {
-        // 【修改】补全业务逻辑
+        // 检查是否可以招募
+        if (!canRecruitTroop(item.type)) {
+            // 显示详细原因
+            showCannotRecruitDialog(item);
+            return;
+        }
+
+        // 可以招募，执行招募逻辑
         auto gm = GameManager::getInstance();
 
-        // 1. 检查资源 (注意：结构体里你用的是 cost 和 isGoldCost)
+        // 检查资源
         int currentResource = item.isGoldCost ? gm->getGold() : gm->getElixir();
-
-        if (currentResource >= item.cost)
-        {
+        if (currentResource >= item.cost) {
             CCLOG("Recruiting %s", item.name.c_str());
 
-            // 2. 扣钱
+            // 扣钱
             if (item.isGoldCost) {
                 gm->addGold(-item.cost);
             }
@@ -160,20 +300,147 @@ void RecruitUI::createRecruitItemButton(const RecruitItem& item, Vec2 pos, Node*
                 gm->addElixir(-item.cost);
             }
 
-            // 3. 加兵
+            // 加兵
             gm->addTroops(item.type, 1);
 
-            // 4. 通知刷新
+            // 更新军营cost使用
+            auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+            if (mainScene) {
+                auto barracks = mainScene->getBarracksBuilding();
+                if (barracks) {
+                    barracks->updateCurrentCostUsed();
+                }
+            }
+
+            // 通知刷新
             Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_TROOPS");
+
+            // 更新UI
+            updateCostDisplay();
+            updateRecruitButtonState(btn, item.type);
         }
-        else
-        {
+        else {
             CCLOG("Not enough resources!");
-            // (可选) 可以在这里加个飘字提示
+            showNotEnoughResourcesDialog(item);
         }
-        });
-    // 6. 加到父节点
+        }
+    );
+
+    // 7. 初始化按钮状态
+    updateRecruitButtonState(btn, item.type);
+
+    // 8. 加到父节点
     if (parentNode) {
         parentNode->addChild(btn);
     }
+}
+
+// 【新增】显示无法招募对话框
+void RecruitUI::showCannotRecruitDialog(const RecruitItem& item) {
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+    this->addChild(dialogBg, 1000);
+
+    std::string reason;
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+    if (mainScene) {
+        auto barracks = mainScene->getBarracksBuilding();
+        if (barracks) {
+            int requiredLevel = Troop::getMinBarrackLevel(item.type);
+            int currentLevel = barracks->getBarrackLevel();
+
+            if (currentLevel < requiredLevel) {
+                reason = "Need Barracks Level " + std::to_string(requiredLevel) +
+                    " (Current: " + std::to_string(currentLevel) + ")";
+            }
+            else {
+                int troopCost = Troop::getTroopCost(item.type);
+                int currentCost = barracks->getCurrentCostUsed();
+                int maxCost = barracks->getMaxCostLimit();
+                reason = "Not enough Cost Space!\nNeed: " + std::to_string(troopCost) +
+                    ", Available: " + std::to_string(maxCost - currentCost);
+            }
+        }
+        else {
+            reason = "No Barracks Built!";
+        }
+    }
+
+    auto messageLabel = Label::createWithSystemFont("Cannot Recruit " + item.name + "!\n" + reason,
+        "Arial", 32);
+    messageLabel->setPosition(visibleSize / 2);
+    messageLabel->setTextColor(Color4B::WHITE);
+    messageLabel->setAlignment(TextHAlignment::CENTER);
+    dialogBg->addChild(messageLabel);
+
+    auto okBtn = Button::create("CloseNormal.png");
+    okBtn->setTitleText("OK");
+    okBtn->setTitleFontSize(24);
+    okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+    okBtn->addClickEventListener([dialogBg](Ref*) {
+        dialogBg->removeFromParent();
+        });
+    dialogBg->addChild(okBtn);
+}
+
+// 【新增】显示资源不足对话框
+void RecruitUI::showNotEnoughResourcesDialog(const RecruitItem& item) {
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+    this->addChild(dialogBg, 1000);
+
+    auto gm = GameManager::getInstance();
+    int current = item.isGoldCost ? gm->getGold() : gm->getElixir();
+    std::string resourceType = item.isGoldCost ? "Gold" : "Elixir";
+
+    auto messageLabel = Label::createWithSystemFont("Not enough " + resourceType + "!\n" +
+        "Need: " + std::to_string(item.cost) +
+        ", Have: " + std::to_string(current),
+        "Arial", 32);
+    messageLabel->setPosition(visibleSize / 2);
+    messageLabel->setTextColor(Color4B::WHITE);
+    messageLabel->setAlignment(TextHAlignment::CENTER);
+    dialogBg->addChild(messageLabel);
+
+    auto okBtn = Button::create("CloseNormal.png");
+    okBtn->setTitleText("OK");
+    okBtn->setTitleFontSize(24);
+    okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+    okBtn->addClickEventListener([dialogBg](Ref*) {
+        dialogBg->removeFromParent();
+        });
+    dialogBg->addChild(okBtn);
+}
+
+// 【新增】监听事件
+void RecruitUI::onEnter() {
+    Layer::onEnter();
+
+    // 监听cost更新事件
+    auto costListener = EventListenerCustom::create("EVENT_COST_UPDATED", [this](EventCustom* event) {
+        updateCostDisplay();
+        // 更新所有按钮状态
+        for (auto child : m_mainPanel->getChildren()) {
+            auto btn = dynamic_cast<ui::Button*>(child);
+            if (btn && btn->getTag() >= 1000) {
+                TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
+                updateRecruitButtonState(btn, type);
+            }
+        }
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(costListener, this);
+
+    // 监听兵种数量变化事件
+    auto troopListener = EventListenerCustom::create("EVENT_UPDATE_TROOPS", [this](EventCustom* event) {
+        updateCostDisplay();
+        // 更新所有按钮状态
+        for (auto child : m_mainPanel->getChildren()) {
+            auto btn = dynamic_cast<ui::Button*>(child);
+            if (btn && btn->getTag() >= 1000) {
+                TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
+                updateRecruitButtonState(btn, type);
+            }
+        }
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(troopListener, this);
 }
