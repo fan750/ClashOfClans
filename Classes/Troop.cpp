@@ -84,8 +84,7 @@ bool Troop::init()
     case TroopType::ARCHER:    walkPlist = "hero2-walk.plist";  attackPlist = "hero2-attack.plist";  break;
     case TroopType::GIANT:     walkPlist = "hero3-walk.plist";  attackPlist = "hero3-attack.plist";  break;
     case TroopType::BOMBERMAN: walkPlist = "hero4-walk.plist";  attackPlist = "";                    break;
-    case TroopType::DRAGON:    walkPlist = "dragon.plist";      attackPlist = "dragon.plist";      break;
-    default:                   walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
+    case TroopType::DRAGON:    walkPlist = "dragon.plist";      attackPlist = "dragon.plist";        break;
     }
 
     // store in instance members
@@ -292,14 +291,17 @@ void Troop::moveTowardsTarget(float dt) {
     this->setPosition(newPos);
 }
 
-void Troop::attackTarget(float dt) {
+void Troop::attackTarget(float dt) 
+{
     m_attackTimer += dt;
 
-    if (m_attackTimer >= m_attackInterval) {
+    if (m_attackTimer >= m_attackInterval) 
+    {
         m_attackTimer = 0;
 
         // 1. 如果目标指针为空，直接返回
-        if (!m_target) {
+        if (!m_target) 
+        {
             return;
         }
 
@@ -370,15 +372,18 @@ void Troop::attackTarget(float dt) {
                 if (!attackPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(attackPlist);
 
                 Vector<SpriteFrame*> attackFrames;
-                if (!attackPlist.empty()) {
+                if (!attackPlist.empty()) 
+                {
                     ValueMap avm = FileUtils::getInstance()->getValueMapFromFile(attackPlist);
-                    if (avm.find("frames") != avm.end()) {
+                    if (avm.find("frames") != avm.end())
+                    {
                         auto framesMap = avm["frames"].asValueMap();
                         std::vector<std::string> keys;
                         keys.reserve(framesMap.size());
                         for (const auto& kv : framesMap) keys.push_back(kv.first);
                         std::sort(keys.begin(), keys.end());
-                        for (const auto& name : keys) {
+                        for (const auto& name : keys) 
+                        {
                             auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
                             if (f) attackFrames.pushBack(f);
                         }
