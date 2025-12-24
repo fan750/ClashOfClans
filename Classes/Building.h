@@ -49,8 +49,11 @@ public:
 
     void activateBuilding();                                // 激活建筑，使其开始工作
     // 【核心功能】
-    // 升级建筑
-    void upgrade();
+   // 【修改】原有的 upgrade() 改名为 onUpgradeFinished()，作为倒计时结束后的回调
+    void onUpgradeFinished();
+
+    // 【新增】辅助函数：根据等级刷新外观（变身用）
+    void updateBuildingTexture();
 
     // 获取建筑类型
     BuildingType getBuildingType() const { return m_type; }
@@ -85,6 +88,8 @@ public:
     void updateCurrentCostUsed();     // 更新当前使用的cost
     bool canUpgradeBarrack() const;   // 检查是否可以升级军营
     void upgradeBarrack();            // 升级军营
+    // 【新增】开始升级流程（点击按钮后调用它）
+    void startUpgradeProcess();
 
 protected:
     // 初始化特定类型的属性（血量、图片等）
@@ -121,7 +126,12 @@ protected:
     int m_barrackLevel;          // 军营等级（0-3）
     int m_currentCostUsed;       // 当前使用的cost
     int m_maxCostLimit;          // 当前cost上限
+private:
+    // 【新增】标记是否正在升级（防止重复点击）
+    bool m_isUpgrading = false;
 
+    // 【新增】用于专门播放施工动画的子精灵
+    cocos2d::Sprite* m_constructionSprite = nullptr;
 };
 
 #endif // __BUILDING_H__

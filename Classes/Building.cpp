@@ -20,6 +20,7 @@ Building::Building()
     , m_timer(0.0f)
     , m_upgradeBtn(nullptr)
     , m_goldListener(nullptr)
+    , m_constructionSprite(nullptr)
     , m_baseScale(1.0f)
     , m_barrackLevel(0)
     , m_currentCostUsed(0)
@@ -264,29 +265,72 @@ void Building::initBuildingProperties()
     }
 }
 
-void Building::upgrade()
+// 将原来的 upgrade() 改名为 onUpgradeFinished()
+void Building::onUpgradeFinished()
 {
+    // 1. 停止施工状态
+    m_isUpgrading = false;
+    if (m_constructionSprite) {
+        // 从父节点移除，这会自动停止它正在播放的动画并释放内存
+        m_constructionSprite->removeFromParent();
+        // 指针置空，防止野指针
+        m_constructionSprite = nullptr;
+    }
+
+    // 2. ---------- 原 upgrade() 的逻辑开始 ----------
+
     if (m_type == BuildingType::TOWN_HALL) {
         int maxlevel = GameManager::getInstance()->getTown_Hall_Level();
         GameManager::getInstance()->setTown_Hall_Level(++maxlevel);
     }
-    m_level++;
-    m_maxHp += 200; // 升级加血上限
-    m_currentHp = m_maxHp; // 并回血
-    CCLOG("Building Upgraded to Level %d! Max HP is now %d", m_level, m_maxHp);
+
+    m_level++; // 等级提升
+
+    // 数值提升逻辑
+    // 为了更严谨，我们可以用 setLevel 里的公式重新算一遍 MaxHP
+    // m_maxHp += 200; 
+    int baseHp = 500;
+    // ... (复制 setLevel 里的 switch case 获取 baseHp) ...
+    m_maxHp = baseHp + (m_level - 1) * 200;
+    m_currentHp = m_maxHp; // 回满血
+
+    // 资源上限提升逻辑
     if (m_type == BuildingType::GOLD_STORAGE) {
         int current_max = GameManager::getInstance()->getMaxGold();
-        GameManager::getInstance()->modifyMaxGold(current_max+500);
+        GameManager::getInstance()->modifyMaxGold(current_max + 500);
     }
     if (m_type == BuildingType::ELIXIR_STORAGE) {
         int current_max = GameManager::getInstance()->getMaxElixir();
-        GameManager::getInstance()->modifyMaxElixir(current_max+500);
+        GameManager::getInstance()->modifyMaxElixir(current_max + 500);
     }
-    // 稍微变大一点表示升级
-    this->setScale(this->getScale() * 1.1f);
 
-    // 同步到 GameManager 存档记录（位置精确匹配）
+    // 存档
     GameManager::getInstance()->updateHomeBuildingLevel(m_type, this->getPosition(), m_level);
+
+    // ---------- 原 upgrade() 的逻辑结束 ----------
+
+    // 3. 【视觉核心】变身！
+    // 切换回建筑原本的图片 (或者下一级的图片)
+    updateBuildingTexture();
+
+    // 4. 播放 "Q弹" 特效表示完成
+    // 先记录一下当前因为 updateBuildingTexture 可能调整过的 Scale
+    float finalScale = this->getScale();
+
+    this->setScale(0.1f); // 瞬间变小
+
+    // 弹性放大出来
+    auto popAction = Sequence::create(
+        EaseBackOut::create(ScaleTo::create(0.5f, finalScale)),
+        CallFunc::create([this]() {
+            // 这里可以播放一个 "叮" 的音效
+            CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("upgrade_complete.wav");
+            }),
+        nullptr
+    );
+    this->runAction(popAction);
+
+    CCLOG("Upgrade finished! Level: %d", m_level);
 }
 
 void Building::updateLogic(float dt)
@@ -511,7 +555,7 @@ void Building::showUpgradeButton()
             if (GameManager::getInstance()->getGold() >= cost)
             {
                 GameManager::getInstance()->addGold(-cost);
-                this->upgrade();
+                this->startUpgradeProcess();
                 this->hideUpgradeButton();
             }
             else
@@ -796,4 +840,138 @@ void Building::upgradeBarrack() {
     // 发送事件通知UI更新
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_BARRACK_UPGRADED");
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_COST_UPDATED");
+}
+
+void Building::updateBuildingTexture()
+{
+    std::string filename;
+
+    // 简单的命名规则示例： TownHall_1.png, TownHall_2.png
+    // 如果你还没有分等级的图，可以暂时仍用旧图，只做变大效果
+    switch (m_type)
+    {
+    case BuildingType::TOWN_HALL:
+        // 暂时用固定图片，以后改成: filename = StringUtils::format("TownHall_%d.png", m_level);
+        filename = "TownHall.png";
+        break;
+
+    case BuildingType::CANNON:
+        // 修正：之前你写成了 ArcherTower.png
+        filename = "Cannon.png";
+        break;
+
+    case BuildingType::GOLD_MINE:
+        // 以后改成: filename = StringUtils::format("gold_anim_%d_0.png", m_level);
+        filename = "gold_anim_0.png";
+        break;
+
+    case BuildingType::GOLD_STORAGE:
+        filename = "GoldStorage.png";
+        break;
+
+    case BuildingType::ARCHER_TOWER:
+        filename = "ArcherTower.png";
+        break;
+
+    case BuildingType::WALL:
+        // 墙壁通常随着等级变化样子变化很明显
+        // filename = StringUtils::format("Wall_%d.png", m_level);
+        filename = "Wall.png";
+        break;
+
+    case BuildingType::BARRACKS:
+        // filename = StringUtils::format("Barracks_%d.png", m_level);
+        filename = "Barracks.png";
+        break;
+
+    case BuildingType::ELIXIR_COLLECTOR:
+        // 以后改成: filename = StringUtils::format("elixir_anim_%d_2.png", m_level);
+        filename = "elixir_anim_2.png";
+        break;
+
+    case BuildingType::ELIXIR_STORAGE:
+        filename = "ElixirStorage.png";
+        break;
+
+    case BuildingType::TRAP:
+        filename = "Trap.png";
+        break;
+
+    default:
+        filename = "CloseNormal.png";
+        break;
+    }
+
+    // 重新设置纹理
+    this->setTexture(filename);
+
+    // 【关键】因为图片尺寸可能变了，需要重新调整缩放以保持一致的视觉大小
+    // 假设标准大小还是 150 像素
+    if (this->getContentSize().width > 0) {
+        this->setScale(150.0f / this->getContentSize().width);
+    }
+}
+
+void Building::startUpgradeProcess()
+{
+    if (m_isUpgrading) return; // 防止连点
+
+    // 1. 标记状态
+    m_isUpgrading = true;
+
+    // 2. 播放施工动画 (类似你现在的 playWorkAnimation)
+    // 假设你有 construct_0.png ~ construct_3.png
+    Vector<SpriteFrame*> frames;
+    for (int i = 0; i < 3; ++i) {
+        // 加载施工帧
+        std::string name = StringUtils::format("construct_%d.png", i);
+        auto frame = Sprite::create(name)->getSpriteFrame();
+        // 也可以用 SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+        if (frame) {
+            frames.pushBack(frame);
+        }
+    }
+
+    if (!frames.empty()) {
+        // 创建动画
+        auto animation = Animation::createWithSpriteFrames(frames, 0.2f);
+        auto animate = Animate::create(animation);
+        auto repeat = RepeatForever::create(animate);
+        // 安全检查：如果之前有遗留的施工精灵，先移除掉
+        if (m_constructionSprite) {
+            m_constructionSprite->removeFromParent();
+            m_constructionSprite = nullptr;
+        }
+
+        // A. 创建一个新的精灵，用动画的第一帧初始化它
+        m_constructionSprite = Sprite::createWithSpriteFrame(frames.front());
+
+        // B. 设置位置：放在建筑物中心 (getContentSize() 是建筑本身的大小)
+        Size size = this->getContentSize();
+        m_constructionSprite->setPosition(Vec2(size.width / 2.5, size.height / 2));
+
+        // C. 【关键】把这个新精灵作为孩子加到建筑物上
+        // ZOrder 设置为 10 (或者比 0 大的值)，确保它显示在原有建筑图的上面
+        this->addChild(m_constructionSprite, 10);
+
+        // D. 【关键】让这个新的替身精灵去播放动画，而不是 this
+        m_constructionSprite->runAction(repeat);
+
+        // (可选) 如果你想调整施工动画的大小，在这里调整替身精灵的缩放
+        m_constructionSprite->setScale(0.2f);
+    }
+
+    // 3. 开启倒计时 (假设升级耗时 3 秒)
+    float upgradeDuration = 3.0f;
+
+    auto seq = Sequence::create(
+        DelayTime::create(upgradeDuration),
+        CallFunc::create([this]() {
+            this->onUpgradeFinished(); // 时间到，调用结束逻辑
+            }),
+        nullptr
+    );
+    this->runAction(seq);
+
+    CCLOG("Upgrade started... waiting for %f seconds", upgradeDuration);
 }
