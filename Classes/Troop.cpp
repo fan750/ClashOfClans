@@ -7,6 +7,16 @@
 
 USING_NS_CC;
 
+// 【新增】实现兵种配置表
+const std::map<TroopType, TroopConfig> Troop::TROOP_CONFIGS = 
+{
+    {TroopType::BARBARIAN,  {1, 1}},    // 野蛮人：1cost，1级军营解锁
+    {TroopType::ARCHER,     {1, 1}},    // 弓箭手：1cost，1级军营解锁
+    {TroopType::BOMBERMAN,  {2, 2}},    // 炸弹人：2cost，2级军营解锁
+    {TroopType::GIANT,      {3, 2}},    // 巨人：3cost，2级军营解锁
+    {TroopType::DRAGON,     {5, 3}}     // 飞龙：5cost，3级军营解锁
+};
+
 Troop::Troop()
     : m_type(TroopType::BARBARIAN)
     , m_movementType(TroopMovementType::GROUND)
@@ -266,6 +276,18 @@ void Troop::initTroopProperties() {
     }
 }
 
+// 【新增】获取兵种名称的辅助方法
+std::string Troop::getTroopName(TroopType type) {
+    switch (type) {
+    case TroopType::BARBARIAN: return "Barbarian";
+    case TroopType::ARCHER:    return "Archer";
+    case TroopType::GIANT:     return "Giant";
+    case TroopType::BOMBERMAN: return "Bomberman";
+    case TroopType::DRAGON:    return "Dragon";
+    default: return "Unknown";
+    }
+}
+
 void Troop::setTarget(Building* target)
 {
     m_target = target;
@@ -503,4 +525,22 @@ void Troop::playAttackAnimationOnce()
         seq->setTag(ATTACK_ACTION_TAG);
         this->runAction(seq);
     }
+}
+
+// 【新增】获取兵种cost的静态方法
+int Troop::getTroopCost(TroopType type) {
+    auto it = TROOP_CONFIGS.find(type);
+    if (it != TROOP_CONFIGS.end()) {
+        return it->second.cost;
+    }
+    return 0; // 默认返回0
+}
+
+// 【新增】获取最低军营等级的静态方法
+int Troop::getMinBarrackLevel(TroopType type) {
+    auto it = TROOP_CONFIGS.find(type);
+    if (it != TROOP_CONFIGS.end()) {
+        return it->second.minBarrackLevel;
+    }
+    return 1; // 默认返回1级
 }

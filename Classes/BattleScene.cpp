@@ -54,6 +54,27 @@ bool BattleScene::init()
         CCLOG("Error: Background image not found!");
     }
 
+    // 添加投放区域可视化 - 中央禁放区域
+    m_deployAreaVisual = DrawNode::create();
+
+    // 计算中央禁放区域
+    float leftEdge = visibleSize.width * 0.2f;
+    float rightEdge = visibleSize.width * 0.8f;
+    float bottomEdge = visibleSize.height * 0.2f;
+    float topEdge = visibleSize.height * 0.8f;
+
+    // 绘制半透明红色矩形表示禁放区域
+    Vec2 vertices[] = {
+        Vec2(leftEdge, bottomEdge),
+        Vec2(rightEdge, bottomEdge),
+        Vec2(rightEdge, topEdge),
+        Vec2(leftEdge, topEdge)
+    };
+
+    // 使用红色表示禁放区域
+    m_deployAreaVisual->drawPolygon(vertices, 4, Color4F(1.0f, 0.0f, 0.0f, 0.2f), 2, Color4F(1.0f, 0.0f, 0.0f, 0.5f));
+    this->addChild(m_deployAreaVisual, -1); // 放在最底层
+
     // 1. 初始化数据
     BattleManager::getInstance()->clear();
     m_selectedType = TroopType::BARBARIAN; // 默认选野蛮人
@@ -374,9 +395,51 @@ void BattleScene::createSelectButton(const std::string& title, Color3B color, Tr
 
 bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
     Vec2 touchLoc = touch->getLocation();
+    Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 如果点击到了按钮区域（屏幕下方 80 像素内），就不放兵，防止误触
     if (touchLoc.y < 80) return false;
+
+    // 【修改】检查投放区域限制 - 中央区域禁放
+    float leftEdge = visibleSize.width * 0.25f;
+    float rightEdge = visibleSize.width * 0.75f;
+    float bottomEdge = visibleSize.height * 0.25f;
+    float topEdge = visibleSize.height * 0.75f;
+
+    // 【关键修改】如果触摸位置在中央禁放区域内，则不允许投放
+    if (touchLoc.x >= leftEdge && touchLoc.x <= rightEdge &&
+        touchLoc.y >= bottomEdge && touchLoc.y <= topEdge) {
+
+        // 显示提示信息
+        m_infoLabel->setString("Cannot deploy in red area!");
+        m_infoLabel->setColor(Color3B::RED);
+
+        // 闪烁禁放区域作为提示
+        m_deployAreaVisual->runAction(Sequence::create(
+            Blink::create(0.4f, 2),
+            CallFunc::create([this]() {
+                // 确保恢复原始颜色
+                m_deployAreaVisual->clear();
+                // 重新绘制红色禁放区域
+                Size visibleSize = Director::getInstance()->getVisibleSize();
+                float leftEdge = visibleSize.width * 0.2f;
+                float rightEdge = visibleSize.width * 0.8f;
+                float bottomEdge = visibleSize.height * 0.2f;
+                float topEdge = visibleSize.height * 0.8f;
+                Vec2 vertices[] = {
+                    Vec2(leftEdge, bottomEdge),
+                    Vec2(rightEdge, bottomEdge),
+                    Vec2(rightEdge, topEdge),
+                    Vec2(leftEdge, topEdge)
+                };
+                m_deployAreaVisual->drawPolygon(vertices, 4, Color4F(1.0f, 0.0f, 0.0f, 0.2f), 2, Color4F(1.0f, 0.0f, 0.0f, 0.5f));
+                }),
+            nullptr
+        ));
+
+        return false;
+    }
+
     if (!BattleManager::getInstance()->canDeployTroop(m_selectedType))
     {
         CCLOG("No more troops of this type available!");
@@ -385,11 +448,12 @@ bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
         m_infoLabel->setColor(Color3B::RED);
         return true;
     }
-    // 【修改】使用当前选中的类型 (m_selectedType)
+
+    // 投放兵种，减少可用数量
     auto troop = Troop::create(m_selectedType);
     troop->setPosition(touchLoc);
     this->addChild(troop);
-    // 投放兵种，减少可用数量
+
     BattleManager::getInstance()->deployTroop(m_selectedType);
 
     // 更新兵种数量显示

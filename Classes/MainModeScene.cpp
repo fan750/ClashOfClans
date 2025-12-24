@@ -25,6 +25,17 @@ static void problemLoading(const char* filename)
     printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MainModeScene.cpp\n");
 }
 
+// 【新增】获取军营建筑
+Building* MainMode::getBarracksBuilding() const {
+    for (auto node : m_gameLayer->getChildren()) {
+        auto building = dynamic_cast<Building*>(node);
+        if (building && building->getBuildingType() == BuildingType::BARRACKS) {
+            return building;
+        }
+    }
+    return nullptr;
+}
+
 // on "init" you need to initialize your instance
 bool MainMode::init() {
 
@@ -94,6 +105,10 @@ bool MainMode::init() {
             // 恢复等级
             b->setLevel(data.level);
             b->playWorkAnimation();
+            // 【新增】恢复军营等级
+            if (data.type == BuildingType::BARRACKS) {
+                b->setBarrackLevel(data.barrackLevel);
+            }
             // 【关键】加到 m_gameLayer
             m_gameLayer->addChild(b);
             // b->activateBuilding(); 

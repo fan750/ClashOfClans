@@ -23,6 +23,15 @@ enum class BuildingType
 class Building : public GameEntity
 {
 public:
+    // 【新增】军营升级配置结构
+    struct BarrackUpgradeConfig {
+        int goldCost;            // 升级费用
+        int maxCostLimit;        // 升级后的cost上限
+    };
+
+    // 【新增】军营升级配置表
+    static const std::map<int, BarrackUpgradeConfig> BARRACK_UPGRADE_CONFIGS;
+
     Building();
     virtual ~Building();
 
@@ -68,6 +77,15 @@ public:
     void playWorkAnimation();
     void applyProductionBoost(float multiplier, float durationSec);
 
+    // 【新增】军营特有方法
+    int getBarrackLevel() const { return m_barrackLevel; }
+    int getCurrentCostUsed() const { return m_currentCostUsed; }
+    int getMaxCostLimit() const { return m_maxCostLimit; }
+    void setBarrackLevel(int level);  // 设置军营等级（用于从存档恢复）
+    void updateCurrentCostUsed();     // 更新当前使用的cost
+    bool canUpgradeBarrack() const;   // 检查是否可以升级军营
+    void upgradeBarrack();            // 升级军营
+
 protected:
     // 初始化特定类型的属性（血量、图片等）
     void initBuildingProperties();
@@ -98,6 +116,12 @@ protected:
 
     // 新增：记录初始化时的基础缩放，保证从等级恢复时大小可复现
     float m_baseScale;
+
+    // 【新增】军营特有属性
+    int m_barrackLevel;          // 军营等级（0-3）
+    int m_currentCostUsed;       // 当前使用的cost
+    int m_maxCostLimit;          // 当前cost上限
+
 };
 
 #endif // __BUILDING_H__

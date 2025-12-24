@@ -1,6 +1,9 @@
 // BarracksUI.cpp
 #include "BarracksUI.h"
 #include "RecruitUI.h"
+#include "GameManager.h"
+#include "MainModeScene.h"
+#include "Building.h"
 USING_NS_CC;
 using namespace ui;
 
@@ -23,6 +26,27 @@ bool BarracksUI::init()
     m_mainPanel->setPosition(visibleSize / 2); // 直接放在屏幕正中间
     this->addChild(m_mainPanel);
 
+    // 【新增】添加军营信息显示区域
+    float infoY = m_mainPanel->getContentSize().height - 100;
+
+    // 军营等级显示
+    m_barrackLevelLabel = Label::createWithSystemFont("Barracks Level: 1", "Arial", 36);
+    m_barrackLevelLabel->setPosition(Vec2(m_mainPanel->getContentSize().width / 2, infoY));
+    m_barrackLevelLabel->setColor(Color3B::BLACK);
+    m_mainPanel->addChild(m_barrackLevelLabel);
+
+    // Cost上限显示
+    m_costLimitLabel = Label::createWithSystemFont("Cost Limit: 10", "Arial", 32);
+    m_costLimitLabel->setPosition(Vec2(m_mainPanel->getContentSize().width / 2, infoY - 50));
+    m_costLimitLabel->setColor(Color3B::BLUE);
+    m_mainPanel->addChild(m_costLimitLabel);
+
+    // 当前Cost使用显示
+    m_currentCostLabel = Label::createWithSystemFont("Current Cost: 0/10", "Arial", 32);
+    m_currentCostLabel->setPosition(Vec2(m_mainPanel->getContentSize().width / 2, infoY - 100));
+    m_currentCostLabel->setColor(Color3B::GREEN);
+    m_mainPanel->addChild(m_currentCostLabel);
+
     // 3. 初始化按钮
     initButtons(); // 添加这行，确保按钮被初始化
 
@@ -39,6 +63,111 @@ bool BarracksUI::init()
     this->setVisible(false);
 
     return true;
+}
+
+// 【新增】更新军营信息显示
+void BarracksUI::updateBarrackInfo() {
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+    if (!mainScene) return;
+
+    auto barracks = mainScene->getBarracksBuilding();
+    if (!barracks) {
+        m_barrackLevelLabel->setString("No Barracks Built");
+        m_costLimitLabel->setString("");
+        m_currentCostLabel->setString("");
+        return;
+    }
+
+    int level = barracks->getBarrackLevel();
+    int currentCost = barracks->getCurrentCostUsed();
+    int maxCost = barracks->getMaxCostLimit();
+
+    // 更新显示文本
+    m_barrackLevelLabel->setString("Barracks Level: " + std::to_string(level));
+    m_costLimitLabel->setString("Cost Limit: " + std::to_string(maxCost));
+    m_currentCostLabel->setString("Current Cost: " + std::to_string(currentCost) + "/" + std::to_string(maxCost));
+
+    // 根据cost使用情况改变颜色
+    if (currentCost >= maxCost) {
+        m_currentCostLabel->setColor(Color3B::RED);
+    }
+    else if (currentCost >= maxCost * 0.8) {
+        m_currentCostLabel->setColor(Color3B::ORANGE);
+    }
+    else {
+        m_currentCostLabel->setColor(Color3B::GREEN);
+    }
+}
+
+// 【新增】显示升级失败对话框
+void BarracksUI::showUpgradeFailureDialog(Building* barracks) {
+    if (!barracks) return;
+
+    int level = barracks->getBarrackLevel();
+    std::string reason;
+
+    if (level >= 3) {
+        reason = "Barracks is already at maximum level!";
+    }
+    else {
+        // 获取下一级的价格
+        int nextLevel = level + 1;
+        int upgradeCost = 0;
+        if (Building::BARRACK_UPGRADE_CONFIGS.find(nextLevel) != Building::BARRACK_UPGRADE_CONFIGS.end()) {
+            upgradeCost = Building::BARRACK_UPGRADE_CONFIGS.at(nextLevel).goldCost;
+        }
+        int currentGold = GameManager::getInstance()->getGold();
+        reason = "Need " + std::to_string(upgradeCost) + " Gold (You have " + std::to_string(currentGold) + ")";
+    }
+
+    // 创建提示对话框
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+    this->addChild(dialogBg, 1000);
+
+    auto dialogPanel = Sprite::create("ShopBackground.png");
+    if (dialogPanel) {
+        dialogPanel->setPosition(visibleSize / 2);
+        dialogPanel->setScale(0.5f);
+        dialogBg->addChild(dialogPanel);
+    }
+
+    auto messageLabel = Label::createWithSystemFont("Cannot Upgrade!\n" + reason, "Arial", 36);
+    messageLabel->setPosition(visibleSize / 2);
+    messageLabel->setTextColor(Color4B::WHITE);
+    messageLabel->setAlignment(TextHAlignment::CENTER);
+    dialogBg->addChild(messageLabel);
+
+    auto okBtn = Button::create("CloseNormal.png");
+    okBtn->setTitleText("OK");
+    okBtn->setTitleFontSize(24);
+    okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+    okBtn->addClickEventListener([dialogBg](Ref*) {
+        dialogBg->removeFromParent();
+        });
+    dialogBg->addChild(okBtn);
+}
+
+// 【新增】显示无军营对话框
+void BarracksUI::showNoBarracksDialog() {
+    auto visibleSize = Director::getInstance()->getVisibleSize();
+    auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+    this->addChild(dialogBg, 1000);
+
+    auto messageLabel = Label::createWithSystemFont("No Barracks Built!\nPlease build a barracks first.", "Arial", 36);
+    messageLabel->setPosition(visibleSize / 2);
+    messageLabel->setTextColor(Color4B::WHITE);
+    messageLabel->setAlignment(TextHAlignment::CENTER);
+    dialogBg->addChild(messageLabel);
+
+    auto okBtn = Button::create("CloseNormal.png");
+    okBtn->setTitleText("OK");
+    okBtn->setTitleFontSize(24);
+    okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+    okBtn->addClickEventListener([dialogBg](Ref*) {
+        dialogBg->removeFromParent();
+        });
+    dialogBg->addChild(okBtn);
 }
 
 void BarracksUI::initButtons()
@@ -66,19 +195,36 @@ void BarracksUI::initButtons()
     );
     m_mainPanel->addChild(recruitBtn);
 
-    // 升级军营按钮
+    // 【修改】升级军营按钮实现
     auto upgradeBarracksBtn = Button::create("btn1.png");
     upgradeBarracksBtn->setScale(0.3f);
     upgradeBarracksBtn->setTitleText("Upgrade Barracks");
     upgradeBarracksBtn->setTitleFontSize(100);
     upgradeBarracksBtn->setTitleColor(Color3B::BLACK);
     upgradeBarracksBtn->setPosition(Vec2(panelSize.width / 2, panelSize.height * 0.5));
-    upgradeBarracksBtn->addClickEventListener
-    ([](Ref*)
-        {
-            CCLOG("Upgrade Barracks button clicked (functionality not implemented).");
+
+    upgradeBarracksBtn->addClickEventListener([this](Ref*) {
+        // 获取当前军营
+        auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+        if (mainScene) {
+            auto barracks = mainScene->getBarracksBuilding(); // 修改：不需要参数
+            if (barracks) {
+                if (barracks->canUpgradeBarrack()) {
+                    barracks->upgradeBarrack();
+                    // 立即更新UI显示
+                    updateBarrackInfo();
+                }
+                else {
+                    // 显示无法升级的原因
+                    showUpgradeFailureDialog(barracks);
+                }
+            }
+            else {
+                CCLOG("No barracks found!");
+                showNoBarracksDialog();
+            }
         }
-    );
+        });
     m_mainPanel->addChild(upgradeBarracksBtn);
 
     // 升级兵种按钮
@@ -112,9 +258,47 @@ void BarracksUI::initButtons()
 void BarracksUI::show()
 {
     this->setVisible(true);
+    // 显示时立即更新军营信息
+    updateBarrackInfo();
+}
+
+// 【新增】监听军营升级事件
+void BarracksUI::onEnter() {
+    Layer::onEnter();
+
+    // 监听军营升级事件
+    auto listener = EventListenerCustom::create("EVENT_BARRACK_UPGRADED", [this](EventCustom* event) {
+        updateBarrackInfo();
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+
+    // 监听兵种数量变化事件
+    auto troopListener = EventListenerCustom::create("EVENT_UPDATE_TROOPS", [this](EventCustom* event) {
+        updateBarrackInfo();
+        });
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(troopListener, this);
 }
 
 void BarracksUI::hide()
 {
     this->setVisible(false);
+
+}
+
+// 【新增】更新升级按钮状态
+void BarracksUI::updateUpgradeButton() {
+    // 这里需要根据实际UI结构来实现
+    // 可以更新按钮文字、可用状态等
+    auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
+    if (mainScene) {
+        auto barracks = mainScene->getBarracksAtPosition(Vec2::ZERO); // 需要实现获取军营的方法
+        if (barracks) {
+            int level = barracks->getBarrackLevel();
+            int maxCost = barracks->getMaxCostLimit();
+            int currentCost = barracks->getCurrentCostUsed();
+
+            // 更新显示信息
+            CCLOG("Barracks Level: %d, Cost: %d/%d", level, currentCost, maxCost);
+        }
+    }
 }

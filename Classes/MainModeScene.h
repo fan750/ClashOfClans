@@ -31,8 +31,8 @@ public:
     void playCollectAnimation(int amount, cocos2d::Vec2 startPos, BuildingType type);
     // CREATE_FUNC 宏只能出现一次！它会自动生成 create() 函数
     CREATE_FUNC(MainMode);
-
-private:
+    // 【新增】获取军营建筑
+    Building* getBarracksBuilding() const;
     // 初始化商店UI
     void initShopUI();
     // 显示/隐藏商店
@@ -47,7 +47,6 @@ private:
     // 选中建筑处理
     void selectBuilding(Building* building);
 
-private:
     // 商店的主面板
     cocos2d::ui::Layout* m_shopLayer;
     //加速的主面板
