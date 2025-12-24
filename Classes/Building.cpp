@@ -50,6 +50,25 @@ bool Building::init()
     }
 
     initBuildingProperties();                        // 初始化属性
+    if (m_hpBgSprite)
+    {
+        Size bgSize = m_hpBgSprite->getContentSize();
+        if (bgSize.width > 0 && bgSize.height > 0) {
+            float sx = m_hpBarWidth/10;
+            float sy = m_hpBarHeight/10;
+            m_hpBgSprite->setScale(sx, sy);
+        }
+    }
+
+    if (m_hpBarTimer && m_hpBarTimer->getSprite())
+    {
+        Size fillSize = m_hpBarTimer->getSprite()->getContentSize();
+        if (fillSize.width > 0 && fillSize.height > 0) {
+            float sx = m_hpBarWidth / 10;
+            float sy = m_hpBarHeight / 10;
+            m_hpBarTimer->setScale(sx, sy);
+        }
+    }
 
     // 记录基础缩放（initBuildingProperties 已经对 scale 做了初始设定）
     m_baseScale = this->getScale();
@@ -137,8 +156,66 @@ void Building::initBuildingProperties()
     // 4. 设置其他属性
     this->setProperties(hp, CampType::PLAYER);
 
+
+    // 使用统一固定的血条尺寸，避免不同建筑因图片大小或缩放导致血条不一致
+    float DEFAULT_HP_BAR_WIDTH = 5.0f;  // 可根据 UI 需求调整为合适像素
+    float DEFAULT_HP_BAR_HEIGHT = 4.0f;  // 宽高比可自定义
+
+    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
+    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
+
+
+    this->setHpBarOffsetY(20.0f);
+
+    if (m_type == BuildingType::WALL)
+    {
+        m_hpBarWidth =2.0f;
+        m_hpBarHeight =2.0f;
+        // 墙很矮，血条不要飘太高
+        this->setHpBarOffsetY(-300.0f);
+        this->setHpBarOffsetX(-220.0f);
+    }
+    else if (m_type == BuildingType::ARCHER_TOWER)
+    {
+        // 箭塔很高，必须把血条顶上去
+        this->setHpBarOffsetY(280.0f);
+    }
+    else if (m_type == BuildingType::CANNON)
+    {
+        this->setHpBarOffsetY(240.0f);
+    }
+    else if (m_type == BuildingType::TOWN_HALL)
+    {
+        this->setHpBarOffsetX(-40.0f);
+        this->setHpBarOffsetY(180.0f);
+    }
+    else if (m_type == BuildingType::GOLD_MINE)
+    {
+        this->setHpBarOffsetX(200.0f);
+        this->setHpBarOffsetY(880.0f);
+    }
+    else if (m_type == BuildingType::GOLD_STORAGE)
+    {
+        this->setHpBarOffsetX(300.0f);
+        this->setHpBarOffsetY(880.0f);
+    }
+    else if (m_type == BuildingType::ELIXIR_COLLECTOR)
+    {
+        this->setHpBarOffsetX(300.0f);
+        this->setHpBarOffsetY(1080.0f);
+    }
+    else if (m_type == BuildingType::ELIXIR_STORAGE)
+    {
+        this->setHpBarOffsetX(300.0f);
+        this->setHpBarOffsetY(780.0f);
+    }
+    else if (m_type == BuildingType::BARRACKS)
+    {
+        this->setHpBarOffsetX(40.0f);
+        this->setHpBarOffsetY(280.0f);
+    }
     // TRAP 默认隐形，且无血条、不可选中
-    if (m_type == BuildingType::TRAP)
+    else if (m_type == BuildingType::TRAP)
     {
         this->setOpacity(0);            // 隐身
         this->removeHpBar();            // 删除血条机制
@@ -146,13 +223,6 @@ void Building::initBuildingProperties()
         m_currentHp = 0;                // 无生命值
         this->setCascadeOpacityEnabled(true);
     }
-
-    // 使用统一固定的血条尺寸，避免不同建筑因图片大小或缩放导致血条不一致
-    const float DEFAULT_HP_BAR_WIDTH = 120.0f;  // 可根据 UI 需求调整为合适像素
-    const float DEFAULT_HP_BAR_HEIGHT = 12.0f;  // 宽高比可自定义
-
-    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
-    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
 
     // 图片可能很大(比如 500x500)，我们需要把它缩放到合适的大小(比如 64x64)
     // 假设你想让所有建筑大约占 60x60 像素：
@@ -584,7 +654,7 @@ void Building::playWorkAnimation()
     // 4. 播放动画
     if (!frames.empty())
     {
-        auto animation = Animation::createWithSpriteFrames(frames, 0.3f);
+        auto animation = Animation::createWithSpriteFrames(frames, 0.2f);
         auto animate = Animate::create(animation);
         auto repeat = RepeatForever::create(animate);
         

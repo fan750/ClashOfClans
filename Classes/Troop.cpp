@@ -64,16 +64,24 @@ bool Troop::init()
     if (!GameEntity::init()) return false;
 
     initTroopProperties();
-    const float DEFAULT_HP_BAR_WIDTH = 300.0f;  // 可根据 UI 需求调整为合适像素
-    const float DEFAULT_HP_BAR_HEIGHT = 120.0f;  // 宽高比可自定义
+    if (m_hpBgSprite)
+    {
+        Size bgSize = m_hpBgSprite->getContentSize();
+        if (bgSize.width > 0 && bgSize.height > 0) {
+            float sx = m_hpBarWidth / 10;
+            float sy = m_hpBarHeight / 10;
+            m_hpBgSprite->setScale(sx, sy);
+        }
+    }
 
-    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
-    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
-
-    // 【新增】飞龙单独重设血条大小：保持长宽比，缩小到当前的 1/3
-    if (m_type == TroopType::DRAGON) {
-        m_hpBarWidth *= (1.0f / 3.0f);
-        m_hpBarHeight *= (1.0f / 3.0f);
+    if (m_hpBarTimer && m_hpBarTimer->getSprite())
+    {
+        Size fillSize = m_hpBarTimer->getSprite()->getContentSize();
+        if (fillSize.width > 0 && fillSize.height > 0) {
+            float sx = m_hpBarWidth / 10;
+            float sy = m_hpBarHeight / 10;
+            m_hpBarTimer->setScale(sx, sy);
+        }
     }
     // decide plist names per troop type
     std::string walkPlist;
@@ -145,7 +153,11 @@ bool Troop::init()
     // start walk animation if frames present
     if (!frames.empty()) {
         auto animation = Animation::createWithSpriteFrames(frames, 0.08f);
-        AnimationCache::getInstance()->addAnimation(animation, "troop_walk_anim");
+        // 【修改】生成唯一的 Key，例如 "troop_walk_anim_0", "troop_walk_anim_1"
+        std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)m_type);
+
+        // 【修改】使用唯一的 Key 存入缓存
+        AnimationCache::getInstance()->addAnimation(animation, uniqueWalkKey);
         auto animate = Animate::create(animation);
 
         float scaleFactor = 1.0f / 20.0f;
@@ -153,9 +165,9 @@ bool Troop::init()
         
         // 【新增】按兵种单独调整大小
         if (m_type == TroopType::DRAGON) {
-            this->setScale(this->getScale() * 4.0f);
+            this->setScale(this->getScale() * 8.0f);
         } else if (m_type == TroopType::GIANT) {
-            this->setScale(this->getScale() * 2.0f);
+            this->setScale(this->getScale() * 4.0f);
         }
 
         m_baseScale = this->getScale();
@@ -186,6 +198,14 @@ void Troop::onDeath()
 void Troop::initTroopProperties() {
     // 默认设置
     this->setTextureRect(Rect(0, 0, 20, 20));
+    this->setHpBarOffsetY(500.0f);
+    this->setHpBarOffsetX(450.0f);
+    const float DEFAULT_HP_BAR_WIDTH = 15.0f;  // 可根据 UI 需求调整为合适像素
+    const float DEFAULT_HP_BAR_HEIGHT = 10.0f;  // 宽高比可自定义
+
+    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
+    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
+
 
     if (m_type == TroopType::BARBARIAN)
     {
@@ -200,7 +220,6 @@ void Troop::initTroopProperties() {
     else if (m_type == TroopType::ARCHER)
     {
         // keep original sprite color
-        this->setTextureRect(Rect(0, 0, 15, 20));
         setProperties(60, CampType::ENEMY);
         m_moveSpeed = 120.0f;
         m_attackRange = 150.0f;
@@ -210,8 +229,11 @@ void Troop::initTroopProperties() {
     }
     else if (m_type == TroopType::GIANT)
     {
+        this->setHpBarOffsetY(200.0f);
+        this->setHpBarOffsetX(450.0f);
+        m_hpBarWidth = 4.0f;
+        m_hpBarHeight = 4.0f;
         // keep original sprite color
-        this->setTextureRect(Rect(0, 0, 40, 40));
         setProperties(200, CampType::ENEMY);
         m_moveSpeed = 80.0f;
         m_attackRange = 40.0f;
@@ -222,7 +244,6 @@ void Troop::initTroopProperties() {
     else if (m_type == TroopType::BOMBERMAN)
     {
         // keep original sprite color
-        this->setTextureRect(Rect(0, 0, 15, 15));
         setProperties(40, CampType::ENEMY);
         m_moveSpeed = 150.0f;
         m_attackRange = 20.0f;
@@ -232,8 +253,10 @@ void Troop::initTroopProperties() {
     }
     else if (m_type == TroopType::DRAGON)
     {
-        // 可以用一张龙的图片代替
-        this->setTextureRect(Rect(0, 0, 50, 50));
+        this->setHpBarOffsetY(-200.0f);
+        this->setHpBarOffsetX(-220.0f);
+        m_hpBarWidth = 4.0f;
+        m_hpBarHeight = 3.0f;
         setProperties(300, CampType::ENEMY);
         m_moveSpeed = 100.0f;
         m_attackRange = 120.0f;
@@ -280,7 +303,6 @@ void Troop::updateLogic(float dt) {
 void Troop::moveTowardsTarget(float dt) {
     if (!m_target) return;
 
-    // 【回滚到最简单的逻辑】直接走直线，不搞那些复杂的防重叠了
     Vec2 myPos = this->getPosition();
     Vec2 targetPos = m_target->getPosition();
 
@@ -393,8 +415,14 @@ void Troop::attackTarget(float dt)
                 if (!attackFrames.empty()) {
                     auto attackAnim = Animation::createWithSpriteFrames(attackFrames, 0.08f);
                     auto attackAnimate = Animate::create(attackAnim);
+                    // 【修改】Lambda 捕获 m_type 或者直接在里面生成 Key
                     auto restore = CallFunc::create([this, WALK_ACTION_TAG]() {
-                        auto walkAnim = AnimationCache::getInstance()->getAnimation("troop_walk_anim");
+
+                        // 【修改】生成和 init 里一样的唯一 Key
+                        std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)this->m_type);
+
+                        // 【修改】用这个 Key 去取动画
+                        auto walkAnim = AnimationCache::getInstance()->getAnimation(uniqueWalkKey);
                         if (walkAnim) {
                             auto repeat = RepeatForever::create(Animate::create(walkAnim));
                             repeat->setTag(WALK_ACTION_TAG);
@@ -410,7 +438,9 @@ void Troop::attackTarget(float dt)
                     auto up = ScaleTo::create(0.1f, m_baseScale * 1.2f);
                     auto down = ScaleTo::create(0.1f, m_baseScale);
                     auto seq = Sequence::create(up, down, CallFunc::create([this, WALK_ACTION_TAG]() {
-                        auto walkAnim = AnimationCache::getInstance()->getAnimation("troop_walk_anim");
+                    // 【修改】同样的 Key
+        std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)this->m_type);
+        auto walkAnim = AnimationCache::getInstance()->getAnimation(uniqueWalkKey);
                         if (walkAnim) {
                             auto repeat = RepeatForever::create(Animate::create(walkAnim));
                             repeat->setTag(WALK_ACTION_TAG);

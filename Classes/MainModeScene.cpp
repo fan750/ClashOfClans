@@ -93,6 +93,7 @@ bool MainMode::init() {
             b->setOpacity(255);
             // 恢复等级
             b->setLevel(data.level);
+            b->playWorkAnimation();
             // 【关键】加到 m_gameLayer
             m_gameLayer->addChild(b);
             // b->activateBuilding(); 
@@ -128,7 +129,7 @@ bool MainMode::init() {
     shopBtn->setScale(0.1f);
     shopBtn->setTitleText("SHOP");
     shopBtn->setTitleFontSize(24);
-    shopBtn->setPosition(Vec2(visibleSize.width - 400, 125));
+    shopBtn->setPosition(Vec2(visibleSize.width - 350, 125));
     shopBtn->addClickEventListener([=](Ref*) {
         this->toggleShop(); // 点击开关商店
         });
@@ -165,22 +166,21 @@ bool MainMode::init() {
                 auto alertBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
                 this->addChild(alertBg, 1000);
 
-                auto alertPanel = Sprite::create("ShopBackground.png"); // 复用一下背景图
+                auto alertPanel = Sprite::create("barracksBoard.png"); // 复用一下背景图
                 if (alertPanel) {
                     alertPanel->setPosition(visibleSize / 2);
-                    alertPanel->setScale(0.5f);
+                    alertPanel->setScale(1.0f);
                     alertBg->addChild(alertPanel);
                 }
 
-                auto alertLabel = Label::createWithSystemFont("You have no troops!\nGo to the Barracks to recruit some!", "Arial", 36);
+                auto alertLabel = Label::createWithSystemFont("You have no troops!\nGo to the Barracks to recruit some!", "Arial", 46);
                 alertLabel->setPosition(visibleSize / 2);
-                alertLabel->setTextColor(Color4B::WHITE);
+                alertLabel->setTextColor(Color4B::BLACK);
                 alertLabel->setAlignment(TextHAlignment::CENTER);
                 alertBg->addChild(alertLabel);
 
-                auto okBtn = Button::create("CloseNormal.png");
-                okBtn->setTitleText("OK");
-                okBtn->setTitleFontSize(24);
+                auto okBtn = Button::create("yes.png");
+                okBtn->setScale(0.1f);
                 okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
                 okBtn->addClickEventListener
                 ([alertBg](Ref*) 
@@ -208,7 +208,7 @@ bool MainMode::init() {
     TimeBtn->setScale(0.7f);
     TimeBtn->setTitleText("Accelerate");
     TimeBtn->setTitleFontSize(36);
-    TimeBtn->setPosition(Vec2(visibleSize.width - 900, 125));
+    TimeBtn->setPosition(Vec2(visibleSize.width - 750, 125));
     TimeBtn->addClickEventListener([=](Ref*) {
         this->toggleTime();
         });
