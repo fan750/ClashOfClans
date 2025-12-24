@@ -169,6 +169,7 @@ xcopy "$(ProjectDir)..\Resources" "$(OutDir)\Resources\" /D /E /I /F /Y
     <ClCompile Include="..\Classes\MenuBuilder.cpp" />
     <ClCompile Include="..\Classes\RecruitUI.cpp" />
     <ClCompile Include="..\Classes\Troop.cpp" />
+    <ClCompile Include="..\Classes\UpgradeTroopUI.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -186,6 +187,7 @@ xcopy "$(ProjectDir)..\Resources" "$(OutDir)\Resources\" /D /E /I /F /Y
     <ClInclude Include="..\Classes\MenuBuilder.h" />
     <ClInclude Include="..\Classes\RecruitUI.h" />
     <ClInclude Include="..\Classes\Troop.h" />
+    <ClInclude Include="..\Classes\UpgradeTroopUI.h" />
     <ClInclude Include="main.h" />
   </ItemGroup>
   <ItemGroup>

@@ -41,6 +41,9 @@ public:
     void initTime();
     //显示/隐藏加速面板
     void toggleTime();
+    // 更新加速按钮状态
+    void updateTimeButtonCooldown();
+
     // 尝试购买建筑
     void tryBuyBuilding(const ShopItem& item);
 
@@ -81,6 +84,7 @@ public:
     cocos2d::ui::Button* m_barracksShopButton;          // 用于在建造后移除商店按钮
     BarracksUI* m_barracksUI;                           // 军营UI实例
     cocos2d::ui::Button* TimeBtn;
+    cocos2d::ui::Button* m_accelerateBtn;
     void createShopItemButton(const ShopItem& item, cocos2d::Vec2 pos, float iconScale = 0.8f);
 
     // 【核心】游戏世界容器层

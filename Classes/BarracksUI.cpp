@@ -4,6 +4,7 @@
 #include "GameManager.h"
 #include "MainModeScene.h"
 #include "Building.h"
+#include"UpgradeTroopUI.h"
 USING_NS_CC;
 using namespace ui;
 
@@ -235,9 +236,23 @@ void BarracksUI::initButtons()
     upgradeTroopsBtn->setTitleColor(Color3B::BLACK);
     upgradeTroopsBtn->setPosition(Vec2(panelSize.width / 2, panelSize.height * 0.3));
     upgradeTroopsBtn->addClickEventListener
-    ([](Ref*)
+    ([this](Ref*)
         {
-            CCLOG("Upgrade Troops button clicked (functionality not implemented).");
+            auto upgradeTroopUI = this->getChildByName<UpgradeUi*>("UpgradeTroopUI_Panel");
+            if (!upgradeTroopUI)
+            {
+                auto layer = UpgradeUi::create();
+                upgradeTroopUI = static_cast<UpgradeUi*>(layer);
+                if (upgradeTroopUI)
+                {
+                    upgradeTroopUI->setName("UpgradeTroopUI_Panel");
+                    this->addChild(upgradeTroopUI);
+                }
+            }
+            if (upgradeTroopUI)
+            {
+                upgradeTroopUI->show();
+            }
         }
     );
     m_mainPanel->addChild(upgradeTroopsBtn);

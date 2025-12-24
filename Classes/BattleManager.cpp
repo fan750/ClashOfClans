@@ -155,6 +155,7 @@ Troop* BattleManager::findClosestTroopForBuilding(Building* building)
 void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
 {
     std::vector<Building*> targetsToHit;
+    std::vector<Troop*> troopsToHit;
 
     for (auto building : m_buildings)
     {
@@ -165,11 +166,29 @@ void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
         }
     }
 
+    for (auto troop : m_troops)
+    {
+        if (!troop || troop->isDead()) continue;
+        if (troop->getMovementType() == TroopMovementType::AIR) continue;
+        if (troop->getPosition().distance(center) <= radius)
+        {
+            troopsToHit.push_back(troop);
+        }
+    }
+
     for (auto building : targetsToHit)
     {
         if (!building->isDead())
         {
             building->takeDamage(damage);
+        }
+    }
+
+    for (auto troop : troopsToHit)
+    {
+        if (troop && !troop->isDead())
+        {
+            troop->takeDamage(damage);
         }
     }
 }
@@ -296,13 +315,23 @@ const Vector<Building*>& BattleManager::getBuildings() const
     return m_buildings;
 }
 
+void BattleManager::rescaleTroopsForType(TroopType type, int level)
+{
+    for (Troop* troop : m_troops)
+    {
+        if (!troop || troop->isDead()) continue;
+        if (troop->getTroopType() != type) continue;
+        troop->rescaleStatsForLevel(level);
+    }
+}
+
 void BattleManager::clear()
 {
     m_buildings.clear();
 
     m_troops.clear();
 
-    // 清空计数器和可用列表
+    // 清空可部署列表
     m_availableTroops.clear();
     m_deployedTroops.clear();
     m_initialTroops.clear();

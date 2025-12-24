@@ -9,6 +9,7 @@ GameManager* GameManager::s_instance = nullptr;
 GameManager::GameManager()
     : m_gold(0), m_elixir(0), m_isInitialized(false)
 {
+    m_timeAccelerateCooldownEnd = std::chrono::steady_clock::time_point::min();
     //初始化各兵种数量为0
     m_troopCounts[TroopType::BARBARIAN] = 0;
     m_troopCounts[TroopType::ARCHER] = 0;
@@ -190,4 +191,22 @@ void GameManager::clear()
     // (可选) 重置金币
     m_gold = 500;
     m_elixir = 500;
+    m_timeAccelerateCooldownEnd = std::chrono::steady_clock::time_point::min();
+}
+
+void GameManager::setTimeAccelerateCooldownEnd(const std::chrono::steady_clock::time_point& end)
+{
+    m_timeAccelerateCooldownEnd = end;
+}
+
+std::chrono::steady_clock::time_point GameManager::getTimeAccelerateCooldownEnd() const
+{
+    return m_timeAccelerateCooldownEnd;
+}
+
+float GameManager::getTimeAccelerateCooldownRemaining() const
+{
+    auto now = std::chrono::steady_clock::now();
+    if (now >= m_timeAccelerateCooldownEnd) return 0.0f;
+    return std::chrono::duration_cast<std::chrono::duration<float>>(m_timeAccelerateCooldownEnd - now).count();
 }

@@ -10,6 +10,7 @@
 #include "ui/CocosGUI.h"
 #include "LevelMapScene.h"
 #include"MenuBuilder.h";
+#include <chrono>
 USING_NS_CC;
 using namespace ui;
 
@@ -230,9 +231,11 @@ bool MainMode::init() {
     TimeBtn->setTitleFontSize(36);
     TimeBtn->setPosition(Vec2(visibleSize.width - 750, 125));
     TimeBtn->addClickEventListener([=](Ref*) {
+        if (!TimeBtn->isEnabled()) return;
         this->toggleTime();
         });
     this->addChild(TimeBtn, 10);
+    updateTimeButtonCooldown();
     // 7. 触摸监听 (保持不变)
     auto listener = EventListenerTouchOneByOne::create();
     listener->setSwallowTouches(true);
@@ -330,17 +333,14 @@ void MainMode::initTime() {
     auto time_btn = Button::create("accelerate.png");
     time_btn->setScale(0.2f);
     time_btn->setPosition(Vec2(visibleSize.width * 0.4f, visibleSize.height * 0.1f));
+    m_accelerateBtn = time_btn;
+    updateTimeButtonCooldown();
     time_btn->addClickEventListener([=](Ref*) {
         m_timeLayer->setVisible(false);
-        TimeBtn->setEnabled(false);
-        TimeBtn->setBright(false);
-
-        this->scheduleOnce([this](float) {
-            if (TimeBtn) {
-                TimeBtn->setEnabled(true);
-                TimeBtn->setBright(true);
-            }
-            }, 60.0f, "AccelerateCooldown");
+        auto gm = GameManager::getInstance();
+        auto now = std::chrono::steady_clock::now();
+        gm->setTimeAccelerateCooldownEnd(now + std::chrono::seconds(60));
+        updateTimeButtonCooldown();
 
         for (auto node : m_gameLayer->getChildren()) {
             if (auto building = dynamic_cast<Building*>(node)) {
@@ -356,6 +356,32 @@ void MainMode::initTime() {
 }
 void MainMode::toggleTime() {
     m_timeLayer->setVisible(!m_timeLayer->isVisible());
+}
+void MainMode::updateTimeButtonCooldown()
+{
+    auto gm = GameManager::getInstance();
+    float remaining = gm->getTimeAccelerateCooldownRemaining();
+    this->unschedule("AccelerateCooldown");
+    bool onCooldown = (remaining > 0.0f);
+
+    if (TimeBtn)
+    {
+        TimeBtn->setEnabled(!onCooldown);
+        TimeBtn->setBright(!onCooldown);
+    }
+    if (m_accelerateBtn)
+    {
+        m_accelerateBtn->setEnabled(!onCooldown);
+        m_accelerateBtn->setBright(!onCooldown);
+    }
+
+    if (onCooldown)
+    {
+        this->scheduleOnce([this](float) {
+            GameManager::getInstance()->setTimeAccelerateCooldownEnd(std::chrono::steady_clock::now());
+            updateTimeButtonCooldown();
+            }, remaining, "AccelerateCooldown");
+    }
 }
 void MainMode::tryBuyBuilding(const ShopItem& item) {
     // 1. 检查钱够不够

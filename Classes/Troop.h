@@ -2,6 +2,7 @@
 #ifndef __TROOP_H__
 #define __TROOP_H__
 
+#include <map>
 #include "GameEntity.h"
 #include "Building.h"
 #include <string>
@@ -65,7 +66,7 @@ public:
     float m_attackInterval;
     float m_attackTimer;
     Building* m_target;
-
+    int m_level;
     // 保存基础缩放，用于在播放缩放动画时保持相对比例
     float m_baseScale;
 
@@ -78,6 +79,16 @@ public:
     // 【新增】获取兵种cost
     static int getTroopCost(TroopType type);
     static int getMinBarrackLevel(TroopType type);
+
+    // 【新增】按等级调整 hp/damage（其它属性保持不变）
+    void rescaleStatsForLevel(int level);
+
+private:
+    int getLevelForType(TroopType type) const;
+    float getLevelMultiplier(int level) const;
+
+    int m_baseHp;
+    int m_baseDamage;
 };
 
 #endif // __TROOP_H__

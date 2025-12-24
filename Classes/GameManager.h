@@ -2,6 +2,9 @@
 #ifndef __GAME_MANAGER_H__
 #define __GAME_MANAGER_H__
 
+#include <chrono>
+#include <map>
+#include <vector>
 #include "cocos2d.h"
 #include "Building.h" // 需要引用 BuildingType
 #include "Troop.h"    // 需要引用 TroopType
@@ -54,30 +57,47 @@ public:
     int getMaxGold() const { return m_maxGold; }
     int getMaxElixir() const { return m_maxElixir; }
 
-    void addTroops(TroopType type, int amount);                 // 增加各兵种数量
-    int getTroopCount(TroopType type) const;                    // 获取指定兵种的数量
-    void consumeTroops(TroopType type, int amount);             // 减少指定兵种数量（用于战斗死亡同步）
-    void setTroopCount(TroopType type, int count);              // 设置兵种数量（用于战斗结束后同步）
-    const std::map<TroopType, int>& getAllTroopCounts() const;  // 获取所有兵种数量
+    void addTroops(TroopType type, int amount);
+    int getTroopCount(TroopType type) const;
+    void consumeTroops(TroopType type, int amount);
+    void setTroopCount(TroopType type, int count);
+    const std::map<TroopType, int>& getAllTroopCounts() const;
     void clear();
-    int getTown_Hall_Level() { return town_hall_level; }   
+    int getTown_Hall_Level() { return town_hall_level; }
     void setTown_Hall_Level(int level) { town_hall_level = level; }
+
+    int  getBarLevel() { return bar_level; }
+    void setBarLevel(int level) { bar_level = level; }
+    int getGiantLevel() { return giant_level; }
+    void setGiantLevel(int level) { giant_level = level; }
+    int getArcLevel() { return arc_level; }
+    void setArcLevel(int level) {  arc_level = level; }
+    int getBomLevel() { return bom_level; }
+    void setBomLevel(int level) { bom_level = level; }
+    int getDragonLevel() { return dragon_level; }
+    void setDragonLevel(int level) { dragon_level = level; }
+
+    void setTimeAccelerateCooldownEnd(const std::chrono::steady_clock::time_point& end);
+    std::chrono::steady_clock::time_point getTimeAccelerateCooldownEnd() const;
+    float getTimeAccelerateCooldownRemaining() const;
+
 private:
     GameManager();
     static GameManager* s_instance;
-
-    bool m_isInitialized; // 标记是否已经初始化过
-    int m_gold;
-    int m_elixir;
-    int town_hall_level = 1;          //大本营等级,其他建筑的等级无法超过大本营的等级
-
-    // 【新增】资源上限
-    int m_maxGold;
-    int m_maxElixir;
-
-    // 【新增】建筑数据列表
     std::vector<BuildingData> m_homeBuildings;
-    std::map<TroopType, int> m_troopCounts;    // 存储各兵种数量
+    std::map<TroopType, int> m_troopCounts;
+    bool m_isInitialized = false;
+    int m_gold = 0;
+    int m_elixir = 0;
+    int m_maxGold = 0;
+    int m_maxElixir = 0;
+    int town_hall_level = 1;
+    int bar_level = 1;
+    int giant_level = 1;
+    int arc_level = 1;
+    int bom_level = 1;
+    int dragon_level = 1;
+    std::chrono::steady_clock::time_point m_timeAccelerateCooldownEnd;
 };
 
 #endif // __GAME_MANAGER_H__

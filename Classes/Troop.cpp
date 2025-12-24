@@ -2,8 +2,10 @@
 // 修复：使用 cocos2d::Vector 而非 std::vector，且这些方法是成员函数
 #include "Troop.h"
 #include "BattleManager.h"
+#include "GameManager.h"
 #include <algorithm>
-#include <fstream> // ensure ofstream is defined
+#include <fstream>
+#include <cmath>
 
 USING_NS_CC;
 
@@ -28,6 +30,8 @@ Troop::Troop()
     , m_target(nullptr)
     , m_baseScale(1.0f)
     , m_isAttacking(false)
+    , m_baseHp(0)
+    , m_baseDamage(0)
 {
 }
 
@@ -216,24 +220,24 @@ void Troop::initTroopProperties() {
     m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
     m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
 
+    int baseHp = 100;
+    int baseDamage = 10;
 
     if (m_type == TroopType::BARBARIAN)
     {
-        // keep original sprite color
-        setProperties(100, CampType::ENEMY);
+        baseHp = 100;
         m_moveSpeed = 100.0f;
         m_attackRange = 40.0f;
-        m_damage = 50;
+        baseDamage = 50;
         m_attackInterval = 1.0f;
         m_movementType = TroopMovementType::GROUND;
     }
     else if (m_type == TroopType::ARCHER)
     {
-        // keep original sprite color
-        setProperties(60, CampType::ENEMY);
+        baseHp = 60;
         m_moveSpeed = 120.0f;
         m_attackRange = 150.0f;
-        m_damage = 25;
+        baseDamage = 25;
         m_attackInterval = 0.8f;
         m_movementType = TroopMovementType::GROUND;
     }
@@ -243,21 +247,19 @@ void Troop::initTroopProperties() {
         this->setHpBarOffsetX(450.0f);
         m_hpBarWidth = 4.0f;
         m_hpBarHeight = 4.0f;
-        // keep original sprite color
-        setProperties(200, CampType::ENEMY);
+        baseHp = 200;
         m_moveSpeed = 80.0f;
         m_attackRange = 40.0f;
-        m_damage = 40;
+        baseDamage = 40;
         m_attackInterval = 1.5f;
         m_movementType = TroopMovementType::GROUND;
     }
     else if (m_type == TroopType::BOMBERMAN)
     {
-        // keep original sprite color
-        setProperties(40, CampType::ENEMY);
+        baseHp = 40;
         m_moveSpeed = 150.0f;
         m_attackRange = 20.0f;
-        m_damage = 500;
+        baseDamage = 500;
         m_attackInterval = 0.1f;
         m_movementType = TroopMovementType::GROUND;
     }
@@ -267,13 +269,35 @@ void Troop::initTroopProperties() {
         this->setHpBarOffsetX(-220.0f);
         m_hpBarWidth = 4.0f;
         m_hpBarHeight = 3.0f;
-        setProperties(300, CampType::ENEMY);
+        baseHp = 300;
         m_moveSpeed = 100.0f;
         m_attackRange = 120.0f;
-        m_damage = 60; // 中等伤害
+        baseDamage = 60; // 中等伤害
         m_attackInterval = 1.5f;
         m_movementType = TroopMovementType::AIR; // 设置为空中单位
     }
+
+    m_baseHp = baseHp;
+    m_baseDamage = baseDamage;
+
+    int level = getLevelForType(m_type);
+    rescaleStatsForLevel(level);
+}
+
+void Troop::rescaleStatsForLevel(int level)
+{
+    if (level <= 0) level = 1;
+    float multiplier = getLevelMultiplier(level);
+
+    int newMaxHp = std::max(1, static_cast<int>(std::round(static_cast<float>(m_baseHp) * multiplier)));
+    int oldMaxHp = m_maxHp;
+    float ratio = (oldMaxHp > 0) ? static_cast<float>(m_currentHp) / static_cast<float>(oldMaxHp) : 1.0f;
+    ratio = std::max(0.0f, std::min(1.0f, ratio));
+
+    GameEntity::setProperties(newMaxHp, CampType::ENEMY);
+    m_currentHp = std::max(1, std::min(newMaxHp, static_cast<int>(std::round(ratio * newMaxHp))));
+    m_damage = std::max(1, static_cast<int>(std::round(static_cast<float>(m_baseDamage) * multiplier)));
+    m_level = level;
 }
 
 // 【新增】获取兵种名称的辅助方法
@@ -543,4 +567,24 @@ int Troop::getMinBarrackLevel(TroopType type) {
         return it->second.minBarrackLevel;
     }
     return 1; // 默认返回1级
+}
+
+int Troop::getLevelForType(TroopType type) const
+{
+    auto gm = GameManager::getInstance();
+    switch (type)
+    {
+    case TroopType::BARBARIAN: return gm->getBarLevel();
+    case TroopType::ARCHER:    return gm->getArcLevel();
+    case TroopType::GIANT:     return gm->getGiantLevel();
+    case TroopType::BOMBERMAN: return gm->getBomLevel();
+    case TroopType::DRAGON:    return gm->getDragonLevel();
+    default: return 1;
+    }
+}
+
+float Troop::getLevelMultiplier(int level) const
+{
+    if (level <= 1) return 1.0f;
+    return 1.0f + 0.1f * static_cast<float>(level - 1);
 }

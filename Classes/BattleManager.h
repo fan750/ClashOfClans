@@ -38,6 +38,7 @@ public:
     std::map<TroopType, int> getDeathCounts() const;                           // 获取战斗中死亡的兵种数量
     const cocos2d::Vector<Troop*>& getTroops() const;                          // 获取场上所有士兵的引用（用于检查是否还有存活单位）
     void clear();
+    void rescaleTroopsForType(TroopType type, int level);
 
 private:
     BattleManager();
