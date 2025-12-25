@@ -314,16 +314,13 @@ void Building::onUpgradeFinished()
     updateBuildingTexture();
 
     // 4. 播放 "Q弹" 特效表示完成
-    // 先记录一下当前因为 updateBuildingTexture 可能调整过的 Scale
-    float finalScale = this->getScale();
-
+    // 先记录一下目标缩放（基于 m_baseScale * 1.1^(level-1)）
+    float targetScale = m_baseScale * std::pow(1.1f, m_level - 1);
     this->setScale(0.1f); // 瞬间变小
 
-    // 弹性放大出来
     auto popAction = Sequence::create(
-        EaseBackOut::create(ScaleTo::create(0.5f, finalScale)),
+        EaseBackOut::create(ScaleTo::create(0.5f, targetScale)),
         CallFunc::create([this]() {
-            // 这里可以播放一个 "叮" 的音效
             CocosDenshion::SimpleAudioEngine::getInstance()->playEffect("upgrade_complete.wav");
             }),
         nullptr
@@ -336,6 +333,32 @@ void Building::onUpgradeFinished()
 void Building::updateLogic(float dt)
 {
     m_timer += dt;
+
+    // 【新增】更新加速计时器
+    if (m_constructionBoostTimer > 0.0f)
+    {
+        m_constructionBoostTimer -= dt;
+        if (m_constructionBoostTimer <= 0.0f)
+        {
+            m_constructionBoostTimer = 0.0f;
+            m_constructionSpeedMultiplier = 1.0f;
+        }
+    }
+
+    // 定期检查升级状态（防止跨场景回调丢失）
+    if (m_isUpgrading)
+    {
+        m_upgradeCheckTimer += dt;
+        if (m_upgradeCheckTimer >= 1.0f)
+        {
+            m_upgradeCheckTimer = 0.0f;
+            // 如果 GameManager 里已经没有这个升级任务了，说明升级完成了
+            if (!GameManager::getInstance()->hasPendingUpgrade(m_type, this->getPosition()))
+            {
+                this->onUpgradeFinished();
+            }
+        }
+    }
 
     // 陷阱逻辑：敌军单位在范围内时显现，并定期造成范围伤害
     if (m_type == BuildingType::TRAP)
@@ -758,6 +781,21 @@ void Building::applyProductionBoost(float multiplier, float durationSec)//设置加
     m_rateBoostTimer = durationSec;
 }
 
+void Building::applyConstructionBoost(float multiplier, float durationSec)
+{
+    if (durationSec <= 0.0f) return;
+    if (multiplier <= 1.0f) multiplier = 1.0f;
+
+    m_constructionSpeedMultiplier = multiplier;
+    m_constructionBoostTimer = durationSec;
+    
+    // 如果正在施工，通知 GameManager 更新剩余时间
+    if (m_isUpgrading)
+    {
+        GameManager::getInstance()->applyBuildingUpgradeBoost(m_type, this->getPosition(), multiplier, durationSec);
+    }
+}
+
 // 【新增】设置军营等级（用于从存档恢复）
 void Building::setBarrackLevel(int level) {
     if (level < 0 || level > 3) return;
@@ -912,66 +950,53 @@ void Building::updateBuildingTexture()
     }
 }
 
-void Building::startUpgradeProcess()
+void Building::showConstructionAnimation()
 {
-    if (m_isUpgrading) return; // 防止连点
+    if (m_isUpgrading) return;
 
-    // 1. 标记状态
     m_isUpgrading = true;
 
-    // 2. 播放施工动画 (类似你现在的 playWorkAnimation)
-    // 假设你有 construct_0.png ~ construct_3.png
     Vector<SpriteFrame*> frames;
     for (int i = 0; i < 3; ++i) {
-        // 加载施工帧
         std::string name = StringUtils::format("construct_%d.png", i);
         auto frame = Sprite::create(name)->getSpriteFrame();
-        // 也可以用 SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
         if (frame) {
             frames.pushBack(frame);
         }
     }
 
-    if (!frames.empty()) {
-        // 创建动画
-        auto animation = Animation::createWithSpriteFrames(frames, 0.2f);
-        auto animate = Animate::create(animation);
-        auto repeat = RepeatForever::create(animate);
-        // 安全检查：如果之前有遗留的施工精灵，先移除掉
-        if (m_constructionSprite) {
-            m_constructionSprite->removeFromParent();
-            m_constructionSprite = nullptr;
-        }
+    if (frames.empty()) return;
 
-        // A. 创建一个新的精灵，用动画的第一帧初始化它
-        m_constructionSprite = Sprite::createWithSpriteFrame(frames.front());
-
-        // B. 设置位置：放在建筑物中心 (getContentSize() 是建筑本身的大小)
-        Size size = this->getContentSize();
-        m_constructionSprite->setPosition(Vec2(size.width / 2.5, size.height / 2));
-
-        // C. 【关键】把这个新精灵作为孩子加到建筑物上
-        // ZOrder 设置为 10 (或者比 0 大的值)，确保它显示在原有建筑图的上面
-        this->addChild(m_constructionSprite, 10);
-
-        // D. 【关键】让这个新的替身精灵去播放动画，而不是 this
-        m_constructionSprite->runAction(repeat);
-
-        // (可选) 如果你想调整施工动画的大小，在这里调整替身精灵的缩放
-        m_constructionSprite->setScale(0.2f);
+    if (m_constructionSprite) {
+        m_constructionSprite->removeFromParent();
+        m_constructionSprite = nullptr;
     }
 
-    // 3. 开启倒计时 (假设升级耗时 3 秒)
-    float upgradeDuration = 3.0f;
+    m_constructionSprite = Sprite::createWithSpriteFrame(frames.front());
+    Size size = this->getContentSize();
+    m_constructionSprite->setPosition(Vec2(size.width / 2.5f, size.height / 2));
+    this->addChild(m_constructionSprite, 10);
 
-    auto seq = Sequence::create(
-        DelayTime::create(upgradeDuration),
-        CallFunc::create([this]() {
-            this->onUpgradeFinished(); // 时间到，调用结束逻辑
-            }),
-        nullptr
-    );
-    this->runAction(seq);
+    auto animation = Animation::createWithSpriteFrames(frames, 0.2f);
+    auto animate = Animate::create(animation);
+    auto repeat = RepeatForever::create(animate);
+    m_constructionSprite->runAction(repeat);
+    m_constructionSprite->setScale(0.2f);
+}
+
+void Building::startUpgradeProcess()
+{
+    if (m_isUpgrading) return; // 防止重复触发
+
+    float upgradeDuration = 10.0f;
+    showConstructionAnimation();
+    GameManager::getInstance()->scheduleBuildingUpgrade(this, upgradeDuration);
+
+    // 【新增】如果当前有加速状态，立即应用到新任务
+    if (m_constructionBoostTimer > 0.0f)
+    {
+        GameManager::getInstance()->applyBuildingUpgradeBoost(m_type, this->getPosition(), m_constructionSpeedMultiplier, m_constructionBoostTimer);
+    }
 
     CCLOG("Upgrade started... waiting for %f seconds", upgradeDuration);
 }

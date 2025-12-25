@@ -52,8 +52,10 @@ public:
    // 【修改】原有的 upgrade() 改名为 onUpgradeFinished()，作为倒计时结束后的回调
     void onUpgradeFinished();
 
-    // 【新增】辅助函数：根据等级刷新外观（变身用）
     void updateBuildingTexture();
+
+    // 施工视觉效果
+    void showConstructionAnimation();
 
     // 获取建筑类型
     BuildingType getBuildingType() const { return m_type; }
@@ -90,6 +92,14 @@ public:
     void upgradeBarrack();            // 升级军营
     // 【新增】开始升级流程（点击按钮后调用它）
     void startUpgradeProcess();
+
+    // 【新增】施工加速系数
+    float m_constructionSpeedMultiplier = 1.0f;
+    float m_constructionBoostTimer = 0.0f;
+
+public:
+    // 【新增】应用施工加速
+    void applyConstructionBoost(float multiplier, float durationSec);
 
 protected:
     // 初始化特定类型的属性（血量、图片等）
@@ -129,9 +139,13 @@ protected:
 private:
     // 【新增】标记是否正在升级（防止重复点击）
     bool m_isUpgrading = false;
+    float m_upgradeCheckTimer = 0.0f; // 用于定期检查升级状态
 
     // 【新增】用于专门播放施工动画的子精灵
     cocos2d::Sprite* m_constructionSprite = nullptr;
+
+public:
+    bool isUpgrading() const { return m_isUpgrading; }
 };
 
 #endif // __BUILDING_H__

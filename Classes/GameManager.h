@@ -5,6 +5,7 @@
 #include <chrono>
 #include <map>
 #include <vector>
+#include <string>
 #include "cocos2d.h"
 #include "Building.h" // 需要引用 BuildingType
 #include "Troop.h"    // 需要引用 TroopType
@@ -16,6 +17,14 @@ struct BuildingData
     cocos2d::Vec2 position;
     int level; // 新增：记录建筑等级
     int barrackLevel;    // 【新增】军营等级（仅对军营有效）
+};
+
+struct PendingBuildingUpgrade
+{
+    int id;
+    BuildingType type;
+    cocos2d::Vec2 position;
+    std::chrono::steady_clock::time_point endTime;
 };
 
 class GameManager {
@@ -81,7 +90,18 @@ public:
     std::chrono::steady_clock::time_point getTimeAccelerateCooldownEnd() const;
     float getTimeAccelerateCooldownRemaining() const;
 
+    // 建筑升级调度
+    void scheduleBuildingUpgrade(Building* building, float duration);
+    void completeBuildingUpgrade(int taskId);
+    bool hasPendingUpgrade(BuildingType type, cocos2d::Vec2 position, float tolerance = 5.0f) const;
+
+    // 【新增】应用建筑升级加速
+    void applyBuildingUpgradeBoost(BuildingType type, cocos2d::Vec2 position, float multiplier, float duration);
+
 private:
+    void ensureUpgradeTicker();
+    void updatePendingUpgrades(float dt);
+
     GameManager();
     static GameManager* s_instance;
     std::vector<BuildingData> m_homeBuildings;
@@ -98,6 +118,12 @@ private:
     int bom_level = 1;
     int dragon_level = 1;
     std::chrono::steady_clock::time_point m_timeAccelerateCooldownEnd;
+
+    std::vector<PendingBuildingUpgrade> m_pendingUpgrades;
+    int m_nextUpgradeTaskId = 0;
+    bool m_upgradeTickerScheduled = false;
+
+    void incrementStoredBuildingLevel(BuildingType type, cocos2d::Vec2 position);
 };
 
 #endif // __GAME_MANAGER_H__
