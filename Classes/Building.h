@@ -47,6 +47,9 @@ public:
     // 以下为可选重写的虚函数
     virtual int collectResource() { return 0; }           // 收集资源（默认返回0）
 
+    // 施工视觉效果
+    void showConstructionAnimation();
+
     // 获取建筑类型
     BuildingType getBuildingType() const { return m_type; }
     int getLevel() const { return m_level; }
@@ -65,6 +68,15 @@ public:
     void playWorkAnimation();
     void applyProductionBoost(float multiplier, float durationSec);
     void startUpgradeProcess();
+
+    // 【新增】施工加速系数
+    float m_constructionSpeedMultiplier = 1.0f;
+    float m_constructionBoostTimer = 0.0f;
+
+public:
+    // 【新增】应用施工加速
+    void applyConstructionBoost(float multiplier, float durationSec);
+
 protected:
     BuildingType m_type;
     int m_level;
@@ -96,7 +108,13 @@ protected:
 
     // 升级相关
     bool m_isUpgrading = false;
+    float m_upgradeCheckTimer = 0.0f; // 用于定期检查升级状态
+
+    // 【新增】用于专门播放施工动画的子精灵
     cocos2d::Sprite* m_constructionSprite = nullptr;
+
+public:
+    bool isUpgrading() const { return m_isUpgrading; }
 };
 
 #endif // __BUILDING_H__

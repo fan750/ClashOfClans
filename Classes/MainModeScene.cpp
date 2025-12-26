@@ -354,6 +354,8 @@ void MainMode::initTime() {
                 if (type == BuildingType::GOLD_MINE || type == BuildingType::ELIXIR_COLLECTOR) {
                     building->applyProductionBoost(2.0f, 30.0f);
                 }
+                // 【新增】如果是正在升级的建筑，应用施工加速
+                building->applyConstructionBoost(2.0f, 20.0f);
             }
         }
         });
@@ -589,8 +591,17 @@ bool MainMode::onTouchBegan(Touch* touch, Event* event) {
             // 【关键】使用转换后的 worldPos 进行判断
             if (boundingBox.containsPoint(worldPos)) {
 
-                // 选中该建筑
-                selectBuilding(building);
+                // 3. 选中建筑
+                if (m_selectedBuilding != building) {
+                    // 如果正在施工，则不选中（不显示升级按钮等）
+                    if (building->isUpgrading()) {
+                        CCLOG("Building is upgrading, cannot select.");
+                        hitBuilding = true;
+                        return true;
+                    }
+
+                    selectBuilding(building);
+                }
 
                 // 收集资源
                 int amount = building->collectResource();

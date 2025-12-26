@@ -19,6 +19,7 @@ public:
     void removeBuilding(Building* building);
     Building* findClosestBuilding(cocos2d::Vec2 position);
     Building* findClosestBuildingOfType(cocos2d::Vec2 position, BuildingType type);
+    Building* findBuildingAtPosition(cocos2d::Vec2 position, BuildingType type, float tolerance = 5.0f);
     // 对范围内敌军造成伤害，支持排除一个单位（例如自爆者自身）
     void dealAreaDamage(cocos2d::Vec2 center, float radius, int damage);
     Troop* findClosestTroopForBuilding(Building* building);

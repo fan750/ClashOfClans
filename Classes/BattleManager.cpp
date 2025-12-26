@@ -336,3 +336,17 @@ void BattleManager::clear()
     m_deployedTroops.clear();
     m_initialTroops.clear();
 }
+
+Building* BattleManager::findBuildingAtPosition(Vec2 position, BuildingType type, float tolerance)
+{
+    for (auto building : m_buildings)
+    {
+        if (!building || building->isDead()) continue;
+        if (building->getBuildingType() != type) continue;
+        if (building->getPosition().distance(position) <= tolerance)
+        {
+            return building;
+        }
+    }
+    return nullptr;
+}

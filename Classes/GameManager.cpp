@@ -1,6 +1,8 @@
 //GameManager.cpp
 #include "GameManager.h"
 #include"Building.h"
+#include "BattleManager.h"
+#include <algorithm>
 USING_NS_CC;
 
 GameManager* GameManager::s_instance = nullptr;
@@ -209,4 +211,157 @@ float GameManager::getTimeAccelerateCooldownRemaining() const
     auto now = std::chrono::steady_clock::now();
     if (now >= m_timeAccelerateCooldownEnd) return 0.0f;
     return std::chrono::duration_cast<std::chrono::duration<float>>(m_timeAccelerateCooldownEnd - now).count();
+}
+
+// 建筑升级相关代码
+void GameManager::scheduleBuildingUpgrade(Building* building, float duration)
+{
+    if (!building || duration <= 0.0f) return;
+
+    int taskId = ++m_nextUpgradeTaskId;
+    PendingBuildingUpgrade task;
+    task.id = taskId;
+    task.type = building->getBuildingType();
+    task.position = building->getPosition();
+    task.endTime = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<float>(duration));
+    m_pendingUpgrades.push_back(task);
+
+    ensureUpgradeTicker();
+}
+
+void GameManager::ensureUpgradeTicker()
+{
+    if (!m_pendingUpgrades.empty())
+    {
+        Director::getInstance()->getScheduler()->unschedule("GameManagerUpgradeTicker", this);
+        Director::getInstance()->getScheduler()->schedule([this](float dt) {
+            this->updatePendingUpgrades(dt);
+        }, this, 0.0f, false, "GameManagerUpgradeTicker");
+        m_upgradeTickerScheduled = true;
+    }
+}
+
+void GameManager::updatePendingUpgrades(float dt)
+{
+    auto now = std::chrono::steady_clock::now();
+    std::vector<int> toComplete;
+    toComplete.reserve(m_pendingUpgrades.size());
+
+    for (const auto& task : m_pendingUpgrades)
+    {
+        if (now >= task.endTime)
+        {
+            toComplete.push_back(task.id);
+        }
+    }
+
+    for (int id : toComplete)
+    {
+        completeBuildingUpgrade(id);
+    }
+
+    if (m_pendingUpgrades.empty())
+    {
+        Director::getInstance()->getScheduler()->unschedule("GameManagerUpgradeTicker", this);
+        m_upgradeTickerScheduled = false;
+    }
+}
+
+void GameManager::completeBuildingUpgrade(int taskId)
+{
+    auto it = std::find_if(m_pendingUpgrades.begin(), m_pendingUpgrades.end(), [taskId](const PendingBuildingUpgrade& item) {
+        return item.id == taskId;
+    });
+
+    if (it == m_pendingUpgrades.end()) return;
+
+    BuildingType type = it->type;
+    Vec2 position = it->position;
+    m_pendingUpgrades.erase(it);
+
+    auto building = BattleManager::getInstance()->findBuildingAtPosition(position, type, 5.0f);
+    if (building)
+    {
+        building->onUpgradeFinished();
+    }
+    else
+    {
+        incrementStoredBuildingLevel(type, position);
+    }
+
+    if (m_pendingUpgrades.empty())
+    {
+        Director::getInstance()->getScheduler()->unschedule("GameManagerUpgradeTicker", this);
+        m_upgradeTickerScheduled = false;
+    }
+}
+
+bool GameManager::hasPendingUpgrade(BuildingType type, cocos2d::Vec2 position, float tolerance) const
+{
+    for (const auto& task : m_pendingUpgrades)
+    {
+        if (task.type == type && task.position.distance(position) <= tolerance)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void GameManager::incrementStoredBuildingLevel(BuildingType type, Vec2 position)
+{
+    for (auto& data : m_homeBuildings)
+    {
+        if (data.type == type && data.position.distance(position) <= 5.0f)
+        {
+            data.level++;
+            updateHomeBuildingLevel(type, position, data.level);
+            if (type == BuildingType::TOWN_HALL)
+            {
+                setTown_Hall_Level(getTown_Hall_Level() + 1);
+            }
+            return;
+        }
+    }
+}
+
+void GameManager::applyBuildingUpgradeBoost(BuildingType type, Vec2 position, float multiplier, float duration)
+{
+    for (auto& task : m_pendingUpgrades)
+    {
+        if (task.type == type && task.position.distance(position) <= 5.0f)
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (now >= task.endTime) return;
+
+            // 计算剩余时间 (相当于剩余的工作量)
+            float remaining = std::chrono::duration_cast<std::chrono::duration<float>>(task.endTime - now).count();
+            
+            // 计算在加速持续时间内能完成的最大工作量
+            float maxBoostWork = duration * multiplier;
+            float timeReduction = 0.0f;
+
+            if (remaining <= maxBoostWork)
+            {
+                // 情况1：加速足以覆盖剩余的所有工作
+                // 实际耗时 = remaining / multiplier
+                // 节省时间 = remaining - (remaining / multiplier)
+                timeReduction = remaining * (1.0f - 1.0f / multiplier);
+            }
+            else
+            {
+                // 情况2：加速时间结束时工作还没做完
+                // 我们加速了 duration 秒
+                // 节省时间 = duration * (multiplier - 1)
+                timeReduction = duration * (multiplier - 1.0f);
+            }
+            
+            // 提前结束时间
+            task.endTime -= std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<float>(timeReduction));
+            
+            // 重新触发 ticker 检查
+            ensureUpgradeTicker();
+            return;
+        }
+    }
 }
