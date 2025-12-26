@@ -1,27 +1,84 @@
-//Troop.cpp
-// 修复：使用 cocos2d::Vector 而非 std::vector，且这些方法是成员函数
+// Troop.cpp
 #include "Troop.h"
 #include "BattleManager.h"
 #include "GameManager.h"
-#include <algorithm>
-#include <fstream>
-#include <cmath>
-
+#include "Barbarian.h" // 包含所有子类头文件以便工厂创建
+#include "Archer.h"
+#include "Giant.h"
+#include "Bomberman.h"
+#include "Dragon.h"
 USING_NS_CC;
 
-// 【新增】实现兵种配置表
-const std::map<TroopType, TroopConfig> Troop::TROOP_CONFIGS = 
+// 【第一步】定义静态成员
+std::map<TroopType, std::string> Troop::s_staticNames;
+std::map<TroopType, int> Troop::s_staticCosts;
+std::map<TroopType, int> Troop::s_staticMinLevels;
+
+// 【第二步】初始化数据
+// 注意：这里的数值必须与各个子类 initProperties 中的数值保持一致
+void Troop::initStaticData()
 {
-    {TroopType::BARBARIAN,  {1, 1}},    // 野蛮人：1cost，1级军营解锁
-    {TroopType::ARCHER,     {1, 1}},    // 弓箭手：1cost，1级军营解锁
-    {TroopType::BOMBERMAN,  {2, 2}},    // 炸弹人：2cost，2级军营解锁
-    {TroopType::GIANT,      {3, 2}},    // 巨人：3cost，2级军营解锁
-    {TroopType::DRAGON,     {5, 3}}     // 飞龙：5cost，3级军营解锁
+    // 野蛮人
+    s_staticNames[TroopType::BARBARIAN] = "Barbarian";
+    s_staticCosts[TroopType::BARBARIAN] = 1;          // 对应 Barbarian::initProperties 中的 m_cost
+    s_staticMinLevels[TroopType::BARBARIAN] = 1;     // 对应 m_minBarrackLevel
+
+    // 弓箭手
+    s_staticNames[TroopType::ARCHER] = "Archer";
+    s_staticCosts[TroopType::ARCHER] = 1;
+    s_staticMinLevels[TroopType::ARCHER] = 1;
+
+    // 巨人
+    s_staticNames[TroopType::GIANT] = "Giant";
+    s_staticCosts[TroopType::GIANT] = 3;
+    s_staticMinLevels[TroopType::GIANT] = 2;
+
+    // 炸弹人
+    s_staticNames[TroopType::BOMBERMAN] = "Bomberman";
+    s_staticCosts[TroopType::BOMBERMAN] = 2;
+    s_staticMinLevels[TroopType::BOMBERMAN] = 2;
+
+    // 飞龙
+    s_staticNames[TroopType::DRAGON] = "Dragon";
+    s_staticCosts[TroopType::DRAGON] = 5;
+    s_staticMinLevels[TroopType::DRAGON] = 3;
+}
+
+// 【第三步】利用 C++ 的“静态构造”技巧，确保在第一次使用前自动初始化
+struct TroopStaticInitializer {
+    TroopStaticInitializer() {
+        Troop::initStaticData();
+    }
 };
+// 定义一个静态变量，全局只构造一次
+static TroopStaticInitializer g_troopInitializer;
+
+Troop* Troop::create(TroopType type)
+{
+    Troop* pRet = nullptr;
+    switch (type)
+    {
+    case TroopType::BARBARIAN: pRet = new Barbarian(); break;
+    case TroopType::ARCHER:    pRet = new Archer();    break;
+    case TroopType::GIANT:     pRet = new Giant();     break;
+    case TroopType::BOMBERMAN: pRet = new Bomberman(); break;
+    case TroopType::DRAGON:    pRet = new Dragon();    break;
+    }
+
+    if (pRet && pRet->init())
+    {
+        pRet->autorelease();
+        return pRet;
+    }
+    delete pRet;
+    return nullptr;
+}
 
 Troop::Troop()
     : m_type(TroopType::BARBARIAN)
-    , m_movementType(TroopMovementType::GROUND)
+    , m_movementType(GROUND)
+    , m_cost(0)
+    , m_minBarrackLevel(1)
     , m_moveSpeed(0.0f)
     , m_attackRange(0.0f)
     , m_damage(0)
@@ -38,52 +95,24 @@ Troop::Troop()
 Troop::~Troop() {
 }
 
-Troop* Troop::create(TroopType type)
-{
-    Troop* pRet = new(std::nothrow) Troop();
-    if (pRet)
-    {
-        pRet->m_type = type;
-        if (pRet->init())
-        {
-            pRet->autorelease();
-            return pRet;
-        }
-    }
-    delete pRet;
-    return nullptr;
-}
-
-static int extractFirstNumber(const std::string& s)
-{
-    int n = 0;
-    bool found = false;
-    for (char c : s)
-    {
-        if (c >= '0' && c <= '9')
-        {
-            found = true;
-            n = n * 10 + (c - '0');
-        }
-        else if (found)
-        {
-            break;
-        }
-    }
-    return n;
-}
-
 bool Troop::init()
 {
     if (!GameEntity::init()) return false;
 
-    initTroopProperties();
+    // 【核心】调用纯虚函数，由具体子类填入数值和资源
+    initProperties();
+    initAnimations();
+
+    int level = getLevelForType(m_type);
+    rescaleStatsForLevel(level);
+
+    // 血条样式设置 (保持通用)
     if (m_hpBgSprite)
     {
         Size bgSize = m_hpBgSprite->getContentSize();
         if (bgSize.width > 0 && bgSize.height > 0) {
-            float sx = m_hpBarWidth / 10;
-            float sy = m_hpBarHeight / 10;
+            float sx = m_hpBarWidth / 10.0f;
+            float sy = m_hpBarHeight / 10.0f;
             m_hpBgSprite->setScale(sx, sy);
         }
     }
@@ -92,114 +121,16 @@ bool Troop::init()
     {
         Size fillSize = m_hpBarTimer->getSprite()->getContentSize();
         if (fillSize.width > 0 && fillSize.height > 0) {
-            float sx = m_hpBarWidth / 10;
-            float sy = m_hpBarHeight / 10;
+            float sx = m_hpBarWidth / 10.0f;
+            float sy = m_hpBarHeight / 10.0f;
             m_hpBarTimer->setScale(sx, sy);
         }
     }
-    // decide plist names per troop type
-    std::string walkPlist;
-    std::string attackPlist;
-    switch (m_type)
-    {
-    case TroopType::BARBARIAN: walkPlist = "hero1-walk.plist";  attackPlist = "hero1-attack.plist";  break;
-    case TroopType::ARCHER:    walkPlist = "hero2-walk.plist";  attackPlist = "hero2-attack.plist";  break;
-    case TroopType::GIANT:     walkPlist = "hero3-walk.plist";  attackPlist = "hero3-attack.plist";  break;
-    case TroopType::BOMBERMAN: walkPlist = "hero4-walk.plist";  attackPlist = "";                    break;
-    case TroopType::DRAGON:    walkPlist = "dragon.plist";      attackPlist = "dragon.plist";        break;
-    }
 
-    // store in instance members
-    m_walkPlist = walkPlist;
-    m_attackPlist = attackPlist;
-
-    // load walk plist
-    if (!walkPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(walkPlist);
-    CCLOG("Troop::init - attempted to load walk plist: %s", walkPlist.c_str());
-
-    // Read frames from plist 'frames' and sort by numeric suffix
-    Vector<SpriteFrame*> frames;
-    ValueMap vm = FileUtils::getInstance()->getValueMapFromFile(walkPlist);
-    if (vm.find("frames") != vm.end()) {
-        auto framesMap = vm["frames"].asValueMap();
-        std::vector<std::pair<int, std::string>> keyed;
-        keyed.reserve(framesMap.size());
-        for (const auto& kv : framesMap) {
-            int num = extractFirstNumber(kv.first);
-            keyed.emplace_back(num, kv.first);
-        }
-        std::sort(keyed.begin(), keyed.end(), [](const std::pair<int, std::string>& a, const std::pair<int, std::string>& b) {
-            if (a.first != b.first) return a.first < b.first;
-            return a.second < b.second;
-            });
-        for (const auto& p : keyed) {
-            auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(p.second);
-            if (f) {
-                frames.pushBack(f);
-                CCLOG("Troop::init - walk frame added: %s", p.second.c_str());
-            }
-            else {
-                CCLOG("Troop::init - walk frame not in cache: %s", p.second.c_str());
-            }
-        }
-    }
-    else {
-        CCLOG("Troop::init - walk plist has no 'frames' key: %s", walkPlist.c_str());
-    }
-
-    CCLOG("Troop::init - total walk frames: %u", (unsigned)frames.size());
-
-    // write debug file with chosen plists
-    std::string writable = FileUtils::getInstance()->getWritablePath();
-    std::string logPath = writable + "troop_debug.txt";
-    std::ofstream os(logPath, std::ios::app);
-    if (os.is_open()) {
-        os << "Troop::init debug:\n";
-        os << "walkPlist: " << walkPlist << "\n";
-        os << "attackPlist: " << attackPlist << "\n";
-        os << "Total walk frames: " << frames.size() << "\n";
-        os << "plist full path: " << FileUtils::getInstance()->fullPathForFilename(walkPlist) << "\n";
-        os << "---------------------------------------------\n";
-        os.close();
-        CCLOG("Troop::init - wrote debug file to %s", logPath.c_str());
-    }
-
-    // start walk animation if frames present
-    if (!frames.empty()) {
-        auto animation = Animation::createWithSpriteFrames(frames, 0.08f);
-        // 【修改】生成唯一的 Key，例如 "troop_walk_anim_0", "troop_walk_anim_1"
-        std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)m_type);
-
-        // 【修改】使用唯一的 Key 存入缓存
-        AnimationCache::getInstance()->addAnimation(animation, uniqueWalkKey);
-        auto animate = Animate::create(animation);
-
-        float scaleFactor = 1.0f / 20.0f;
-        this->setScale(this->getScale() * scaleFactor);
-        
-        // 【新增】按兵种单独调整大小
-        if (m_type == TroopType::DRAGON) {
-            this->setScale(this->getScale() * 8.0f);
-        } else if (m_type == TroopType::GIANT) {
-            this->setScale(this->getScale() * 4.0f);
-        }
-
-        m_baseScale = this->getScale();
-        CCLOG("Troop::init - applied scale factor %f, baseScale=%f", scaleFactor, m_baseScale);
-
-        const int WALK_ACTION_TAG = 0x1001;
-        auto walkAction = RepeatForever::create(animate);
-        walkAction->setTag(WALK_ACTION_TAG);
-        this->runAction(walkAction);
-    }
-    else {
-        CCLOG("Troop::init - no walk frames, running fallback action");
-        auto seq = Sequence::create(ScaleTo::create(0.4f, 1.2f), ScaleTo::create(0.4f, 1.0f), nullptr);
-        this->runAction(RepeatForever::create(seq));
-    }
-
+    // 注册到管理器
     BattleManager::getInstance()->addTroop(this);
     this->scheduleUpdate();
+
     return true;
 }
 
@@ -209,128 +140,15 @@ void Troop::onDeath()
     GameEntity::onDeath();
 }
 
-void Troop::initTroopProperties() {
-    // 默认设置
-    this->setTextureRect(Rect(0, 0, 20, 20));
-    this->setHpBarOffsetY(500.0f);
-    this->setHpBarOffsetX(450.0f);
-    const float DEFAULT_HP_BAR_WIDTH = 15.0f;  // 可根据 UI 需求调整为合适像素
-    const float DEFAULT_HP_BAR_HEIGHT = 10.0f;  // 宽高比可自定义
+// --- 通用逻辑 ---
 
-    m_hpBarWidth = DEFAULT_HP_BAR_WIDTH;
-    m_hpBarHeight = DEFAULT_HP_BAR_HEIGHT;
-
-    int baseHp = 100;
-    int baseDamage = 10;
-
-    if (m_type == TroopType::BARBARIAN)
-    {
-        baseHp = 100;
-        m_moveSpeed = 100.0f;
-        m_attackRange = 40.0f;
-        baseDamage = 50;
-        m_attackInterval = 1.0f;
-        m_movementType = TroopMovementType::GROUND;
-    }
-    else if (m_type == TroopType::ARCHER)
-    {
-        baseHp = 60;
-        m_moveSpeed = 120.0f;
-        m_attackRange = 150.0f;
-        baseDamage = 25;
-        m_attackInterval = 0.8f;
-        m_movementType = TroopMovementType::GROUND;
-    }
-    else if (m_type == TroopType::GIANT)
-    {
-        this->setHpBarOffsetY(200.0f);
-        this->setHpBarOffsetX(450.0f);
-        m_hpBarWidth = 4.0f;
-        m_hpBarHeight = 4.0f;
-        baseHp = 200;
-        m_moveSpeed = 80.0f;
-        m_attackRange = 40.0f;
-        baseDamage = 40;
-        m_attackInterval = 1.5f;
-        m_movementType = TroopMovementType::GROUND;
-    }
-    else if (m_type == TroopType::BOMBERMAN)
-    {
-        baseHp = 40;
-        m_moveSpeed = 150.0f;
-        m_attackRange = 20.0f;
-        baseDamage = 500;
-        m_attackInterval = 0.1f;
-        m_movementType = TroopMovementType::GROUND;
-    }
-    else if (m_type == TroopType::DRAGON)
-    {
-        this->setHpBarOffsetY(-200.0f);
-        this->setHpBarOffsetX(-220.0f);
-        m_hpBarWidth = 4.0f;
-        m_hpBarHeight = 3.0f;
-        baseHp = 300;
-        m_moveSpeed = 100.0f;
-        m_attackRange = 120.0f;
-        baseDamage = 60; // 中等伤害
-        m_attackInterval = 1.5f;
-        m_movementType = TroopMovementType::AIR; // 设置为空中单位
-    }
-
-    m_baseHp = baseHp;
-    m_baseDamage = baseDamage;
-
-    int level = getLevelForType(m_type);
-    rescaleStatsForLevel(level);
-}
-
-void Troop::rescaleStatsForLevel(int level)
+void Troop::updateLogic(float dt)
 {
-    if (level <= 0) level = 1;
-    float multiplier = getLevelMultiplier(level);
-
-    int newMaxHp = std::max(1, static_cast<int>(std::round(static_cast<float>(m_baseHp) * multiplier)));
-    int oldMaxHp = m_maxHp;
-    float ratio = (oldMaxHp > 0) ? static_cast<float>(m_currentHp) / static_cast<float>(oldMaxHp) : 1.0f;
-    ratio = std::max(0.0f, std::min(1.0f, ratio));
-
-    GameEntity::setProperties(newMaxHp, CampType::ENEMY);
-    m_currentHp = std::max(1, std::min(newMaxHp, static_cast<int>(std::round(ratio * newMaxHp))));
-    m_damage = std::max(1, static_cast<int>(std::round(static_cast<float>(m_baseDamage) * multiplier)));
-    m_level = level;
-}
-
-// 【新增】获取兵种名称的辅助方法
-std::string Troop::getTroopName(TroopType type) {
-    switch (type) {
-    case TroopType::BARBARIAN: return "Barbarian";
-    case TroopType::ARCHER:    return "Archer";
-    case TroopType::GIANT:     return "Giant";
-    case TroopType::BOMBERMAN: return "Bomberman";
-    case TroopType::DRAGON:    return "Dragon";
-    default: return "Unknown";
-    }
-}
-
-void Troop::setTarget(Building* target)
-{
-    m_target = target;
-}
-
-void Troop::updateLogic(float dt) {
-    // 索敌逻辑
-    if (!m_target || m_target->isDead()) {
+    // 索敌
+    if (!m_target || m_target->isDead())
+    {
         m_target = nullptr;
-
-        if (m_type == TroopType::BOMBERMAN) {
-            // 炸弹人只找墙
-            m_target = BattleManager::getInstance()->findClosestBuildingOfType(this->getPosition(), BuildingType::WALL);
-        }
-        else {
-            // 其他人找最近的
-            m_target = BattleManager::getInstance()->findClosestBuilding(this->getPosition());
-        }
-
+        acquireTarget(); // 调用虚函数，炸弹人会重写这个去找墙
         if (!m_target) return;
     }
 
@@ -346,6 +164,12 @@ void Troop::updateLogic(float dt) {
     }
 }
 
+void Troop::acquireTarget()
+{
+    // 默认行为：找最近的建筑
+    m_target = BattleManager::getInstance()->findClosestBuilding(this->getPosition());
+}
+
 void Troop::moveTowardsTarget(float dt) {
     if (!m_target) return;
 
@@ -359,216 +183,142 @@ void Troop::moveTowardsTarget(float dt) {
     this->setPosition(newPos);
 }
 
-void Troop::attackTarget(float dt) 
+void Troop::attackTarget(float dt)
 {
     m_attackTimer += dt;
 
-    if (m_attackTimer >= m_attackInterval) 
+    if (m_attackTimer >= m_attackInterval)
     {
         m_attackTimer = 0;
 
-        // 1. 如果目标指针为空，直接返回
-        if (!m_target) 
-        {
+        if (!m_target || m_target->getCurrentHp() <= 0) {
+            this->m_target = nullptr;
             return;
         }
 
-        // 2. 如果目标逻辑上已经死亡
-        if (m_target->getCurrentHp() <= 0) {
-            this->setTarget(nullptr);
-            return;
-        }
+        if (m_isAttacking) return;
 
-        if (m_isAttacking) return; // already attacking
-
-        if (m_type == TroopType::BOMBERMAN)
-        {
-            CCLOG("Bomberman Exploded!");
-            Vec2 explosionCenter = this->getPosition();
-
-            // 注意：这里使用了传入 'this' 的版本，确保 BattleManager::dealAreaDamage 支持第4个参数
-            BattleManager::getInstance()->dealAreaDamage(explosionCenter, 100.0f, m_damage);
-
-            // 防止重复触发攻击
-            m_isAttacking = true;
-
-            auto seq = Sequence::create
-            (
-                Spawn::create(ScaleTo::create(0.1f, m_baseScale * 3.0f), TintTo::create(0.1f, Color3B::RED), nullptr),
-                CallFunc::create
-                ([this]()
-                    {
-                        //动画结束后调用死亡逻辑
-                        this->m_currentHp = 0; // 确保血量为0
-                        this->onDeath(); // 调用死亡方法，会触发BattleManager::removeTroop()
-                    }
-                ),
-                nullptr
-            );
-            this->runAction(seq);
-            return;
-        }
-        // --- 普通攻击 (弓箭手 & 野蛮人 & 巨人) ---
-        else
-        {
-            Vec2 targetPos = m_target->getPosition();
-
-            // 造成伤害
-            m_target->takeDamage(m_damage);
-
-            // 弓箭手特效
-            if (m_type == TroopType::ARCHER)
-            {
-                auto arrow = Sprite::create();
-                arrow->setTextureRect(Rect(0, 0, 10, 2));
-                arrow->setColor(Color3B::YELLOW);
-                arrow->setPosition(this->getPosition());
-                this->getParent()->addChild(arrow);
-
-                float distance = this->getPosition().distance(targetPos);
-                float duration = distance / 400.0f;
-                arrow->runAction(Sequence::create(MoveTo::create(duration, targetPos), RemoveSelf::create(), nullptr));
-            }
-            // 近战攻击动画
-            else
-            {
-                m_isAttacking = true;
-                const int WALK_ACTION_TAG = 0x1001;
-                this->stopActionByTag(WALK_ACTION_TAG);
-
-                std::string attackPlist = m_attackPlist;
-                if (!attackPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(attackPlist);
-
-                Vector<SpriteFrame*> attackFrames;
-                if (!attackPlist.empty()) 
-                {
-                    ValueMap avm = FileUtils::getInstance()->getValueMapFromFile(attackPlist);
-                    if (avm.find("frames") != avm.end())
-                    {
-                        auto framesMap = avm["frames"].asValueMap();
-                        std::vector<std::string> keys;
-                        keys.reserve(framesMap.size());
-                        for (const auto& kv : framesMap) keys.push_back(kv.first);
-                        std::sort(keys.begin(), keys.end());
-                        for (const auto& name : keys) 
-                        {
-                            auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
-                            if (f) attackFrames.pushBack(f);
-                        }
-                    }
-                }
-
-                if (!attackFrames.empty()) {
-                    auto attackAnim = Animation::createWithSpriteFrames(attackFrames, 0.08f);
-                    auto attackAnimate = Animate::create(attackAnim);
-                    // 【修改】Lambda 捕获 m_type 或者直接在里面生成 Key
-                    auto restore = CallFunc::create([this, WALK_ACTION_TAG]() {
-
-                        // 【修改】生成和 init 里一样的唯一 Key
-                        std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)this->m_type);
-
-                        // 【修改】用这个 Key 去取动画
-                        auto walkAnim = AnimationCache::getInstance()->getAnimation(uniqueWalkKey);
-                        if (walkAnim) {
-                            auto repeat = RepeatForever::create(Animate::create(walkAnim));
-                            repeat->setTag(WALK_ACTION_TAG);
-                            this->runAction(repeat);
-                        }
-                        this->setScale(m_baseScale);
-                        m_isAttacking = false;
-                        });
-
-                    this->runAction(Sequence::create(attackAnimate, restore, nullptr));
-                }
-                else {
-                    auto up = ScaleTo::create(0.1f, m_baseScale * 1.2f);
-                    auto down = ScaleTo::create(0.1f, m_baseScale);
-                    auto seq = Sequence::create(up, down, CallFunc::create([this, WALK_ACTION_TAG]() {
-                    // 【修改】同样的 Key
-        std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)this->m_type);
-        auto walkAnim = AnimationCache::getInstance()->getAnimation(uniqueWalkKey);
-                        if (walkAnim) {
-                            auto repeat = RepeatForever::create(Animate::create(walkAnim));
-                            repeat->setTag(WALK_ACTION_TAG);
-                            this->runAction(repeat);
-                        }
-                        m_isAttacking = false;
-                        }), nullptr);
-                    this->runAction(seq);
-                }
-            }
-        }
+        // 调用子类实现的攻击行为
+        performAttackBehavior();
     }
 }
 
-void Troop::playWalkAnimation()
+void Troop::performAttackBehavior()
 {
-    Vector<SpriteFrame*> frames;
-    if (!m_walkPlist.empty()) {
-        SpriteFrameCache::getInstance()->addSpriteFramesWithFile(m_walkPlist);
-    }
-    for (int i = 0; i < 8; ++i) {
-        std::string frameName = StringUtils::format("dragon_%d.png", i);
-        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
-        if (frame) frames.pushBack(frame);
-    }
-    if (!frames.empty()) {
-        auto animation = Animation::createWithSpriteFrames(frames, 0.12f);
-        auto animate = Animate::create(animation);
-        const int WALK_ACTION_TAG = 0x1001;
-        this->stopActionByTag(WALK_ACTION_TAG);
-        auto action = RepeatForever::create(animate);
-        action->setTag(WALK_ACTION_TAG);
-        this->runAction(action);
-    }
-}
+    // 默认攻击行为：近战伤害
+    // 弓箭手、炸弹人、飞龙会重写这个函数
 
-void Troop::playAttackAnimationOnce()
-{
-    Vector<SpriteFrame*> frames;
-    if (!m_attackPlist.empty()) {
-        SpriteFrameCache::getInstance()->addSpriteFramesWithFile(m_attackPlist);
-    }
-    for (int i = 0; i < 8; ++i) {
-        std::string frameName = StringUtils::format("dragon_attack_%d.png", i);
-        auto frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
-        if (!frame) {
-            frameName = StringUtils::format("dragon_%d.png", i);
-            frame = SpriteFrameCache::getInstance()->getSpriteFrameByName(frameName);
+    // 造成伤害
+    m_target->takeDamage(m_damage);
+
+    // 默认近战动画
+    m_isAttacking = true;
+    const int WALK_ACTION_TAG = 0x1001;
+    this->stopActionByTag(WALK_ACTION_TAG);
+
+    std::string attackPlist = m_attackPlist;
+    if (!attackPlist.empty()) SpriteFrameCache::getInstance()->addSpriteFramesWithFile(attackPlist);
+
+    Vector<SpriteFrame*> attackFrames;
+    if (!attackPlist.empty())
+    {
+        ValueMap avm = FileUtils::getInstance()->getValueMapFromFile(attackPlist);
+        if (avm.find("frames") != avm.end())
+        {
+            auto framesMap = avm["frames"].asValueMap();
+            std::vector<std::string> keys;
+            keys.reserve(framesMap.size());
+            for (const auto& kv : framesMap) keys.push_back(kv.first);
+            std::sort(keys.begin(), keys.end());
+            for (const auto& name : keys)
+            {
+                auto f = SpriteFrameCache::getInstance()->getSpriteFrameByName(name);
+                if (f) attackFrames.pushBack(f);
+            }
         }
-        if (frame) frames.pushBack(frame);
     }
-    if (!frames.empty()) {
-        auto animation = Animation::createWithSpriteFrames(frames, 0.10f);
-        auto animate = Animate::create(animation);
-        const int ATTACK_ACTION_TAG = 0x1002;
-        this->stopActionByTag(ATTACK_ACTION_TAG);
-        auto seq = Sequence::create(animate, CallFunc::create([this]() {
-            this->playWalkAnimation();
-        }), nullptr);
-        seq->setTag(ATTACK_ACTION_TAG);
+
+    if (!attackFrames.empty()) {
+        auto attackAnim = Animation::createWithSpriteFrames(attackFrames, 0.08f);
+        auto attackAnimate = Animate::create(attackAnim);
+
+        auto restore = CallFunc::create([this, WALK_ACTION_TAG]() {
+            std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)this->m_type);
+            auto walkAnim = AnimationCache::getInstance()->getAnimation(uniqueWalkKey);
+            if (walkAnim) {
+                auto repeat = RepeatForever::create(Animate::create(walkAnim));
+                repeat->setTag(WALK_ACTION_TAG);
+                this->runAction(repeat);
+            }
+            this->setScale(m_baseScale);
+            m_isAttacking = false;
+            });
+
+        this->runAction(Sequence::create(attackAnimate, restore, nullptr));
+    }
+    else {
+        // 没有动画资源时的默认缩放效果
+        auto up = ScaleTo::create(0.1f, m_baseScale * 1.2f);
+        auto down = ScaleTo::create(0.1f, m_baseScale);
+        auto seq = Sequence::create(up, down, CallFunc::create([this, WALK_ACTION_TAG]() {
+            std::string uniqueWalkKey = StringUtils::format("troop_walk_anim_%d", (int)this->m_type);
+            auto walkAnim = AnimationCache::getInstance()->getAnimation(uniqueWalkKey);
+            if (walkAnim) {
+                auto repeat = RepeatForever::create(Animate::create(walkAnim));
+                repeat->setTag(WALK_ACTION_TAG);
+                this->runAction(repeat);
+            }
+            m_isAttacking = false;
+            }), nullptr);
         this->runAction(seq);
     }
 }
 
-// 【新增】获取兵种cost的静态方法
-int Troop::getTroopCost(TroopType type) {
-    auto it = TROOP_CONFIGS.find(type);
-    if (it != TROOP_CONFIGS.end()) {
-        return it->second.cost;
+// --- 静态辅助函数实现 ---
+// 用于UI层在不创建实际战斗单位的情况下获取配置信息
+std::string Troop::getStaticTroopName(TroopType type)
+{
+    auto it = s_staticNames.find(type);
+    if (it != s_staticNames.end()) {
+        return it->second;
     }
-    return 0; // 默认返回0
+    return "Unknown";
 }
 
-// 【新增】获取最低军营等级的静态方法
-int Troop::getMinBarrackLevel(TroopType type) {
-    auto it = TROOP_CONFIGS.find(type);
-    if (it != TROOP_CONFIGS.end()) {
-        return it->second.minBarrackLevel;
+int Troop::getStaticTroopCost(TroopType type)
+{
+    auto it = s_staticCosts.find(type);
+    if (it != s_staticCosts.end()) {
+        return it->second;
     }
-    return 1; // 默认返回1级
+    return 0;
 }
 
+int Troop::getStaticTroopMinLevel(TroopType type)
+{
+    auto it = s_staticMinLevels.find(type);
+    if (it != s_staticMinLevels.end()) {
+        return it->second;
+    }
+    return 1; // 默认为 1 级
+}
+
+void Troop::rescaleStatsForLevel(int level)
+{
+    if (level <= 0) level = 1;
+    float multiplier = getLevelMultiplier(level);
+
+    int newMaxHp = std::max(1, static_cast<int>(std::round(static_cast<float>(m_baseHp) * multiplier)));
+    int oldMaxHp = m_maxHp;
+    float ratio = (oldMaxHp > 0) ? static_cast<float>(m_currentHp) / static_cast<float>(oldMaxHp) : 1.0f;
+    ratio = std::max(0.0f, std::min(1.0f, ratio));
+
+    GameEntity::setProperties(newMaxHp, CampType::ENEMY);
+    m_currentHp = std::max(1, std::min(newMaxHp, static_cast<int>(std::round(ratio * newMaxHp))));
+    m_damage = std::max(1, static_cast<int>(std::round(static_cast<float>(m_baseDamage) * multiplier)));
+}
+
+// 获取特定兵种的等级
 int Troop::getLevelForType(TroopType type) const
 {
     auto gm = GameManager::getInstance();
@@ -583,6 +333,7 @@ int Troop::getLevelForType(TroopType type) const
     }
 }
 
+// 获取等级加成倍率
 float Troop::getLevelMultiplier(int level) const
 {
     if (level <= 1) return 1.0f;

@@ -3,6 +3,7 @@
 #include "SimpleAudioEngine.h"
 #include "GameEntity.h"
 #include "Building.h"
+#include "Barracks.h"
 #include "Troop.h"
 #include "GameManager.h"
 #include "GameUI.h"
@@ -26,7 +27,7 @@ static void problemLoading(const char* filename)
     printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MainModeScene.cpp\n");
 }
 
-// 【新增】获取军营建筑
+// 获取军营建筑
 Building* MainMode::getBarracksBuilding() const {
     for (auto node : m_gameLayer->getChildren()) {
         auto building = dynamic_cast<Building*>(node);
@@ -107,17 +108,22 @@ bool MainMode::init() {
             b->setOpacity(255);
             // 恢复等级
             b->setLevel(data.level);
-            b->playWorkAnimation();
-            // 【新增】恢复军营等级
-            if (data.type == BuildingType::BARRACKS) {
-                b->setBarrackLevel(data.barrackLevel);
-            }
-            // 【关键】加到 m_gameLayer
-            m_gameLayer->addChild(b);
             if (data.type == BuildingType::GOLD_MINE || data.type == BuildingType::ELIXIR_COLLECTOR) {
                 b->playWorkAnimation();
             }
-            // b->activateBuilding(); 
+            // 恢复军营等级
+            if (data.type == BuildingType::BARRACKS) {
+                // 将基类指针转换为 Barracks 指针
+                auto barracks = dynamic_cast<Barracks*>(b);
+                if (barracks) {
+                    // 调用 Barracks 特有的方法恢复军营功能等级
+                    barracks->setBarrackLevel(data.barrackLevel);
+
+                    // setBarrackLevel 内部已经调用了 updateCurrentCostUsed，
+                    // 这会根据 GameManager 中已有的兵种数量重新计算 Cost 占用。
+                }
+            }
+            b->activateBuilding(); 
         }
     }
 
@@ -145,7 +151,7 @@ bool MainMode::init() {
         Vec2(visibleSize.width * 0.05f, visibleSize.height * 0.9f),
         0.3f);
     uiLayer->addChild(menu_music);//添加音乐菜单
-    // 3. 【新增】商店按钮 (放在左下角)
+    // 3. 商店按钮 (放在左下角)
     auto shopBtn = Button::create("shop_icon.png");
     shopBtn->setScale(0.1f);
     shopBtn->setTitleText("SHOP");
@@ -157,7 +163,7 @@ bool MainMode::init() {
     this->addChild(shopBtn, 10);
 
 
-    // 4. 【新增】初始化商店面板和加速面板(默认隐藏)
+    // 4. 初始化商店面板和加速面板(默认隐藏)
     initShopUI();
     initTime();
 
@@ -396,13 +402,41 @@ void MainMode::tryBuyBuilding(const ShopItem& item) {
     // 3. 创建虚影
     if (m_pendingBuilding) {
         m_pendingBuilding->removeFromParent();
+        m_pendingBuilding = nullptr; // 确保置空
     }
 
     m_pendingBuilding = Building::create(item.type);
+
+    // 【核心修复】检查创建是否成功
+    if (!m_pendingBuilding) {
+        CCLOG("ERROR: Failed to create building of type %d", (int)item.type);
+        // 可以显示一个错误提示给用户
+        auto visibleSize = Director::getInstance()->getVisibleSize();
+        auto errorLabel = Label::createWithSystemFont("Failed to create building!", "Arial", 36);
+        errorLabel->setColor(Color3B::RED);
+        errorLabel->setPosition(visibleSize / 2);
+        this->addChild(errorLabel, 1000);
+
+        // 3秒后自动移除错误提示
+        this->scheduleOnce([=](float) {
+            errorLabel->removeFromParent();
+            }, 3.0f, "error_msg");
+
+        return;
+    }
+
     m_pendingBuilding->setOpacity(128);
 
     // 4. 加到地图层
-    m_gameLayer->addChild(m_pendingBuilding);
+    if (m_gameLayer) {  // 也检查 gameLayer 是否存在
+        m_gameLayer->addChild(m_pendingBuilding);
+    }
+    else {
+        CCLOG("ERROR: m_gameLayer is null!");
+        delete m_pendingBuilding;
+        m_pendingBuilding = nullptr;
+        return;
+    }
 
     // 5. 设置初始位置 (屏幕中心 -> 转换到地图坐标)
     Vec2 centerScreen = Director::getInstance()->getVisibleSize() / 2;
@@ -665,7 +699,16 @@ void MainMode::onConfirmPlacement() {
         m_pendingBuilding->getPosition(),
         m_pendingBuilding->getLevel()
     );
-    //4.如果是储存相关建筑,增加上限
+
+    // 4. 如果是军营，手动触发 Cost 更新事件
+    if (m_pendingBuilding->getBuildingType() == BuildingType::BARRACKS) {
+        auto barracks = dynamic_cast<Barracks*>(m_pendingBuilding);
+        if (barracks) {
+            barracks->updateCurrentCostUsed();
+        }
+    }
+
+    // 5.如果是储存相关建筑,增加上限
     if (m_pendingBuilding->getBuildingType() == BuildingType::GOLD_STORAGE) {
         int current_max = GameManager::getInstance()->getMaxGold();
         GameManager::getInstance()->modifyMaxGold(current_max + 500);
@@ -674,10 +717,10 @@ void MainMode::onConfirmPlacement() {
         int current_max = GameManager::getInstance()->getMaxElixir();
         GameManager::getInstance()->modifyMaxElixir(current_max + 500);
     }
-    // 5. 清理现场
+
+    // 6. 清理现场
     m_pendingBuilding = nullptr; // 指针置空，表示放置结束
 
-    // 移除确认按钮
     if (m_confirmLayer) {
         m_confirmLayer->removeFromParent();
         m_confirmLayer = nullptr;

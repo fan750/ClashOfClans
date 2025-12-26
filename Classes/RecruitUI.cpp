@@ -1,4 +1,5 @@
 // RecruitUI.cpp
+#include "Barracks.h"
 #include "RecruitUI.h"
 #include "GameManager.h"
 #include "GameUI.h"
@@ -25,7 +26,7 @@ bool RecruitUI::init()
     m_mainPanel->setPosition(visibleSize / 2); // 直接放在屏幕正中间
     this->addChild(m_mainPanel);
 
-    // 【新增】添加Cost信息显示区域
+    // 添加Cost信息显示区域
     float infoY = m_mainPanel->getContentSize().height - 80;
 
     // 当前Cost使用显示
@@ -55,14 +56,14 @@ void RecruitUI::initUI()
     m_mainPanel->addChild(titleLabel);
 
     // 2. 定义可招募的兵种数据
-    std::vector<RecruitItem> items = 
+    std::vector<RecruitItem> items =
     {
-        // 名字,       类型,          招募花费, 兵种cost, 锁住,  图片路径
-        {"Barbarian", TroopType::BARBARIAN, 50,  1, false, "barbarian_icon.png"},
-        {"Archer",    TroopType::ARCHER,    100, 1, false, "archer_icon.png"},
-        {"Giant",     TroopType::GIANT,     250, 3, false, "giant_icon.png"},
-        {"Bomberman", TroopType::BOMBERMAN, 100, 2, false, "bomberman_icon.png"},
-        {"Dragon",    TroopType::DRAGON,    500, 5, false, "dragon_icon.png"}
+        // 名字, 类型, 招募花费(圣水), 兵种cost(现在通过 getStaticTroopCost 获取), 锁住状态(现在通过 getStaticTroopMinLevel 获取), 图片
+        {"Barbarian", TroopType::BARBARIAN, 50,  Troop::getStaticTroopCost(TroopType::BARBARIAN), false, "barbarian_icon.png"},
+        {"Archer",    TroopType::ARCHER,    100, Troop::getStaticTroopCost(TroopType::ARCHER),    false, "archer_icon.png"},
+        {"Giant",     TroopType::GIANT,     250, Troop::getStaticTroopCost(TroopType::GIANT),     false, "giant_icon.png"},
+        {"Bomberman", TroopType::BOMBERMAN, 100, Troop::getStaticTroopCost(TroopType::BOMBERMAN), false, "bomberman_icon.png"},
+        {"Dragon",    TroopType::DRAGON,    500, Troop::getStaticTroopCost(TroopType::DRAGON),    false, "dragon_icon.png"}
     };
 
     // 3. 【核心修改】计算网格布局并调用 createRecruitItemButton
@@ -100,12 +101,14 @@ void RecruitUI::initUI()
     m_mainPanel->addChild(closeBtn);
 }
 
-// 【新增】更新Cost显示
-void RecruitUI::updateCostDisplay() {
+// 更新Cost显示
+void RecruitUI::updateCostDisplay()
+{
     auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
     if (!mainScene) return;
 
-    auto barracks = mainScene->getBarracksBuilding();
+    auto building = mainScene->getBarracksBuilding();
+    auto barracks = dynamic_cast<Barracks*>(building); // 【修改】强转
     if (!barracks) {
         m_costLimitLabel->setString("Cost Limit: No Barracks");
         m_currentCostLabel->setString("Current Cost: --/--");
@@ -130,37 +133,36 @@ void RecruitUI::updateCostDisplay() {
     }
 }
 
-// 【新增】检查是否可以招募兵种
+// 检查是否可以招募兵种
 bool RecruitUI::canRecruitTroop(TroopType type) {
     auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
     if (!mainScene) return false;
 
-    auto barracks = mainScene->getBarracksBuilding();
+    auto building = mainScene->getBarracksBuilding();
+    auto barracks = dynamic_cast<Barracks*>(building); // 【修改】强转
     if (!barracks) return false;
 
-    // 1. 检查军营等级是否足够
-    int requiredLevel = Troop::getMinBarrackLevel(type);
-    int currentLevel = barracks->getBarrackLevel();
+    // 1. 检查军营等级
+    int requiredLevel = Troop::getStaticTroopMinLevel(type);
+    int currentLevel = barracks->getBarrackLevel(); // 【修改】
     if (currentLevel < requiredLevel) {
         CCLOG("Cannot recruit %s: need barracks level %d, current level %d",
-            Troop::getTroopName(type).c_str(), requiredLevel, currentLevel);
+            Troop::getStaticTroopName(type).c_str(), requiredLevel, currentLevel);
         return false;
     }
 
-    // 2. 检查cost是否足够
-    int troopCost = Troop::getTroopCost(type);
-    int currentCost = barracks->getCurrentCostUsed();
-    int maxCost = barracks->getMaxCostLimit();
+    // 2. 检查cost
+    int troopCost = Troop::getStaticTroopCost(type);
+    int currentCost = barracks->getCurrentCostUsed(); // 【修改】
+    int maxCost = barracks->getMaxCostLimit();       // 【修改】
     if (currentCost + troopCost > maxCost) {
-        CCLOG("Cannot recruit %s: not enough cost (need %d, available %d)",
-            Troop::getTroopName(type).c_str(), troopCost, maxCost - currentCost);
         return false;
     }
 
     return true;
 }
 
-// 【新增】更新招募按钮状态
+// 更新招募按钮状态
 void RecruitUI::updateRecruitButtonState(ui::Button* btn, TroopType type) {
     if (!btn) return;
 
@@ -171,7 +173,8 @@ void RecruitUI::updateRecruitButtonState(ui::Button* btn, TroopType type) {
         return;
     }
 
-    auto barracks = mainScene->getBarracksBuilding();
+    auto building = mainScene->getBarracksBuilding();
+    auto barracks = dynamic_cast<Barracks*>(building);
     if (!barracks) {
         btn->setEnabled(false);
         btn->setBright(false);
@@ -179,7 +182,7 @@ void RecruitUI::updateRecruitButtonState(ui::Button* btn, TroopType type) {
     }
 
     // 检查解锁状态
-    int requiredLevel = Troop::getMinBarrackLevel(type);
+    int requiredLevel = Troop::getStaticTroopMinLevel(type);
     int currentLevel = barracks->getBarrackLevel();
     bool isUnlocked = currentLevel >= requiredLevel;
 
@@ -240,7 +243,7 @@ void RecruitUI::createRecruitItemButton(const RecruitItem& item, Vec2 pos, Node*
     btn->setScale(0.2f);
     btn->setPosition(pos);
 
-    // 【新增】设置按钮tag用于识别兵种类型
+    // 设置按钮tag用于识别兵种类型
     btn->setTag(1000 + static_cast<int>(item.type));
 
     // 2. 添加图标 (直接使用 item.iconPath，无需辅助函数！)
@@ -306,7 +309,8 @@ void RecruitUI::createRecruitItemButton(const RecruitItem& item, Vec2 pos, Node*
             // 更新军营cost使用
             auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
             if (mainScene) {
-                auto barracks = mainScene->getBarracksBuilding();
+                auto building = mainScene->getBarracksBuilding();
+                auto barracks = dynamic_cast<Barracks*>(building); // 【修改】
                 if (barracks) {
                     barracks->updateCurrentCostUsed();
                 }
@@ -335,7 +339,7 @@ void RecruitUI::createRecruitItemButton(const RecruitItem& item, Vec2 pos, Node*
     }
 }
 
-// 【新增】显示无法招募对话框
+// 显示无法招募对话框
 void RecruitUI::showCannotRecruitDialog(const RecruitItem& item) {
     auto visibleSize = Director::getInstance()->getVisibleSize();
     auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
@@ -344,19 +348,21 @@ void RecruitUI::showCannotRecruitDialog(const RecruitItem& item) {
     std::string reason;
     auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
     if (mainScene) {
-        auto barracks = mainScene->getBarracksBuilding();
+        auto building = mainScene->getBarracksBuilding();
+        auto barracks = dynamic_cast<Barracks*>(building); // 【修改】
+
         if (barracks) {
-            int requiredLevel = Troop::getMinBarrackLevel(item.type);
-            int currentLevel = barracks->getBarrackLevel();
+            int requiredLevel = Troop::getStaticTroopMinLevel(item.type);
+            int currentLevel = barracks->getBarrackLevel(); // 【修改】
 
             if (currentLevel < requiredLevel) {
                 reason = "Need Barracks Level " + std::to_string(requiredLevel) +
                     " (Current: " + std::to_string(currentLevel) + ")";
             }
             else {
-                int troopCost = Troop::getTroopCost(item.type);
-                int currentCost = barracks->getCurrentCostUsed();
-                int maxCost = barracks->getMaxCostLimit();
+                int troopCost = Troop::getStaticTroopCost(item.type);
+                int currentCost = barracks->getCurrentCostUsed(); // 【修改】
+                int maxCost = barracks->getMaxCostLimit();       // 【修改】
                 reason = "Not enough Cost Space!\nNeed: " + std::to_string(troopCost) +
                     ", Available: " + std::to_string(maxCost - currentCost);
             }
@@ -383,7 +389,7 @@ void RecruitUI::showCannotRecruitDialog(const RecruitItem& item) {
     dialogBg->addChild(okBtn);
 }
 
-// 【新增】显示资源不足对话框
+// 显示资源不足对话框
 void RecruitUI::showNotEnoughResourcesDialog(const RecruitItem& item) {
     auto visibleSize = Director::getInstance()->getVisibleSize();
     auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
@@ -412,7 +418,7 @@ void RecruitUI::showNotEnoughResourcesDialog(const RecruitItem& item) {
     dialogBg->addChild(okBtn);
 }
 
-// 【新增】监听事件
+// 监听事件
 void RecruitUI::onEnter() {
     Layer::onEnter();
 

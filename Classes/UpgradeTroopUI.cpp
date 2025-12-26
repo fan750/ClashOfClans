@@ -1,3 +1,4 @@
+//UpgradeTroopUI.cpp
 #include"UpgradeTroopUI.h"
 #include"GameManager.h"
 #include"BattleManager.h"

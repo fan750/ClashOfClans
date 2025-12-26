@@ -1,4 +1,5 @@
 // GameUI.cpp
+#include "Barracks.h"
 #include "GameUI.h"
 #include "GameManager.h" // 一定要包含这个，用来获取兵种数量
 #include "GameEntity.h"  // 包含 TroopType 定义
@@ -93,7 +94,7 @@ void GameUI::initTroopLabels()
         });
     this->addChild(armyBtn);
 
-    // 【新增】添加cost显示标签
+    // 添加cost显示标签
     auto costLabel = Label::createWithSystemFont("Cost: --/--", "Arial", 24);
     costLabel->setPosition(Vec2(visibleSize.width - 550, 80));
     costLabel->setColor(Color3B::BLUE);
@@ -171,7 +172,7 @@ void GameUI::initTroopLabels()
         nameLabel->setScale(1.2f);
         m_armyPanel->addChild(nameLabel);
 
-        // C. 【新增】兵种Cost显示
+        // C. 兵种Cost显示
         auto costLabel = Label::createWithSystemFont("Cost: " + std::to_string(info.cost), "Arial", 16);
         costLabel->setAnchorPoint(Vec2(0, 0.5));
         costLabel->setScale(1.5f);
@@ -189,7 +190,7 @@ void GameUI::initTroopLabels()
         m_armyPanel->addChild(countLabel);
         m_troopLabels[info.type] = countLabel;
 
-        // E. 【新增】解锁状态显示
+        // E. 解锁状态显示
         auto unlockLabel = Label::createWithSystemFont("To Unlock Needs Barrack Level:" + std::to_string(info.minLevel), "Arial", 16);
         unlockLabel->setAnchorPoint(Vec2(0, 0.5));
         unlockLabel->setScale(1.2f);
@@ -197,7 +198,7 @@ void GameUI::initTroopLabels()
         unlockLabel->setColor(Color3B::BLACK);
         m_armyPanel->addChild(unlockLabel);
     }
-    // 【新增】添加总体Cost使用情况显示
+    // 添加总体Cost使用情况显示
     auto totalCostLabel = Label::createWithSystemFont("Total Cost: --/--", "Arial", 24);
     totalCostLabel->setTag(1002); // 用于后续更新
     totalCostLabel->setPosition(Vec2(m_armyPanel->getContentSize().width / 2, 100));
@@ -210,7 +211,7 @@ void GameUI::showArmyPanel()
 {
     if (m_armyPanel) {
         updateArmyLabels(); // 打开前先刷新一下数据
-        updateCostDisplay(); // 【新增】更新cost显示
+        updateCostDisplay(); // 更新cost显示
         m_armyPanel->setVisible(true);
 
         // 简单的弹窗动画：从小变大
@@ -236,7 +237,8 @@ void GameUI::updateArmyLabels()
     // 获取军营等级用于解锁状态检查
     int barrackLevel = 0;
     if (mainScene) {
-        auto barracks = mainScene->getBarracksBuilding();
+        auto building = mainScene->getBarracksBuilding();
+        auto barracks = dynamic_cast<Barracks*>(building);
         if (barracks) {
             barrackLevel = barracks->getBarrackLevel();
         }
@@ -252,8 +254,8 @@ void GameUI::updateArmyLabels()
         int count = gm->getTroopCount(type);
         countLabel->setString("x " + std::to_string(count));
 
-        // 2. 【新增】更新解锁状态颜色
-        int minLevel = Troop::getMinBarrackLevel(type);
+        // 2. 更新解锁状态颜色
+        int minLevel = Troop::getStaticTroopMinLevel(type);
         if (barrackLevel >= minLevel) {
             countLabel->setColor(Color3B::BLUE); // 已解锁：蓝色
         }
@@ -262,12 +264,12 @@ void GameUI::updateArmyLabels()
         }
     }
 
-    // 【新增】更新cost标签的解锁状态
+    // 更新cost标签的解锁状态
     for (auto& pair : m_costLabels) {
         TroopType type = pair.first;
         Label* costLabel = pair.second;
 
-        int minLevel = Troop::getMinBarrackLevel(type);
+        int minLevel = Troop::getStaticTroopMinLevel(type);
         if (barrackLevel >= minLevel) {
             costLabel->setColor(Color3B::BLUE); // 已解锁：蓝色
         }
@@ -289,18 +291,19 @@ void GameUI::updateLabels() {
     // 更新各兵种数量
     updateArmyLabels();
     
-    // 【新增】更新cost显示
+    // 更新cost显示
     updateCostDisplay();
 }
 
-// 【新增】更新cost显示的方法
+// 更新cost显示的方法
 void GameUI::updateCostDisplay() {
     // 更新总体cost显示
     auto totalCostLabel = m_armyPanel->getChildByTag<Label*>(1002);
     if (totalCostLabel) {
         auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
         if (mainScene) {
-            auto barracks = mainScene->getBarracksBuilding();
+            auto building = mainScene->getBarracksBuilding();
+            auto barracks = dynamic_cast<Barracks*>(building);
             if (barracks) {
                 int currentCost = barracks->getCurrentCostUsed();
                 int maxCost = barracks->getMaxCostLimit();
@@ -328,7 +331,7 @@ void GameUI::updateCostDisplay() {
     }
 }
 
-// 【新增】监听cost更新事件
+// 监听cost更新事件
 void GameUI::onEnter() {
     Layer::onEnter();
 

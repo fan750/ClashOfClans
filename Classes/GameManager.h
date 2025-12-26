@@ -15,7 +15,7 @@ struct BuildingData
     BuildingType type;
     cocos2d::Vec2 position;
     int level; // 新增：记录建筑等级
-    int barrackLevel;    // 【新增】军营等级（仅对军营有效）
+    int barrackLevel;    // 军营等级（仅对军营有效）
 };
 
 class GameManager {
@@ -27,26 +27,26 @@ public:
     bool isInitialized() const { return m_isInitialized; }
 
 
-    // 【新增】保存一个建筑
+    // 保存一个建筑
     void addHomeBuilding(BuildingType type, cocos2d::Vec2 pos, int level = 1);
 
-    // 【新增】获取所有保存的建筑
+    // 获取所有保存的建筑
     const std::vector<BuildingData>& getHomeBuildings();
 
     // 新增：更新已保存建筑的等级（用于升级时同步）
     void updateHomeBuildingLevel(BuildingType type, cocos2d::Vec2 pos, int level);
 
-    // 【新增】获取当前军营等级
+    // 获取当前军营等级
     int getBarrackLevel() const;
 
-    // 【新增】更新军营等级
+    // 更新军营等级
     void updateBarrackLevel(cocos2d::Vec2 pos, int level);
 
     // 【修改】增加资源 (带上限检查)
     void addGold(int amount);
     void addElixir(int amount);
 
-    // 【新增】修改资源上限 (当建造/升级圣水瓶时调用)
+    // 修改资源上限 (当建造/升级圣水瓶时调用)
     void modifyMaxGold(int amount);
     void modifyMaxElixir(int amount);
 

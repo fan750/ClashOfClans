@@ -95,12 +95,12 @@ bool BattleScene::init()
     this->addChild(enemyTown);
 
 
-    // 3. 【新增】创建提示文字
+    // 3. 创建提示文字
     m_infoLabel = Label::createWithSystemFont("Selected: Barbarian", "Arial", 24);
     m_infoLabel->setPosition(Vec2(visibleSize.width / 2, 50)); // 放在底部中间
     this->addChild(m_infoLabel, 10);
 
-    // 4. 【新增】创建一排选择按钮
+    // 4. 创建一排选择按钮
     // 参数：名字，颜色，类型，第几个(用于排版)
     createSelectButton("Barb", Color3B::GREEN, TroopType::BARBARIAN, 0);
     createSelectButton("Arch", Color3B::MAGENTA, TroopType::ARCHER, 1);
@@ -365,7 +365,7 @@ void BattleScene::updateTroopCountLabels()
     }
 }
 
-// 【新增】辅助函数：快速创建按钮
+// 辅助函数：快速创建按钮
 void BattleScene::createSelectButton(const std::string& title, Color3B color, TroopType type, int index)
 {
     Size visibleSize = Director::getInstance()->getVisibleSize();
@@ -475,7 +475,7 @@ void BattleScene::onExit()
     Scene::onExit();
 }
 
-// 【新增】关卡配置逻辑
+// 关卡配置逻辑
 void BattleScene::loadLevel(int levelIndex)
 {
     Size visibleSize = Director::getInstance()->getVisibleSize();

@@ -112,7 +112,7 @@ void Load::onAssaultMenuCallback(Ref* pSender)
     this->scheduleOnce(CC_SCHEDULE_SELECTOR(Load::enterMainMode), 2.0f);
 }
 
-// 2. 【新增】实现真正的场景切换逻辑
+// 2. 实现真正的场景切换逻辑
 void Load::enterMainMode(float dt)
 {
     // 这里才是真正切换场景的地方

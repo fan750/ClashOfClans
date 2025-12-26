@@ -27,7 +27,7 @@ public:
     // 兵种管理
     void addTroop(Troop* troop);
     void removeTroop(Troop* troop);
-    Troop* findClosestTroop(cocos2d::Vec2 position, float range, TroopMovementType typeFilter);
+    Troop* findClosestTroop(cocos2d::Vec2 position, float range, Troop::MovementType typeFilter);
     void initAvailableTroops(const std::map<TroopType, int>& availableTroops); // 初始化可投放兵种数量
     bool canDeployTroop(TroopType type);                                       // 检查是否还能投放指定兵种
     void deployTroop(TroopType type);                                          // 投放兵种（减少可用数量）

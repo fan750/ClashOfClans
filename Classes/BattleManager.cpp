@@ -88,7 +88,7 @@ void BattleManager::removeTroop(Troop* troop)
     }
 }
 
-Troop* BattleManager::findClosestTroop(Vec2 position, float range, TroopMovementType typeFilter)
+Troop* BattleManager::findClosestTroop(Vec2 position, float range, Troop::MovementType typeFilter)
 {
     Troop* closestTroop = nullptr;
     float minDistance = range;
@@ -134,9 +134,9 @@ Troop* BattleManager::findClosestTroopForBuilding(Building* building)
         if (!troop || troop->isDead()) continue;
 
         // 核心过滤逻辑
-        TroopMovementType troopType = troop->getMovementType();
-        if ((troopType == TroopMovementType::AIR && !canAttackAir) ||
-            (troopType == TroopMovementType::GROUND && !canAttackGround))
+        Troop::MovementType troopType = troop->getMovementType();
+        if ((troopType == Troop::MovementType::AIR && !canAttackAir) ||
+            (troopType == Troop::MovementType::GROUND && !canAttackGround))
         {
             continue; // 跳过不能攻击的目标类型
         }
@@ -169,7 +169,7 @@ void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
     for (auto troop : m_troops)
     {
         if (!troop || troop->isDead()) continue;
-        if (troop->getMovementType() == TroopMovementType::AIR) continue;
+        if (troop->getMovementType() == Troop::MovementType::AIR) continue;
         if (troop->getPosition().distance(center) <= radius)
         {
             troopsToHit.push_back(troop);

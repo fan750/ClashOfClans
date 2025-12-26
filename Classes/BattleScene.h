@@ -28,7 +28,7 @@ private:
 public:
     static cocos2d::Scene* createScene(int levelIndex);
     virtual bool init() override;
-    // 【新增】重写 update 方法
+    // 重写 update 方法
     virtual void update(float dt) override;
     void loadLevel(int levelIndex);
     virtual void onExit() override;

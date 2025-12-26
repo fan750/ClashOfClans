@@ -14,7 +14,7 @@ public:
     void menuCloseCallback(cocos2d::Ref* pSender);
     void onAssaultMenuCallback(cocos2d::Ref* pSender);
 
-    // 【新增】用于定时器调用的函数
+    // 用于定时器调用的函数
     void enterMainMode(float dt);
 
     CREATE_FUNC(Load);

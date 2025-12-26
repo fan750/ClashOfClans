@@ -1,3 +1,4 @@
+//UpgradeTroopUI.h
 #ifndef _UPGRADE_UI_
 #define _UPGRADE_UI_
 #include"cocos2d.h"

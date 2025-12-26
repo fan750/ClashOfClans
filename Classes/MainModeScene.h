@@ -12,7 +12,7 @@ struct ShopItem {
     BuildingType type;
     int price;
     bool isGold; // true=金币买, false=圣水买
-    std::string iconPath; // 【新增】存放图标文件名的变量
+    std::string iconPath; // 存放图标文件名的变量
 };
 
 class MainMode : public cocos2d::Scene
@@ -31,7 +31,7 @@ public:
     void playCollectAnimation(int amount, cocos2d::Vec2 startPos, BuildingType type);
     // CREATE_FUNC 宏只能出现一次！它会自动生成 create() 函数
     CREATE_FUNC(MainMode);
-    // 【新增】获取军营建筑
+    // 获取军营建筑
     Building* getBarracksBuilding() const;
     // 初始化商店UI
     void initShopUI();
@@ -65,19 +65,19 @@ public:
     int m_pendingCost;
     bool m_pendingIsGold;
 
-    // 【新增】标记：是否正在等待确认放置
+    // 标记：是否正在等待确认放置
     bool m_isConfirming;
 
-    // 【新增】存放“确定/取消”按钮的节点（方便统一删除）
+    // 存放“确定/取消”按钮的节点（方便统一删除）
     cocos2d::Node* m_confirmLayer;
 
-    // 【新增】显示确认菜单
+    // 显示确认菜单
     void showConfirmationUI(cocos2d::Vec2 pos);
 
-    // 【新增】点击“确定”后的逻辑
+    // 点击“确定”后的逻辑
     void onConfirmPlacement();
 
-    // 【新增】点击“取消”后的逻辑
+    // 点击“取消”后的逻辑
     void onCancelPlacement();
 
     Building* getBarracksAtPosition(cocos2d::Vec2 pos); // 用于处理点击军营的逻辑

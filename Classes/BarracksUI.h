@@ -9,14 +9,14 @@ class BarracksUI : public cocos2d::Layer
 {
 private:
     void initButtons();               // 初始化按钮
-    void updateBarrackInfo();        // 【新增】更新军营信息显示
-    void showUpgradeFailureDialog(class Building* barracks);  // 【新增】显示升级失败对话框
-    void showNoBarracksDialog();      // 【新增】显示无军营对话框
+    void updateBarrackInfo();        // 更新军营信息显示
+    void showUpgradeFailureDialog(class Building* barracks);  // 显示升级失败对话框
+    void showNoBarracksDialog();      // 显示无军营对话框
 
     cocos2d::ui::Layout* m_mainPanel; // 主面板
-    cocos2d::Label* m_barrackLevelLabel;    // 【新增】军营等级标签
-    cocos2d::Label* m_costLimitLabel;       // 【新增】Cost上限标签
-    cocos2d::Label* m_currentCostLabel;     // 【新增】当前Cost使用标签
+    cocos2d::Label* m_barrackLevelLabel;    // 军营等级标签
+    cocos2d::Label* m_costLimitLabel;       // Cost上限标签
+    cocos2d::Label* m_currentCostLabel;     // 当前Cost使用标签
 public:
     virtual bool init() override;
     CREATE_FUNC(BarracksUI);

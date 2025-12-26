@@ -22,6 +22,15 @@
     <Filter Include="src\Scenes">
       <UniqueIdentifier>{16adef79-7055-42de-97b4-0b4e6568f7ef}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Entity\Buildings">
+      <UniqueIdentifier>{c8ee3c18-ed0b-421d-8be5-525d71bb4d05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Entity\Troops">
+      <UniqueIdentifier>{0d3c0e66-ea8a-4edb-9185-b2347e9f7e31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Entity\Base">
+      <UniqueIdentifier>{19595cfe-5218-40a6-8982-0e42dff716a1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -33,35 +42,80 @@
     <ClCompile Include="..\Classes\BattleManager.cpp">
       <Filter>src\Manager</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\GameManager.cpp">
-      <Filter>src\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\BattleScene.cpp">
-      <Filter>src\Scenes</Filter>
-    </ClCompile>
     <ClCompile Include="..\Classes\LevelMapScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\Building.cpp">
-      <Filter>src\Entity</Filter>
+    <ClCompile Include="..\Classes\BarracksUI.cpp">
+      <Filter>src\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\Troop.cpp">
-      <Filter>src\Entity</Filter>
+    <ClCompile Include="..\Classes\MenuBuilder.cpp">
+      <Filter>src\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\UpgradeTroopUI.cpp">
+      <Filter>src\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Archer.cpp">
+      <Filter>src\Entity\Troops</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Barbarian.cpp">
+      <Filter>src\Entity\Troops</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Bomberman.cpp">
+      <Filter>src\Entity\Troops</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Dragon.cpp">
+      <Filter>src\Entity\Troops</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Giant.cpp">
+      <Filter>src\Entity\Troops</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Building.cpp">
+      <Filter>src\Entity\Base</Filter>
     </ClCompile>
     <ClCompile Include="..\Classes\GameEntity.cpp">
-      <Filter>src\Entity</Filter>
+      <Filter>src\Entity\Base</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\BarracksUI.cpp">
+    <ClCompile Include="..\Classes\Troop.cpp">
+      <Filter>src\Entity\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\ArcherTower.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Barracks.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Cannon.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\ElixirCollector.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\ElixirStorage.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\GoldMine.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\GoldStorage.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\TownHall.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Trap.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\Wall.cpp">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\GameUI.cpp">
       <Filter>src\UI</Filter>
     </ClCompile>
     <ClCompile Include="..\Classes\RecruitUI.cpp">
       <Filter>src\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\GameUI.cpp">
-      <Filter>src\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Classes\MenuBuilder.cpp">
-      <Filter>src\UI</Filter>
+    <ClCompile Include="..\Classes\BattleScene.cpp">
+      <Filter>src\Scenes</Filter>
     </ClCompile>
     <ClCompile Include="..\Classes\MainModeScene.cpp">
       <Filter>src\Scenes</Filter>
@@ -69,8 +123,8 @@
     <ClCompile Include="..\Classes\OpenScene.cpp">
       <Filter>src\Scenes</Filter>
     </ClCompile>
-    <ClCompile Include="..\Classes\UpgradeTroopUI.cpp">
-      <Filter>src\UI</Filter>
+    <ClCompile Include="..\Classes\GameManager.cpp">
+      <Filter>src\Manager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -80,29 +134,8 @@
     <ClInclude Include="..\Classes\BattleManager.h">
       <Filter>src\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\GameManager.h">
-      <Filter>src\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\BattleScene.h">
-      <Filter>src\Scenes</Filter>
-    </ClInclude>
     <ClInclude Include="..\Classes\LevelMapScene.h">
       <Filter>src\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\Building.h">
-      <Filter>src\Entity</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\Troop.h">
-      <Filter>src\Entity</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\GameEntity.h">
-      <Filter>src\Entity</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\BarracksUI.h">
-      <Filter>src\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Classes\RecruitUI.h">
-      <Filter>src\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\GameUI.h">
       <Filter>src\UI</Filter>
@@ -110,17 +143,83 @@
     <ClInclude Include="..\Classes\MenuBuilder.h">
       <Filter>src\UI</Filter>
     </ClInclude>
+    <ClInclude Include="..\Classes\AppDelegate.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\UpgradeTroopUI.h">
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Archer.h">
+      <Filter>src\Entity\Troops</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Barbarian.h">
+      <Filter>src\Entity\Troops</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Bomberman.h">
+      <Filter>src\Entity\Troops</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Dragon.h">
+      <Filter>src\Entity\Troops</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Giant.h">
+      <Filter>src\Entity\Troops</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Building.h">
+      <Filter>src\Entity\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Troop.h">
+      <Filter>src\Entity\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\ArcherTower.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Barracks.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Cannon.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\ElixirCollector.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\ElixirStorage.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\GoldMine.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\GoldStorage.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\TownHall.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Trap.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\Wall.h">
+      <Filter>src\Entity\Buildings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\BarracksUI.h">
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\RecruitUI.h">
+      <Filter>src\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\BattleScene.h">
+      <Filter>src\Scenes</Filter>
+    </ClInclude>
     <ClInclude Include="..\Classes\MainModeScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="..\Classes\OpenScene.h">
       <Filter>src\Scenes</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\AppDelegate.h">
-      <Filter>src</Filter>
+    <ClInclude Include="..\Classes\GameEntity.h">
+      <Filter>src\Entity\Base</Filter>
     </ClInclude>
-    <ClInclude Include="..\Classes\UpgradeTroopUI.h">
-      <Filter>src\UI</Filter>
+    <ClInclude Include="..\Classes\GameManager.h">
+      <Filter>src\Manager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,7 @@ GameEntity::GameEntity()
     , m_hpBarTimer(nullptr)
     , m_hpBarWidth(80.0f)
     , m_hpBarHeight(40.0f) // Initialize height
-    , m_hpBarOffsetY(15.0f) // 【新增】默认给个 15 的基础高度
+    , m_hpBarOffsetY(15.0f) // 默认给个 15 的基础高度
     ,m_hpBarOffsetX(15.0f)
 {
 }

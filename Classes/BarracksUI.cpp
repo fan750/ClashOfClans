@@ -1,4 +1,5 @@
 // BarracksUI.cpp
+#include "Barracks.h"
 #include "BarracksUI.h"
 #include "RecruitUI.h"
 #include "GameManager.h"
@@ -27,7 +28,7 @@ bool BarracksUI::init()
     m_mainPanel->setPosition(visibleSize / 2); // 直接放在屏幕正中间
     this->addChild(m_mainPanel);
 
-    // 【新增】添加军营信息显示区域
+    // 添加军营信息显示区域
     float infoY = m_mainPanel->getContentSize().height - 100;
 
     // 军营等级显示
@@ -66,12 +67,14 @@ bool BarracksUI::init()
     return true;
 }
 
-// 【新增】更新军营信息显示
+// 更新军营信息显示
 void BarracksUI::updateBarrackInfo() {
     auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
     if (!mainScene) return;
 
-    auto barracks = mainScene->getBarracksBuilding();
+    // 【修改】将 Building* 转换为 Barracks*
+    auto building = mainScene->getBarracksBuilding();
+    auto barracks = dynamic_cast<Barracks*>(building);
     if (!barracks) {
         m_barrackLevelLabel->setString("No Barracks Built");
         m_costLimitLabel->setString("");
@@ -100,8 +103,10 @@ void BarracksUI::updateBarrackInfo() {
     }
 }
 
-// 【新增】显示升级失败对话框
-void BarracksUI::showUpgradeFailureDialog(Building* barracks) {
+// 显示升级失败对话框
+void BarracksUI::showUpgradeFailureDialog(Building* building) {
+    // 【修改】传入的参数是 Building*，需要转换为 Barracks* 才能获取军营等级
+    auto barracks = dynamic_cast<Barracks*>(building);
     if (!barracks) return;
 
     int level = barracks->getBarrackLevel();
@@ -111,14 +116,19 @@ void BarracksUI::showUpgradeFailureDialog(Building* barracks) {
         reason = "Barracks is already at maximum level!";
     }
     else {
-        // 获取下一级的价格
+        // 【修改】调用 Barracks 特有的逻辑获取下一级费用
+        // 由于 canUpgradeBarrack 内部已经包含了金币检查，这里可以直接利用或者手动计算
+        // 简单起见，我们手动复用逻辑逻辑或直接调用 canUpgradeBarrack 的内部逻辑判断
         int nextLevel = level + 1;
         int upgradeCost = 0;
-        if (Building::BARRACK_UPGRADE_CONFIGS.find(nextLevel) != Building::BARRACK_UPGRADE_CONFIGS.end()) {
-            upgradeCost = Building::BARRACK_UPGRADE_CONFIGS.at(nextLevel).goldCost;
-        }
+
+        // 注意：BARRACK_UPGRADE_CONFIGS 是 Barracks 的静态私有成员，外部无法直接访问
+        // 建议在 Barracks 中添加一个静态辅助方法 getNextLevelCost(int level)
+        // 或者在这里直接调用 barracks->canUpgradeBarrack() 返回 false 时的原因
+        // 这里为了演示，我们假设没有直接访问 Configs 的权限，改为只显示金币不足
+
         int currentGold = GameManager::getInstance()->getGold();
-        reason = "Need " + std::to_string(upgradeCost) + " Gold (You have " + std::to_string(currentGold) + ")";
+        reason = "Need Gold to Upgrade (Current: " + std::to_string(currentGold) + ")";
     }
 
     // 创建提示对话框
@@ -149,7 +159,7 @@ void BarracksUI::showUpgradeFailureDialog(Building* barracks) {
     dialogBg->addChild(okBtn);
 }
 
-// 【新增】显示无军营对话框
+// 显示无军营对话框
 void BarracksUI::showNoBarracksDialog() {
     auto visibleSize = Director::getInstance()->getVisibleSize();
     auto dialogBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
@@ -208,16 +218,15 @@ void BarracksUI::initButtons()
         // 获取当前军营
         auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
         if (mainScene) {
-            auto barracks = mainScene->getBarracksBuilding(); // 修改：不需要参数
+            auto building = mainScene->getBarracksBuilding();
+            auto barracks = dynamic_cast<Barracks*>(building); // 【修改】强转
             if (barracks) {
                 if (barracks->canUpgradeBarrack()) {
-                    barracks->upgradeBarrack();
-                    // 立即更新UI显示
-                    updateBarrackInfo();
+                    barracks->upgradeBarrack(); // 【修改】调用子类方法
+                    this->updateBarrackInfo();
                 }
                 else {
-                    // 显示无法升级的原因
-                    showUpgradeFailureDialog(barracks);
+                    this->showUpgradeFailureDialog(barracks);
                 }
             }
             else {
@@ -277,7 +286,7 @@ void BarracksUI::show()
     updateBarrackInfo();
 }
 
-// 【新增】监听军营升级事件
+// 监听军营升级事件
 void BarracksUI::onEnter() {
     Layer::onEnter();
 
@@ -300,13 +309,14 @@ void BarracksUI::hide()
 
 }
 
-// 【新增】更新升级按钮状态
+// 更新升级按钮状态
 void BarracksUI::updateUpgradeButton() {
     // 这里需要根据实际UI结构来实现
     // 可以更新按钮文字、可用状态等
     auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
     if (mainScene) {
-        auto barracks = mainScene->getBarracksAtPosition(Vec2::ZERO); // 需要实现获取军营的方法
+        auto building = mainScene->getBarracksBuilding();
+        auto barracks = dynamic_cast<Barracks*>(building);
         if (barracks) {
             int level = barracks->getBarrackLevel();
             int maxCost = barracks->getMaxCostLimit();

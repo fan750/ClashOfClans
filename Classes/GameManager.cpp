@@ -78,7 +78,7 @@ void GameManager::addHomeBuilding(BuildingType type, Vec2 pos, int level) {
     data.type = type;
     data.position = pos;
     data.level = level;
-    // 【新增】军营默认等级为1，其他建筑为0
+    // 军营默认等级为1，其他建筑为0
     data.barrackLevel = (type == BuildingType::BARRACKS) ? 1 : 0;
     m_homeBuildings.push_back(data);
     CCLOG("Saved building: type=%d pos=(%f,%f) level=%d", (int)type, pos.x, pos.y, level);
@@ -99,7 +99,7 @@ void GameManager::updateHomeBuildingLevel(BuildingType type, Vec2 pos, int level
     addHomeBuilding(type, pos, level);
 }
 
-// 【新增】获取当前军营等级
+// 获取当前军营等级
 int GameManager::getBarrackLevel() const {
     // 查找军营建筑
     for (const auto& building : m_homeBuildings) {
@@ -110,7 +110,7 @@ int GameManager::getBarrackLevel() const {
     return 0; // 没有军营返回0
 }
 
-// 【新增】更新军营等级
+// 更新军营等级
 void GameManager::updateBarrackLevel(Vec2 pos, int level) {
     // 更新存储的军营等级
     for (auto& building : m_homeBuildings) {
