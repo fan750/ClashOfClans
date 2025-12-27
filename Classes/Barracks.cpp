@@ -44,7 +44,7 @@ void Barracks::activateBuilding()
     Building::activateBuilding();
 
     // 在建筑完全激活后，再计算 Cost 使用情况并派发事件
-    updateCurrentCostUsed();
+    // updateCurrentCostUsed();
 }
 
 void Barracks::initBuildingProperties()

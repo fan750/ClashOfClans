@@ -279,13 +279,17 @@ void GameManager::completeBuildingUpgrade(int taskId)
     Vec2 position = it->position;
     m_pendingUpgrades.erase(it);
 
+    // 1. 尝试在当前场景中找到对应的建筑实体
     auto building = BattleManager::getInstance()->findBuildingAtPosition(position, type, 5.0f);
     if (building)
     {
+        // 如果找到了，直接调用实体的升级完成逻辑（播放动画、更新数值等）
         building->onUpgradeFinished();
     }
     else
     {
+        // 2. 如果没找到（说明玩家不在主场景，或者建筑还没加载出来），则只更新后台数据
+        // 这样下次进入场景时，建筑会直接以新等级加载
         incrementStoredBuildingLevel(type, position);
     }
 

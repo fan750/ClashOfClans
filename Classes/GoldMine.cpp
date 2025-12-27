@@ -53,6 +53,9 @@ void GoldMine::initBuildingProperties()
 
 void GoldMine::updateLogic(float dt)
 {
+    // 1. 调用基类 updateLogic 处理加速计时器
+    Building::updateLogic(dt);
+
     // 满额即停
     if (m_currentStored >= m_maxStorage)
     {
@@ -60,8 +63,9 @@ void GoldMine::updateLogic(float dt)
         return;
     }
 
-    // 累加生产
-    float effectiveRate = m_productionRate;
+    // 累加产量
+    // 【修改】应用加速倍率
+    float effectiveRate = m_productionRate * m_rateMultiplier;
     m_productionAccumulator += effectiveRate * dt;
 
     if (m_productionAccumulator >= 1.0f)

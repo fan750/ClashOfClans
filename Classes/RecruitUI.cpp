@@ -110,8 +110,8 @@ void RecruitUI::updateCostDisplay()
     auto building = mainScene->getBarracksBuilding();
     auto barracks = dynamic_cast<Barracks*>(building); // 【修改】强转
     if (!barracks) {
-        m_costLimitLabel->setString("Cost Limit: No Barracks");
-        m_currentCostLabel->setString("Current Cost: --/--");
+        if (m_costLimitLabel) m_costLimitLabel->setString("Cost Limit: No Barracks");
+        if (m_currentCostLabel) m_currentCostLabel->setString("Current Cost: --/--");
         return;
     }
 
@@ -119,17 +119,19 @@ void RecruitUI::updateCostDisplay()
     int maxCost = barracks->getMaxCostLimit();
     int level = barracks->getBarrackLevel();
 
-    m_currentCostLabel->setString("Current Cost: " + std::to_string(currentCost) + "/" + std::to_string(maxCost));
+    if (m_currentCostLabel) {
+        m_currentCostLabel->setString("Current Cost: " + std::to_string(currentCost) + "/" + std::to_string(maxCost));
 
-    // 根据cost使用情况改变颜色
-    if (currentCost >= maxCost) {
-        m_currentCostLabel->setColor(Color3B::RED);
-    }
-    else if (currentCost >= maxCost * 0.8) {
-        m_currentCostLabel->setColor(Color3B::ORANGE);
-    }
-    else {
-        m_currentCostLabel->setColor(Color3B::GREEN);
+        // 根据cost使用情况改变颜色
+        if (currentCost >= maxCost) {
+            m_currentCostLabel->setColor(Color3B::RED);
+        }
+        else if (currentCost >= maxCost * 0.8) {
+            m_currentCostLabel->setColor(Color3B::ORANGE);
+        }
+        else {
+            m_currentCostLabel->setColor(Color3B::GREEN);
+        }
     }
 }
 
@@ -212,11 +214,13 @@ void RecruitUI::show()
     updateCostDisplay();
 
     // 更新所有按钮状态
-    for (auto child : m_mainPanel->getChildren()) {
-        auto btn = dynamic_cast<ui::Button*>(child);
-        if (btn && btn->getTag() >= 1000) { // 假设招募按钮的tag >= 1000
-            TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
-            updateRecruitButtonState(btn, type);
+    if (m_mainPanel) {
+        for (auto child : m_mainPanel->getChildren()) {
+            auto btn = dynamic_cast<ui::Button*>(child);
+            if (btn && btn->getTag() >= 1000) { // 假设招募按钮的tag >= 1000
+                TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
+                updateRecruitButtonState(btn, type);
+            }
         }
     }
 }
@@ -426,11 +430,13 @@ void RecruitUI::onEnter() {
     auto costListener = EventListenerCustom::create("EVENT_COST_UPDATED", [this](EventCustom* event) {
         updateCostDisplay();
         // 更新所有按钮状态
-        for (auto child : m_mainPanel->getChildren()) {
-            auto btn = dynamic_cast<ui::Button*>(child);
-            if (btn && btn->getTag() >= 1000) {
-                TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
-                updateRecruitButtonState(btn, type);
+        if (m_mainPanel) {
+            for (auto child : m_mainPanel->getChildren()) {
+                auto btn = dynamic_cast<ui::Button*>(child);
+                if (btn && btn->getTag() >= 1000) {
+                    TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
+                    updateRecruitButtonState(btn, type);
+                }
             }
         }
         });
@@ -440,11 +446,13 @@ void RecruitUI::onEnter() {
     auto troopListener = EventListenerCustom::create("EVENT_UPDATE_TROOPS", [this](EventCustom* event) {
         updateCostDisplay();
         // 更新所有按钮状态
-        for (auto child : m_mainPanel->getChildren()) {
-            auto btn = dynamic_cast<ui::Button*>(child);
-            if (btn && btn->getTag() >= 1000) {
-                TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
-                updateRecruitButtonState(btn, type);
+        if (m_mainPanel) {
+            for (auto child : m_mainPanel->getChildren()) {
+                auto btn = dynamic_cast<ui::Button*>(child);
+                if (btn && btn->getTag() >= 1000) {
+                    TroopType type = static_cast<TroopType>(btn->getTag() - 1000);
+                    updateRecruitButtonState(btn, type);
+                }
             }
         }
         });

@@ -124,6 +124,13 @@ bool MainMode::init() {
                 }
             }
             b->activateBuilding(); 
+            m_gameLayer->addChild(b); // 【核心修复】恢复存档时，必须将建筑添加到 m_gameLayer
+
+            // 【新增】检查是否有正在进行的升级任务
+            if (GameManager::getInstance()->hasPendingUpgrade(data.type, data.position))
+            {
+                b->showConstructionAnimation();
+            }
         }
     }
 
@@ -715,6 +722,7 @@ void MainMode::onConfirmPlacement() {
     if (m_pendingBuilding->getBuildingType() == BuildingType::BARRACKS) {
         auto barracks = dynamic_cast<Barracks*>(m_pendingBuilding);
         if (barracks) {
+            // 确保在放置确认后，军营被正确初始化并更新 Cost
             barracks->updateCurrentCostUsed();
         }
     }

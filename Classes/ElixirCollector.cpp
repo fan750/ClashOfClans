@@ -53,14 +53,18 @@ void ElixirCollector::initBuildingProperties()
 
 void ElixirCollector::updateLogic(float dt)
 {
-    // 逻辑与金矿一致
+    // 1. 调用基类 updateLogic 处理加速计时器
+    Building::updateLogic(dt);
+
+    // 满额即停
     if (m_currentStored >= m_maxStorage)
     {
         m_currentStored = m_maxStorage;
         return;
     }
 
-    float effectiveRate = m_productionRate;
+    // 【修改】应用加速倍率
+    float effectiveRate = m_productionRate * m_rateMultiplier;
     m_productionAccumulator += effectiveRate * dt;
 
     if (m_productionAccumulator >= 1.0f)

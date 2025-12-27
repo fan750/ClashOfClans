@@ -219,10 +219,51 @@ void BarracksUI::initButtons()
         auto mainScene = dynamic_cast<MainMode*>(Director::getInstance()->getRunningScene());
         if (mainScene) {
             auto building = mainScene->getBarracksBuilding();
-            auto barracks = dynamic_cast<Barracks*>(building); // 【修改】强转
+            auto barracks = dynamic_cast<Barracks*>(building); // 强转
             if (barracks) {
+                // 【新增】检查大本营等级限制
+                int max_level = GameManager::getInstance()->getTown_Hall_Level();
+                if (barracks->getBarrackLevel() >= max_level) {
+                    // 显示提示
+                    auto visibleSize = Director::getInstance()->getVisibleSize();
+                    auto scene = Director::getInstance()->getRunningScene();
+                    if (scene) {
+                        auto alertBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+                        scene->addChild(alertBg, 10000);
+
+                        // 吞噬触摸，防止点击穿透
+                        auto listener = EventListenerTouchOneByOne::create();
+                        listener->setSwallowTouches(true);
+                        listener->onTouchBegan = [](Touch*, Event*) { return true; };
+                        scene->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, alertBg);
+
+                        auto alertPanel = Sprite::create("barracksBoard.png");
+                        if (alertPanel) {
+                            alertPanel->setPosition(visibleSize / 2);
+                            alertPanel->setScale(1.0f);
+                            alertBg->addChild(alertPanel);
+                        }
+
+                        std::string msg = "Cannot Upgrade!\nRequire Town Hall Level " + std::to_string(max_level + 1);
+                        auto alertLabel = Label::createWithSystemFont(msg, "Arial", 40);
+                        alertLabel->setPosition(visibleSize / 2);
+                        alertLabel->setTextColor(Color4B::BLACK);
+                        alertLabel->setAlignment(TextHAlignment::CENTER);
+                        alertBg->addChild(alertLabel);
+
+                        auto okBtn = Button::create("yes.png");
+                        okBtn->setScale(0.1f);
+                        okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+                        okBtn->addClickEventListener([alertBg](Ref*) {
+                            alertBg->removeFromParent();
+                        });
+                        alertBg->addChild(okBtn);
+                    }
+                    return;
+                }
+
                 if (barracks->canUpgradeBarrack()) {
-                    barracks->upgradeBarrack(); // 【修改】调用子类方法
+                    barracks->upgradeBarrack(); // 执行升级方法
                     this->updateBarrackInfo();
                 }
                 else {
