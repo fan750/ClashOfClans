@@ -11,7 +11,7 @@ public:
 
     void initProperties() override;
     void initAnimations() override;
-    std::string Giant::getTroopName() const override { return "Giant"; }
+    std::string getTroopName() const override { return "Giant"; }
 };
 
 #endif

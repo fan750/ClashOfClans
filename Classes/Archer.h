@@ -12,7 +12,7 @@ public:
     void initProperties() override;
     void initAnimations() override;
     void performAttackBehavior() override; // Ô¶³Ì¹¥»÷
-    std::string Archer::getTroopName() const override { return "Archer"; }
+    std::string getTroopName() const override { return "Archer"; }
 };
 
 #endif

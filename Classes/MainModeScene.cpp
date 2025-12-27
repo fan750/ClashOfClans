@@ -163,7 +163,7 @@ bool MainMode::init() {
     shopBtn->setScale(0.1f);
     shopBtn->setTitleText("SHOP");
     shopBtn->setTitleFontSize(24);
-    shopBtn->setPosition(Vec2(visibleSize.width - 350, 125));
+    shopBtn->setPosition(Vec2(visibleSize.width*0.82f, visibleSize.height/8));
     shopBtn->addClickEventListener([=](Ref*) {
         this->toggleShop(); // 点击开关商店
         });
@@ -177,7 +177,7 @@ bool MainMode::init() {
     // 5. 进攻按钮
     auto attackBtn = Button::create("attack_icon.png");
     attackBtn->setScale(0.15f);
-    attackBtn->setPosition(Vec2(visibleSize.width * 0.92f, visibleSize.height * 0.1f));
+    attackBtn->setPosition(Vec2(visibleSize.width * 0.92f, visibleSize.height/8));
     attackBtn->addClickEventListener
     ([=](Ref*)
         {
@@ -242,7 +242,7 @@ bool MainMode::init() {
     TimeBtn->setScale(0.7f);
     TimeBtn->setTitleText("Accelerate");
     TimeBtn->setTitleFontSize(36);
-    TimeBtn->setPosition(Vec2(visibleSize.width - 750, 125));
+    TimeBtn->setPosition(Vec2(visibleSize.width*0.62f, visibleSize.height/8));
     TimeBtn->addClickEventListener([=](Ref*) {
         if (!TimeBtn->isEnabled()) return;
         this->toggleTime();
@@ -272,7 +272,7 @@ void MainMode::initShopUI() {
     // 如果你想强制指定大小，可以用下面这行，否则可以注释掉让图片决定大小
     m_shopLayer->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.6));
     // 创建好 layout 后，直接设置整体缩放
-    m_shopLayer->setScale(0.8f); // 缩小到 80%
+    m_shopLayer->setScale(0.7f); // 缩小到 80%
 
     // 居中显示
     // 注意：如果用图片，AnchorPoint 默认是 (0,0)，为了方便居中，建议改成 (0.5, 0.5)
@@ -295,12 +295,12 @@ void MainMode::initShopUI() {
     };
 
     // 面板高度 400
-    float row1_Y = 480; // 第一排的高度 (靠上)
-    float row2_Y = 40; // 第二排的高度 (靠下)
+    float row1_Y = visibleSize.height*0.4; // 第一排的高度 (靠上)
+    float row2_Y = visibleSize.height * 0.05; // 第二排的高度 (靠下)
 
     // 起始 X 坐标和间距
-    float start_X = 380;
-    float gap_X = 100;
+    float start_X = visibleSize.width*0.18;
+    float gap_X = visibleSize.width/20;
 
     // --- 第一排 (Row 1) ---
     // 0: 金矿
@@ -334,7 +334,7 @@ void MainMode::initTime() {
     m_timeLayer->setBackGroundImage("accelerate_background.png");
     m_timeLayer->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.6));
     // 创建好 layout 后，直接设置整体缩放
-    m_timeLayer->setScale(0.8f); // 缩小到 80%
+    m_timeLayer->setScale(0.7f); // 缩小到 80%
 
     // 居中显示
     // 注意：如果用图片，AnchorPoint 默认是 (0,0)，为了方便居中，建议改成 (0.5, 0.5)
@@ -345,7 +345,7 @@ void MainMode::initTime() {
 
     auto time_btn = Button::create("accelerate.png");
     time_btn->setScale(0.2f);
-    time_btn->setPosition(Vec2(visibleSize.width * 0.4f, visibleSize.height * 0.1f));
+    time_btn->setPosition(Vec2(visibleSize.width * 0.4f, visibleSize.height * 0.15f));
     m_accelerateBtn = time_btn;
     updateTimeButtonCooldown();
     time_btn->addClickEventListener([=](Ref*) {

@@ -71,8 +71,8 @@ void RecruitUI::initUI()
     int columns = 4;
 
     // 起始位置参数 (根据你的面板大小微调)
-    float startX = panelSize.width * 0.32f; // 从左边 32% 处开始
-    float startY = panelSize.height * 0.55f; // 从高度 55% 处开始 (第一排)
+    float startX = panelSize.width * 0.35f; // 从左边 32% 处开始
+    float startY = panelSize.height * 0.58f; // 从高度 55% 处开始 (第一排)
     float gapX = 160.0f; // 左右间距
     float gapY = 220.0f; // 上下间距
 

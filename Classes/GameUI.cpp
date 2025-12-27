@@ -87,7 +87,7 @@ void GameUI::initTroopLabels()
 
     // 1. 创建入口按钮
     auto armyBtn = Button::create("troop_icon.png");
-    armyBtn->setPosition(Vec2(visibleSize.width - 550, 125));
+    armyBtn->setPosition(Vec2(visibleSize.width *0.72, visibleSize.height/8));
     armyBtn->setScale(0.15f);
     armyBtn->addClickEventListener([=](Ref*) {
         this->showArmyPanel();
@@ -96,7 +96,7 @@ void GameUI::initTroopLabels()
 
     // 添加cost显示标签
     auto costLabel = Label::createWithSystemFont("Cost: --/--", "Arial", 24);
-    costLabel->setPosition(Vec2(visibleSize.width - 550, 80));
+    costLabel->setPosition(Vec2(visibleSize.width*0.72, visibleSize.height/8.5));
     costLabel->setColor(Color3B::BLUE);
     costLabel->setTag(1001); // 用于后续更新
     this->addChild(costLabel);
@@ -108,7 +108,7 @@ void GameUI::initTroopLabels()
     m_armyPanel->setBackGroundImage("barracksBoard.png");
     m_armyPanel->setBackGroundImageScale9Enabled(true);
     // 【修改】宽度从 400 改为 550，高度适当增加
-    m_armyPanel->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.8));
+    m_armyPanel->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.9));
     m_armyPanel->setScale(1.3f);
     m_armyPanel->setAnchorPoint(Vec2(0.5, 0.5));
     m_armyPanel->setPosition(visibleSize / 2);
@@ -145,9 +145,9 @@ void GameUI::initTroopLabels()
         {TroopType::DRAGON,    "Dragon",    "dragon_icon.png",    5, 3}
     };
 
-    float startX = 280;
-    float startY = 800; // 起始高度稍微调高
-    float gapY = 160;    // 行间距加大
+    float startX = visibleSize.width*0.15;
+    float startY = visibleSize.height*0.65; // 起始高度稍微调高
+    float gapY = visibleSize.height/9;    // 行间距加大
 
     for (int i = 0; i < troopInfos.size(); ++i) {
         const auto& info = troopInfos[i]; // 捕获 info 供 Lambda 使用

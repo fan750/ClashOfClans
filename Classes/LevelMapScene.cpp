@@ -31,9 +31,9 @@ bool LevelMapScene::init() {
     }
 
     // 2. 标题
-    auto title = Label::createWithSystemFont(u8"在这片富饶的土地上，有三个穷凶极恶的国王，分别是"
-        "\n精通计算机组成原理的计组大王\n熟练掌握各种数据结构的数据结构大王"
-        "\n专攻科学王冠的离散数学大王\n你敢直视他们吗?", "Microsoft YaHei", 28);
+    auto title = Label::createWithSystemFont("In this fertile land, there are three fearsome kings:"
+        "\nthe Computer Architecture King, who masters computer organization principles\nthe Data Structure King, skilled in all kinds of data structures"
+        "\nand the Discrete Math King, who specializes in the crown jewel of science.\nDo you dare to face them", "Arial", 28);
     title->setPosition(Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.75f));
     title->setTextColor(Color4B::WHITE);
     title->setAlignment(TextHAlignment::CENTER);

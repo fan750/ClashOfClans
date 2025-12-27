@@ -11,7 +11,7 @@ public:
 
     void initProperties() override;
     void initAnimations() override;
-    std::string Bomberman::getTroopName() const override { return "Bomberman"; }
+    std::string getTroopName() const override { return "Bomberman"; }
     // ¹Ø¼üÖØĞ´
     void acquireTarget() override;
     void performAttackBehavior() override;
