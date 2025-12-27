@@ -19,7 +19,6 @@ TownHall* TownHall::create()
 bool TownHall::init()
 {
     if (!Building::init()) return false;
-    // 大本营的特有初始化逻辑可以写在这里，或者在 initBuildingProperties 中
     return true;
 }
 

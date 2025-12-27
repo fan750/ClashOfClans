@@ -17,7 +17,6 @@ const std::map<int, Barracks::BarrackUpgradeConfig>& Barracks::getBarrackUpgrade
 
 Barracks::Barracks()
 {
-    // 【核心修复】确保 Troop 静态数据已初始化
     Troop::initStaticData();
     // 初始化成员
     m_barrackLevel = 1;  // 默认新建为1级
@@ -43,8 +42,6 @@ void Barracks::activateBuilding()
     // 调用父类的激活方法
     Building::activateBuilding();
 
-    // 在建筑完全激活后，再计算 Cost 使用情况并派发事件
-    // updateCurrentCostUsed();
 }
 
 void Barracks::initBuildingProperties()
@@ -103,7 +100,6 @@ void Barracks::updateCurrentCostUsed()
     auto gm = GameManager::getInstance();
 
     // 遍历所有兵种类型，计算 Cost
-    // 注意：这里依赖 Troop::getStaticTroopCost 静态方法
     std::vector<TroopType> troopTypes = {
         TroopType::BARBARIAN,
         TroopType::ARCHER,
@@ -157,15 +153,10 @@ void Barracks::upgradeBarrack()
 
     CCLOG("Barracks upgraded to level %d, new cost limit: %d", m_barrackLevel, m_maxCostLimit);
 
-    // 3. 重新计算当前 Cost（因为升级可能解锁了新兵种，虽然逻辑上通常是先解锁再招，但以防万一）
+    // 3. 重新计算当前 Cost
     updateCurrentCostUsed();
 
     // 4. 播放简单的视觉反馈
-    // 这里可以调用基类的 onUpgradeFinished 播放 Q弹 效果，
-    // 但要注意不要重复执行 Building 的通用逻辑（比如 m_level++），因为那是针对建筑本身的。
-    // 如果军营外观需要改变，应该由 Building::onUpgradeFinished 处理（通过点击通用的升级按钮）。
-    // 这里的 upgradeBarracks 仅处理功能升级。
-    // 我们复用动画：
     auto scaleUp = ScaleTo::create(0.2f, this->getScale() * 1.2f);
     auto scaleDown = ScaleTo::create(0.2f, this->getScale());
     this->runAction(Sequence::create(scaleUp, scaleDown, nullptr));

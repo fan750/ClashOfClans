@@ -61,7 +61,6 @@ void Giant::initAnimations()
 
         const int WALK_ACTION_TAG = 0x1001;
 
-        // 修正点：不要链式调用 ->setTag
         auto animate = Animate::create(animation);
         auto walkAction = RepeatForever::create(animate);
         walkAction->setTag(WALK_ACTION_TAG);

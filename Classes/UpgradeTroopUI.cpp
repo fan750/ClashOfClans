@@ -99,6 +99,26 @@ void UpgradeUi::createUpgradeButton(const UpgradeTroops& troops, Vec2 pos, Node*
     btn->addChild(priceLabel);
     m_priceLabels[troops.type] = priceLabel;
 
+    // 显示当前等级
+    int currentLevel = 1;
+    auto gm = GameManager::getInstance();
+    switch (troops.type) {
+        case TroopType::BARBARIAN: currentLevel = gm->getBarLevel(); break;
+        case TroopType::ARCHER:    currentLevel = gm->getArcLevel(); break;
+        case TroopType::GIANT:     currentLevel = gm->getGiantLevel(); break;
+        case TroopType::BOMBERMAN: currentLevel = gm->getBomLevel(); break;
+        case TroopType::DRAGON:    currentLevel = gm->getDragonLevel(); break;
+    }
+
+    auto levelLabel = Label::createWithSystemFont("Lv." + std::to_string(currentLevel), "Arial", 18);
+    levelLabel->setPosition(Vec2(btn->getContentSize().width / 2, 200)); // 放在名字上方
+    levelLabel->setColor(Color3B::BLUE);
+    levelLabel->setScale(5);
+    btn->addChild(levelLabel);
+    
+    // 保存引用以便刷新
+    m_levelLabels[troops.type] = levelLabel; 
+
     auto nameLabel = Label::createWithSystemFont(troops.name, "Arial", 18);
     nameLabel->setPosition(Vec2(btn->getContentSize().width / 2, 160));
     nameLabel->setColor(Color3B::BLACK);
@@ -180,10 +200,25 @@ int UpgradeUi::calculateUpgradeCost(TroopType type) const {
 }
 
 void UpgradeUi::refreshUpgradeCosts() {
+    auto gm = GameManager::getInstance();
     for (auto& pair : m_priceLabels) {
         if (!pair.second) continue;
         int cost = calculateUpgradeCost(pair.first);
         pair.second->setString("Elixir: " + std::to_string(cost));
+    }
+    
+    // 刷新等级显示
+    for (auto& pair : m_levelLabels) {
+        if (!pair.second) continue;
+        int currentLevel = 1;
+        switch (pair.first) {
+            case TroopType::BARBARIAN: currentLevel = gm->getBarLevel(); break;
+            case TroopType::ARCHER:    currentLevel = gm->getArcLevel(); break;
+            case TroopType::GIANT:     currentLevel = gm->getGiantLevel(); break;
+            case TroopType::BOMBERMAN: currentLevel = gm->getBomLevel(); break;
+            case TroopType::DRAGON:    currentLevel = gm->getDragonLevel(); break;
+        }
+        pair.second->setString("Lv." + std::to_string(currentLevel));
     }
 }
 

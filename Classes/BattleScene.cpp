@@ -35,7 +35,7 @@ bool BattleScene::init()
         // 2. 放在屏幕正中间
         background->setPosition(visibleSize / 2);
 
-        // 3. 【关键】自动缩放以铺满屏幕
+        // 3.自动缩放以铺满屏幕
         // 获取图片原始大小
         Size bgSize = background->getContentSize();
 
@@ -228,11 +228,6 @@ void BattleScene::checkBattleEnd()
             loseSprite->setScale(0.0f); // 初始设为0
             this->addChild(loseSprite, 1000);
 
-            // 添加一个灰色的半透明背景层，让失败文字更清晰（可选）
-            /*
-            auto darkLayer = LayerColor::create(Color4B(0, 0, 0, 150));
-            this->addChild(darkLayer, 999); // 层级比图片低1
-            */
 
             // 添加弹出动画
             loseSprite->runAction(Sequence::create(

@@ -70,7 +70,6 @@ void Bomberman::initAnimations()
     else {
         // Fallback action (如果读取不到plist)
         const int WALK_ACTION_TAG = 0x1001;
-        // 修正点：修正括号数量，这里之前多了个括号
         auto fallbackAction = RepeatForever::create(Sequence::create(ScaleTo::create(0.4f, 1.2f), ScaleTo::create(0.4f, 1.0f), nullptr));
         fallbackAction->setTag(WALK_ACTION_TAG);
         this->runAction(fallbackAction);
@@ -95,9 +94,7 @@ void Bomberman::performAttackBehavior()
         Spawn::create(ScaleTo::create(0.1f, m_baseScale * 3.0f), TintTo::create(0.1f, Color3B::RED), nullptr),
         // 2. 回调：造成伤害并死亡
         CallFunc::create([this]() {
-            // 【关键修复】将伤害逻辑延迟到动画结束后执行
-            // 这样执行时是在 ActionManager 的更新循环中，而不是 BattleManager 的遍历循环中
-            // 从而避免了因移除其他单位导致的迭代器失效崩溃
+            // 将伤害逻辑延迟到动画结束后执行,避免了因移除其他单位导致的迭代器失效崩溃
             BattleManager::getInstance()->dealAreaDamage(this->getPosition(), 100.0f, m_damage);
             
             this->m_currentHp = 0;

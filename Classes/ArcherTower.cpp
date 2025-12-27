@@ -39,7 +39,6 @@ void ArcherTower::initBuildingProperties()
     }
 
     // 4. 攻击属性配置
-    // 注意：虽然代码逻辑一样，但 BattleManager::findClosestTroopForBuilding 
     // 会根据 BuildingType::ARCHER_TOWER 自动判断它能攻击空军
     m_attackRange = 150.0f;
     m_damage = 80;

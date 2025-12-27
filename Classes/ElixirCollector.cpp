@@ -63,7 +63,7 @@ void ElixirCollector::updateLogic(float dt)
         return;
     }
 
-    // 【修改】应用加速倍率
+    //应用加速倍率
     float effectiveRate = m_productionRate * m_rateMultiplier;
     m_productionAccumulator += effectiveRate * dt;
 

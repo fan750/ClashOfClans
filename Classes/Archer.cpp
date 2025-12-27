@@ -26,7 +26,7 @@ void Archer::initProperties()
     m_hpBarHeight = 10.0f;
 }
 
-void Archer::initAnimations()
+void Archer::initAnimations()//动画
 {
     m_walkPlist = "hero2-walk.plist";
     m_attackPlist = "hero2-attack.plist";
@@ -61,7 +61,6 @@ void Archer::initAnimations()
 
         const int WALK_ACTION_TAG = 0x1001;
 
-        // 修正点：不要链式调用 ->setTag
         auto animate = Animate::create(animation);
         auto walkAction = RepeatForever::create(animate);
         walkAction->setTag(WALK_ACTION_TAG);

@@ -44,10 +44,6 @@ void GoldStorage::initBuildingProperties()
     // 5. 无生产，无攻击
     m_productionRate = 0;
 
-    // 注意：储金罐初始化时应该增加初始容量吗？
-    // 原代码在 Building.cpp 的 initBuildingProperties 中没有增加容量，
-    // 而是在 GameManager 的 initAccount 里给了 1000。
-    // 如果你想让它建造时自带容量，可以在这里调用 modifyMaxGold。
 }
 
 void GoldStorage::onUpgradeFinished()
