@@ -20,7 +20,6 @@ Scene* MainMode::createScene()
     return MainMode::create();
 }
 
-// Print useful error message instead of segfaulting when files are not there.
 static void problemLoading(const char* filename)
 {
     printf("Error while loading: %s\n", filename);
@@ -38,7 +37,6 @@ Building* MainMode::getBarracksBuilding() const {
     return nullptr;
 }
 
-// on "init" you need to initialize your instance
 bool MainMode::init() {
 
     if (!Scene::init()) return false;
@@ -88,26 +86,39 @@ bool MainMode::init() {
     if (savedBuildings.empty()) {
         // --- 第一次玩：新建大本营 ---
         auto myTown = Building::create(BuildingType::TOWN_HALL);
-        // 【关键】放在地图中心，而不是屏幕中心
+        // 放在地图中心，而不是屏幕中心
         Vec2 centerMapPos = Vec2(m_mapSize.width / 2, m_mapSize.height / 2);
         myTown->setPosition(centerMapPos);
 
-        // 【关键】加到 m_gameLayer，这样它才会跟着地图动！
+        // 加到 m_gameLayer，这样它才会跟着地图动！
         m_gameLayer->addChild(myTown);
 
         // 立即存档，记录等级信息
         GameManager::getInstance()->addHomeBuilding(BuildingType::TOWN_HALL, centerMapPos, myTown->getLevel());
     }
     else {
-        // --- 有存档：恢复建筑 ---
-        GameManager::getInstance()->modifyMaxElixir(1000);//将上限重置为1000,防止和之前的上限叠加
-        GameManager::getInstance()->modifyMaxGold(1000);
+        // --- 有存档，恢复建筑 ---
+        
+        // 重新计算上限：基础值 1000 + 每个存储建筑提供的加成
+        int calculatedMaxGold = 1000;
+        int calculatedMaxElixir = 1000;
+
         for (const auto& data : savedBuildings) {
             auto b = Building::create(data.type);
             b->setPosition(data.position);
             b->setOpacity(255);
             // 恢复等级
             b->setLevel(data.level);
+            
+            // 根据建筑类型和等级累加存储上限
+            // 基础等级1提供500，每升一级再加500
+            if (data.type == BuildingType::GOLD_STORAGE) {
+                calculatedMaxGold += 500 + (data.level - 1) * 500;
+            }
+            else if (data.type == BuildingType::ELIXIR_STORAGE) {
+                calculatedMaxElixir += 500 + (data.level - 1) * 500;
+            }
+
             if (data.type == BuildingType::GOLD_MINE || data.type == BuildingType::ELIXIR_COLLECTOR) {
                 b->playWorkAnimation();
             }
@@ -119,22 +130,24 @@ bool MainMode::init() {
                     // 调用 Barracks 特有的方法恢复军营功能等级
                     barracks->setBarrackLevel(data.barrackLevel);
 
-                    // setBarrackLevel 内部已经调用了 updateCurrentCostUsed，
-                    // 这会根据 GameManager 中已有的兵种数量重新计算 Cost 占用。
                 }
             }
             b->activateBuilding(); 
-            m_gameLayer->addChild(b); // 【核心修复】恢复存档时，必须将建筑添加到 m_gameLayer
+            m_gameLayer->addChild(b); 
 
-            // 【新增】检查是否有正在进行的升级任务
+            // 检查该建筑是否正在进行中的升级任务
             if (GameManager::getInstance()->hasPendingUpgrade(data.type, data.position))
             {
                 b->showConstructionAnimation();
             }
         }
+        
+        // 应用计算出的上限
+        GameManager::getInstance()->modifyMaxGold(calculatedMaxGold);
+        GameManager::getInstance()->modifyMaxElixir(calculatedMaxElixir);
     }
 
-    // 2. 添加 UI 层 (之前的代码)
+    // 2. 加载 UI 层 (之前的代码)
     auto uiLayer = GameUI::create();
     this->addChild(uiLayer, 100);
     Sprite* music_sound = Sprite::create("sound.png");
@@ -262,20 +275,17 @@ bool MainMode::init() {
 void MainMode::initShopUI() {
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
-    // 1. 创建商店背景板 (依然使用 Layout，方便作为容器)
+    // 1. 创建商店背景板 
     m_shopLayer = Layout::create();
 
-    // 假设你的图片叫 "ShopBackground.png"，记得放入 Resources 文件夹
     m_shopLayer->setBackGroundImage("ShopBackground.png");
 
-    // 设置面板的大小 (如果不设置，默认是图片大小)
-    // 如果你想强制指定大小，可以用下面这行，否则可以注释掉让图片决定大小
+    // 设置面板的大小 
     m_shopLayer->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.6));
     // 创建好 layout 后，直接设置整体缩放
     m_shopLayer->setScale(0.7f); // 缩小到 80%
 
     // 居中显示
-    // 注意：如果用图片，AnchorPoint 默认是 (0,0)，为了方便居中，建议改成 (0.5, 0.5)
     m_shopLayer->setAnchorPoint(Vec2(0.5, 0.5));
     m_shopLayer->setPosition(visibleSize / 2); // 直接放在屏幕正中间
 
@@ -337,7 +347,6 @@ void MainMode::initTime() {
     m_timeLayer->setScale(0.7f); // 缩小到 80%
 
     // 居中显示
-    // 注意：如果用图片，AnchorPoint 默认是 (0,0)，为了方便居中，建议改成 (0.5, 0.5)
     m_timeLayer->setAnchorPoint(Vec2(0.5, 0.5));
     m_timeLayer->setPosition(visibleSize / 2); // 直接放在屏幕正中间
 
@@ -361,7 +370,7 @@ void MainMode::initTime() {
                 if (type == BuildingType::GOLD_MINE || type == BuildingType::ELIXIR_COLLECTOR) {
                     building->applyProductionBoost(2.0f, 30.0f);
                 }
-                // 【新增】如果是正在升级的建筑，应用施工加速
+                // 如果是正在升级的建筑，应用施工加速
                 building->applyConstructionBoost(2.0f, 20.0f);
             }
         }
@@ -399,12 +408,58 @@ void MainMode::updateTimeButtonCooldown()
     }
 }
 void MainMode::tryBuyBuilding(const ShopItem& item) {
+    // 检查军营数量限制
+    if (item.type == BuildingType::BARRACKS) {
+        // 遍历现有建筑，检查是否已有军营
+        bool hasBarracks = false;
+        if (m_gameLayer) {
+            for (auto node : m_gameLayer->getChildren()) {
+                auto building = dynamic_cast<Building*>(node);
+                if (building && building->getBuildingType() == BuildingType::BARRACKS) {
+                    hasBarracks = true;
+                    break;
+                }
+            }
+        }
+        
+        if (hasBarracks) {
+            CCLOG("Already have a Barracks!");
+            // 弹出提示
+            auto visibleSize = Director::getInstance()->getVisibleSize();
+            auto alertBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+            this->addChild(alertBg, 1000);
+
+            auto alertPanel = Sprite::create("barracksBoard.png");
+            if (alertPanel) {
+                alertPanel->setPosition(visibleSize / 2);
+                alertPanel->setScale(1.0f);
+                alertBg->addChild(alertPanel);
+            }
+
+            auto alertLabel = Label::createWithSystemFont("You can only build ONE Barracks!", "Arial", 40);
+            alertLabel->setPosition(visibleSize / 2);
+            alertLabel->setTextColor(Color4B::BLACK);
+            alertLabel->setAlignment(TextHAlignment::CENTER);
+            alertBg->addChild(alertLabel);
+
+            auto okBtn = Button::create("yes.png");
+            okBtn->setScale(0.1f);
+            okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+            okBtn->addClickEventListener([alertBg](Ref*) {
+                alertBg->removeFromParent();
+            });
+            alertBg->addChild(okBtn);
+            
+            toggleShop(); // 关闭商店
+            return;
+        }
+    }
+
     // 1. 检查钱够不够
     int currentRes = item.isGold ? GameManager::getInstance()->getGold() : GameManager::getInstance()->getElixir();
 
     if (currentRes < item.price) {
         CCLOG("Not enough resources!");
-        // 这里可以做一个 Tip 提示 "资金不足"
         return;
     }
     toggleShop();
@@ -416,7 +471,7 @@ void MainMode::tryBuyBuilding(const ShopItem& item) {
 
     m_pendingBuilding = Building::create(item.type);
 
-    // 【核心修复】检查创建是否成功
+    // 检查创建是否成功
     if (!m_pendingBuilding) {
         CCLOG("ERROR: Failed to create building of type %d", (int)item.type);
         // 可以显示一个错误提示给用户
@@ -469,9 +524,7 @@ void MainMode::onTouchMoved(Touch* touch, Event* event) {
         // 3. 建筑跟随鼠标
         m_pendingBuilding->setPosition(worldPos);
 
-        // ==========================================
-        // 【核心修复】 让按钮也跟着走！
-        // ==========================================
+        // 让按钮也跟着走！
         if (m_confirmLayer) {
             m_confirmLayer->setPosition(worldPos);
         }
@@ -488,7 +541,7 @@ void MainMode::onTouchMoved(Touch* touch, Event* event) {
         // 2. 计算目标位置
         Vec2 newPos = m_gameLayer->getPosition() + delta;
 
-        // 3. 【核心】边界限制 (Clamping)
+        // 3. 边界限制 (Clamping)
         Size visibleSize = Director::getInstance()->getVisibleSize();
 
         // X轴限制：在 [-(地图宽-屏幕宽), 0] 之间
@@ -526,7 +579,7 @@ bool MainMode::onTouchBegan(Touch* touch, Event* event) {
 
     // 如果正在放置建筑
     if (m_pendingBuilding) {
-        // 1. 【核心修改】同样要进行坐标转换
+        // 1. 同样要进行坐标转换
         Vec2 screenPos = touch->getLocation();
         Vec2 worldPos = m_gameLayer->convertToNodeSpace(screenPos);
 
@@ -570,7 +623,7 @@ bool MainMode::onTouchBegan(Touch* touch, Event* event) {
 
     // 1. 获取屏幕坐标
     Vec2 screenPos = touch->getLocation();
-    // 2. 【关键】转换为地图坐标！
+    // 2. 转换为地图坐标！
     // 所有的建筑都在 m_gameLayer 上，所以必须用在这个坐标系下的点去判断
     Vec2 worldPos = m_gameLayer->convertToNodeSpace(screenPos);
 
@@ -587,15 +640,12 @@ bool MainMode::onTouchBegan(Touch* touch, Event* event) {
         }
     }
 
-    // 遍历所有建筑 (使用 worldPos)
-    // 注意：这里要遍历 m_gameLayer 的子节点，而不是 this 的子节点！
-    // 因为建筑都加在 m_gameLayer 上了
     for (auto node : m_gameLayer->getChildren()) {
         auto building = dynamic_cast<Building*>(node);
         if (building) {
             Rect boundingBox = building->getBoundingBox();
 
-            // 【关键】使用转换后的 worldPos 进行判断
+            // 使用转换后的 worldPos 进行判断
             if (boundingBox.containsPoint(worldPos)) {
 
                 // 3. 选中建筑
@@ -650,15 +700,7 @@ void MainMode::selectBuilding(Building* building) {
 
 void MainMode::menuCloseCallback(Ref* pSender)
 {
-    //Close the cocos2d-x game scene and quit the application
     Director::getInstance()->end();
-
-    /*To navigate back to native iOS screen(if present) without quitting the application  ,do not use Director::getInstance()->end() as given above,instead trigger a custom event created in RootViewController.mm as below*/
-
-    //EventCustom customEndEvent("game_scene_close_event");
-    //_eventDispatcher->dispatchEvent(&customEndEvent);
-
-
 }
 
 // 显示 √ 和 × 按钮
@@ -672,14 +714,14 @@ void MainMode::showConfirmationUI(Vec2 pos) {
     // 1. 把容器层加到地图上
     m_gameLayer->addChild(m_confirmLayer, 200);
 
-    // 2. 【关键】容器层直接定位于建筑的位置
+    // 2. 容器层直接定位于建筑的位置
     m_confirmLayer->setPosition(pos);
 
     // --- 1. 确定按钮 (绿色) ---
     auto btnYes = Button::create("yes.png");
     btnYes->setScale(0.1f);
 
-    // 【关键】位置改为相对坐标 (相对于中心点向右偏移 60)
+    // 位置改为相对坐标 (相对于中心点向右偏移 60)
     btnYes->setPosition(Vec2(80, 0));
 
     btnYes->addClickEventListener([=](Ref*) { this->onConfirmPlacement(); });
@@ -773,7 +815,7 @@ void MainMode::onCancelPlacement() {
 
 // 传入参数已经是转换好的 worldPos
 Building* MainMode::getBarracksAtPosition(Vec2 worldPos) {
-    // 【修改】遍历 m_gameLayer 的子节点，而不是 this
+    // 遍历 m_gameLayer 的子节点，而不是 this
     for (auto child : m_gameLayer->getChildren())
     {
         auto building = dynamic_cast<Building*>(child);
@@ -791,8 +833,6 @@ Building* MainMode::getBarracksAtPosition(Vec2 worldPos) {
 void MainMode::playCollectAnimation(int amount, Vec2 startPos, BuildingType type) {
     // 1. 决定飞什么图标 (金币还是圣水)
     std::string iconName = (type == BuildingType::GOLD_MINE) ? "coin_icon.png" : "elixir_icon.png";
-    // 假设右上角 UI 的位置是 (VisibleWidth - 50, VisibleHeight - 30)
-    // 最好从 GameUI::getInstance() 获取，这里先硬编码近似位置
     Size visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 targetPos = Vec2(visibleSize.width - 100, visibleSize.height - 30);
     Vec2 screenStartPos = m_gameLayer->convertToWorldSpace(startPos);
@@ -825,8 +865,6 @@ void MainMode::playCollectAnimation(int amount, Vec2 startPos, BuildingType type
     auto labelSeq = Sequence::create(Spawn::create(labelMove, fade, nullptr), RemoveSelf::create(), nullptr);
     label->runAction(labelSeq);
 
-    // 5. 播放音效 (如果之前加了的话)
-    // SimpleAudioEngine::getInstance()->playEffect("collect.wav");
 }
 
 // 这是一个通用的“造按钮”工厂
@@ -840,7 +878,7 @@ void MainMode::createShopItemButton(const ShopItem& item, Vec2 pos, float iconSc
     auto icon = Sprite::create(item.iconPath);
     if (icon) {
         icon->setPosition(btn->getContentSize() / 2);
-        // 【关键修改】这里使用参数 iconScale，而不是写死的数字
+        // 这里使用参数 iconScale，而不是写死的数字
         icon->setScale(iconScale);
         btn->addChild(icon);
     }
@@ -868,7 +906,4 @@ void MainMode::createShopItemButton(const ShopItem& item, Vec2 pos, float iconSc
 
     // 5. 加到商店面板
     m_shopLayer->addChild(btn);
-
-    // (可选) 如果是军营，记录下来方便新手引导
-    // if (item.type == BuildingType::BARRACKS) m_barracksShopButton = btn;
 }

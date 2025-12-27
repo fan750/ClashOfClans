@@ -24,6 +24,9 @@ public:
 private:
 	void refreshUpgradeCosts();
 	int calculateUpgradeCost(TroopType type) const;
+	cocos2d::ui::Layout* m_mainPanel;
 	std::map<TroopType, cocos2d::Label*> m_priceLabels;
+	// 保存等级标签的 map
+	std::map<TroopType, cocos2d::Label*> m_levelLabels;
 };
 #endif

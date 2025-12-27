@@ -41,10 +41,6 @@ void Trap::initBuildingProperties()
 
 void Trap::onDeath()
 {
-    // 原代码中 Trap 不参与存储上限变更，也不可被摧毁（或死亡时不执行移除逻辑）
-    // 如果你想让陷阱被摧毁后消失，可以调用基类 onDeath
-    // 如果你想让它一直存在，就不做任何操作，或者只播放特效
-    // 这里保留原代码逻辑：直接返回，不调用基类移除
     return;
 }
 

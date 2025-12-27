@@ -42,7 +42,7 @@ public:
     // 获取所有保存的建筑
     const std::vector<BuildingData>& getHomeBuildings();
 
-    // 新增：更新已保存建筑的等级（用于升级时同步）
+    // 更新已保存建筑的等级（用于升级时同步）
     void updateHomeBuildingLevel(BuildingType type, cocos2d::Vec2 pos, int level);
 
     // 获取当前军营等级
@@ -51,7 +51,7 @@ public:
     // 更新军营等级
     void updateBarrackLevel(cocos2d::Vec2 pos, int level);
 
-    // 【修改】增加资源 (带上限检查)
+    // 增加资源 (带上限检查)
     void addGold(int amount);
     void addElixir(int amount);
 
@@ -95,7 +95,7 @@ public:
     void completeBuildingUpgrade(int taskId);
     bool hasPendingUpgrade(BuildingType type, cocos2d::Vec2 position, float tolerance = 5.0f) const;
 
-    // 【新增】应用建筑升级加速
+    // 应用建筑升级加速
     void applyBuildingUpgradeBoost(BuildingType type, cocos2d::Vec2 position, float multiplier, float duration);
 
 private:

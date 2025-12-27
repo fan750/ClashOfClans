@@ -61,7 +61,6 @@ bool LevelMapScene::init() {
 }
 
 void LevelMapScene::createLevelButton(int levelIndex, Vec2 pos) {
-    // levelIndex from 1..N, vector
     int idx = levelIndex - 1;
     if (idx < 0 || idx >= static_cast<int>(level.size())) return;
 

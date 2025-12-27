@@ -41,7 +41,7 @@ Building* BattleManager::findClosestBuilding(Vec2 position)
     for (auto building : m_buildings)
     {
         if (building->isDead()) continue;
-        // 【新增】过滤掉陷阱，防止部队攻击陷阱
+        //过滤掉陷阱，防止部队攻击陷阱
         if (building->getBuildingType() == BuildingType::TRAP) continue;
 
         float distance = position.distance(building->getPosition());
@@ -62,9 +62,6 @@ Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType t
     for (auto building : m_buildings)
     {
         if (building->isDead()) continue;
-        // 【新增】虽然这里指定了类型，但如果是通用查找逻辑调用，也应该过滤陷阱
-        // 不过既然指定了 type，如果 type 就是 TRAP，那说明是特意找陷阱（虽然目前没有这种逻辑）
-        // 所以这里只检查是否匹配类型即可
         if (building->getBuildingType() == type)
         {
             float distance = position.distance(building->getPosition());

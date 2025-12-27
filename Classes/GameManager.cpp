@@ -74,7 +74,7 @@ void GameManager::modifyMaxGold(int amount) {
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_UPDATE_GOLD");
 }
 
-// 【新增实现】保存建筑
+// 保存建筑
 void GameManager::addHomeBuilding(BuildingType type, Vec2 pos, int level) {
     BuildingData data;
     data.type = type;
@@ -133,7 +133,6 @@ void GameManager::updateBarrackLevel(Vec2 pos, int level) {
     m_homeBuildings.push_back(newData);
 }
 
-// 【新增实现】获取列表
 void GameManager::addTroops(TroopType type, int amount) // 添加各兵种数量
 {
     m_troopCounts[type] += amount;
@@ -190,7 +189,7 @@ void GameManager::clear()
     // 清空建筑列表
     m_homeBuildings.clear();
 
-    // (可选) 重置金币
+    //  重置金币
     m_gold = 500;
     m_elixir = 500;
     m_timeAccelerateCooldownEnd = std::chrono::steady_clock::time_point::min();
