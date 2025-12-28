@@ -1,4 +1,3 @@
-//OpenScene.cpp
 #include "OpenScene.h"
 #include "SimpleAudioEngine.h"
 #include"MainModeScene.h"
@@ -6,23 +5,23 @@
 
 USING_NS_CC;
 
+// 创建场景
 Scene* Load::createScene()
 {
     return Load::create();
 }
 
-// Print useful error message instead of segfaulting when files are not there.
+// 静态函数：资源加载错误提示
 static void problemLoading(const char* filename)
 {
     printf("Error while loading: %s\n", filename);
     printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MainModeScene.cpp\n");
 }
 
-// on "init" you need to initialize your instance
+// 初始化场景
 bool Load::init()
 {
-    //////////////////////////////
-    // 1. super init first
+    // 初始化父类
     if (!Scene::init())
     {
         return false;
@@ -39,7 +38,7 @@ bool Load::init()
     }
     else
     {
-        // position the sprite on the center of the screen
+        // 设置背景图片：居中并缩放以铺满屏幕
         Size texSize = sprite->getContentSize();
         float scaleX = visibleSize.width / texSize.width;
         float scaleY = visibleSize.height / texSize.height;
@@ -48,73 +47,63 @@ bool Load::init()
         sprite->setPosition(visibleSize / 2);
         layer->addChild(sprite);
     }
+
+    // 创建并配置开始按钮
     auto beginBtn = ui::Button::create("enter.png");
 
     beginBtn->setPosition(Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.35f));
     beginBtn->setScale(0.1f);
 
     beginBtn->setPressedActionEnabled(true);
-    // 你还可以调整缩放幅度 (默认是缩小一点点)
-    // beginBtn->setZoomScale(0.1f); 
 
     // 绑定点击事件
-    // 注意：addClickEventListener 对应的是点击释放后的逻辑，正好配合我们的切换场景
     beginBtn->addClickEventListener(CC_CALLBACK_1(Load::onAssaultMenuCallback, this));
 
-    // ui::Button 不需要 Menu 容器，直接加到 layer 上
+    // 按钮直接加到 layer 上
     layer->addChild(beginBtn);
 
     this->addChild(layer);
     return true;
 }
 
-
+// 关闭场景（退出程序）
 void Load::menuCloseCallback(Ref* pSender)
 {
-    //Close the cocos2d-x game scene and quit the application
+    // 退出游戏
     Director::getInstance()->end();
-
-    /*To navigate back to native iOS screen(if present) without quitting the application  ,do not use Director::getInstance()->end() as given above,instead trigger a custom event created in RootViewController.mm as below*/
-
-    //EventCustom customEndEvent("game_scene_close_event");
-    //_eventDispatcher->dispatchEvent(&customEndEvent);
-
-
-
 }
 
+// 开始按钮回调：处理加载并切换场景
 void Load::onAssaultMenuCallback(Ref* pSender)
 {
-    // A. 获取点击的按钮，并将其禁用或隐藏，防止玩家重复点击
+    // 获取点击的按钮并将其禁用，防止玩家重复点击
     auto item = dynamic_cast<MenuItem*>(pSender);
     if (item)
     {
-        // 方法1：直接变灰不可点
+        // 变灰不可点
         item->setEnabled(false);
-        // 方法2：如果你想让按钮直接消失，用 item->setVisible(false);
     }
 
-    // B. 获取屏幕尺寸
+    // 获取屏幕尺寸
     auto visibleSize = Director::getInstance()->getVisibleSize();
 
-    // C. 创建“正在加载”的提示（这里用文字演示，也可以换成转圈圈的图片）
+    // 创建“正在加载”的提示文字
     auto loadingLabel = Label::createWithSystemFont("Loading...", "Arial", 48);
     loadingLabel->setPosition(visibleSize / 2); // 放在屏幕中间
     loadingLabel->setColor(Color3B::WHITE);     // 设置颜色
     this->addChild(loadingLabel, 100);          // 层级设高一点，确保在最上层
 
-    // D. (可选) 给加载文字加个闪烁动画，看起来更生动
+    // 给加载文字加个闪烁动画
     auto fadeAction = Sequence::create(FadeOut::create(0.5f), FadeIn::create(0.5f), nullptr);
     loadingLabel->runAction(RepeatForever::create(fadeAction));
 
-    // E. 【核心】开启一个定时器，延迟 2.0秒 后执行 enterMainMode 函数
-    // 这里的 2.0f 是延迟时间，你可以根据需要修改
+    // 开启定时器，延迟 2.0 秒后执行 enterMainMode 函数
     this->scheduleOnce(CC_SCHEDULE_SELECTOR(Load::enterMainMode), 2.0f);
 }
 
-// 2. 实现真正的场景切换逻辑
+// 定时器回调：执行场景切换
 void Load::enterMainMode(float dt)
 {
-    // 这里才是真正切换场景的地方
+    // 切换到主场景
     Director::getInstance()->replaceScene(MainMode::createScene());
 }

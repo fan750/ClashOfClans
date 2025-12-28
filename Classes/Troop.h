@@ -1,4 +1,3 @@
-// Troop.h
 #ifndef __TROOP_H__
 #define __TROOP_H__
 
@@ -6,7 +5,7 @@
 #include "Building.h"
 #include <string>
 
-// 兵种类型列举（保留枚举，主要用于工厂模式create函数的索引，数据不再依赖于此）
+// 兵种类型枚举
 enum class TroopType
 {
     BARBARIAN,
@@ -19,85 +18,80 @@ enum class TroopType
 class Troop : public GameEntity
 {
 public:
-    // 移动类型枚举 (移入类内或保持全局均可，这里保持全局方便外部判断)
+    // 移动类型枚举
     enum MovementType
     {
         GROUND,
         AIR
     };
 
-    static Troop* create(TroopType type);
-    virtual ~Troop();
-    virtual bool init() override;
-    virtual void updateLogic(float dt) override;
-    virtual void onDeath() override;
-
-    // 获取类型ID (由构造函数设置)
-    TroopType getTroopType() const { return m_type; }
-    MovementType getMovementType() const { return m_movementType; }
-
-    // 获取具体数值的虚接口
-    // 这样UI层如果拿到了一个具体的对象，可以直接调用这些方法
-    virtual int getCost() const { return m_cost; }
-    virtual int getStaticTroopMinLevel() const { return m_minBarrackLevel; }
-    virtual std::string getTroopName() const = 0;
-
-    // 【核心虚接口】子类必须实现
-    virtual void initProperties() = 0;          // 初始化所有属性(数值/资源/Cost等)
-    virtual void initAnimations() = 0;         // 初始化动画资源
-
-    // 行为接口
-    virtual void acquireTarget();               // 默认索敌
-    virtual void performAttackBehavior();       // 默认攻击
-
-    // 通用逻辑
-    void moveTowardsTarget(float dt);
-    void attackTarget(float dt);
-
-    // 【新增】静态配置表（存储各兵种的基础数据）
-    static std::map<TroopType, std::string> s_staticNames;
-    static std::map<TroopType, int> s_staticCosts;
-    static std::map<TroopType, int> s_staticMinLevels;
-
-    // 初始化静态数据表（在构造函数中调用或通过静态初始化器）
-    static void initStaticData();
-
-    // 【保留】静态获取接口（现在改为查表，不再创建对象）
-    static std::string getStaticTroopName(TroopType type);
-    static int getStaticTroopCost(TroopType type);
-    static int getStaticTroopMinLevel(TroopType type);
-
-    void rescaleStatsForLevel(int level);
-
 protected:
-    Troop();
+    // 兵种属性成员变量
+    TroopType m_type;            // 兵种类型
+    MovementType m_movementType; // 移动类型
+    int m_cost;                  // 兵种Cost值
+    int m_minBarrackLevel;       // 最低需要的军营等级
+    float m_moveSpeed;           // 移动速度
+    float m_attackRange;         // 攻击范围
+    int m_damage;                // 攻击力
+    float m_attackInterval;      // 攻击间隔
+    float m_attackTimer;         // 攻击计时器
+    Building* m_target;          // 当前目标建筑
+    float m_baseScale;           // 基础缩放大小
+    bool m_isAttacking;          // 是否正在攻击
 
-    // 属性定义 (由子类在 initProperties 中赋值)
-    TroopType m_type;
-    MovementType m_movementType;
-    int m_cost;              // 兵种Cost值
-    int m_minBarrackLevel;   // 最低需要的军营等级
-    float m_moveSpeed;
-    float m_attackRange;
-    int m_damage;
-    float m_attackInterval;
-    float m_attackTimer;
-    Building* m_target;
+    // 等级与属性相关成员变量
+    int m_baseHp;              // 基础血量
+    int m_baseDamage;          // 基础伤害
 
-    float m_baseScale;
-    bool m_isAttacking;
+    // 资源文件名
+    std::string m_walkPlist;   // 行走动画资源文件名
+    std::string m_attackPlist; // 攻击动画资源文件名
 
-    // 资源名
-    std::string m_walkPlist;
-    std::string m_attackPlist;
+    // 内部辅助函数
+    int getLevelForType(TroopType type) const;   // 获取特定兵种的当前等级
+    float getLevelMultiplier(int level) const;   // 根据等级获取属性加成倍率
 
-    // 等级相关
-    int m_baseHp;
-    int m_baseDamage;
+public:
+    // 静态数据成员
+    static std::map<TroopType, std::string> s_staticNames;    // 静态配置表：兵种名称
+    static std::map<TroopType, int> s_staticCosts;            // 静态配置表：Cost
+    static std::map<TroopType, int> s_staticMinLevels;        // 静态配置表：最低军营等级
 
-private:
-    int getLevelForType(TroopType type) const;
-    float getLevelMultiplier(int level) const;
+    // 静态成员函数
+    static void initStaticData();                             // 初始化静态数据表
+    static std::string getStaticTroopName(TroopType type);    // 获取静态兵种名称
+    static int getStaticTroopCost(TroopType type);            // 获取静态兵种Cost
+    static int getStaticTroopMinLevel(TroopType type);        // 获取静态兵种最低军营等级
+    static Troop* create(TroopType type);                     // 工厂方法：创建兵种
+
+    // 构造与析构
+    Troop();                                                  // 构造函数
+    virtual ~Troop();                                         // 析构函数
+
+    // 生命周期函数
+    virtual bool init() override;                             // 初始化
+    virtual void updateLogic(float dt) override;              // 更新逻辑
+    virtual void onDeath() override;                          // 死亡逻辑
+
+    // 获取属性接口
+    TroopType getTroopType() const { return m_type; }               // 获取兵种类型
+    MovementType getMovementType() const { return m_movementType; } // 获取移动类型
+
+    // 虚函数接口
+    virtual int getStaticTroopMinLevel() const { return m_minBarrackLevel; } // 获取最低军营等级
+    virtual std::string getTroopName() const = 0;                            // 获取兵种名称 (纯虚函数)
+    virtual void initProperties() = 0;                                       // 初始化属性 (纯虚函数)
+    virtual void initAnimations() = 0;                                       // 初始化动画 (纯虚函数)
+
+    // 行为逻辑接口
+    virtual void acquireTarget();          // 索敌逻辑 (虚函数)
+    virtual void performAttackBehavior();  // 攻击行为 (虚函数)
+    void moveTowardsTarget(float dt);      // 向目标移动
+    void attackTarget(float dt);           // 攻击目标
+
+    // 升级逻辑
+    void rescaleStatsForLevel(int level);  // 根据等级重新计算属性
 };
 
 #endif // __TROOP_H__

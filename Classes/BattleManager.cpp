@@ -1,13 +1,16 @@
-//BattleManager.cpp
 #include "BattleManager.h"
 #include "Troop.h"
 #include "GameManager.h"
 #include "Building.h"
 USING_NS_CC;
 
+// 定义静态成员变量
 BattleManager* BattleManager::s_instance = nullptr;
+
+// 构造函数
 BattleManager::BattleManager() {}
 
+// 获取单例实例
 BattleManager* BattleManager::getInstance()
 {
     if (!s_instance)
@@ -17,6 +20,7 @@ BattleManager* BattleManager::getInstance()
     return s_instance;
 }
 
+// 添加建筑到管理列表
 void BattleManager::addBuilding(Building* building)
 {
     if (!m_buildings.contains(building))
@@ -25,6 +29,7 @@ void BattleManager::addBuilding(Building* building)
     }
 }
 
+// 从管理列表中移除建筑
 void BattleManager::removeBuilding(Building* building)
 {
     if (m_buildings.contains(building))
@@ -33,6 +38,7 @@ void BattleManager::removeBuilding(Building* building)
     }
 }
 
+// 查找距离指定位置最近的建筑
 Building* BattleManager::findClosestBuilding(Vec2 position)
 {
     Building* closestNode = nullptr;
@@ -40,9 +46,15 @@ Building* BattleManager::findClosestBuilding(Vec2 position)
 
     for (auto building : m_buildings)
     {
-        if (building->isDead()) continue;
-        //过滤掉陷阱，防止部队攻击陷阱
-        if (building->getBuildingType() == BuildingType::TRAP) continue;
+        if (building->isDead())
+        {
+            continue;
+        }
+        // 过滤掉陷阱，防止部队攻击陷阱
+        if (building->getBuildingType() == BuildingType::TRAP)
+        {
+            continue;
+        }
 
         float distance = position.distance(building->getPosition());
         if (distance < minDistance)
@@ -54,6 +66,7 @@ Building* BattleManager::findClosestBuilding(Vec2 position)
     return closestNode;
 }
 
+// 查找距离指定位置最近的指定类型建筑
 Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType type)
 {
     Building* closestNode = nullptr;
@@ -61,7 +74,10 @@ Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType t
 
     for (auto building : m_buildings)
     {
-        if (building->isDead()) continue;
+        if (building->isDead())
+        {
+            continue;
+        }
         if (building->getBuildingType() == type)
         {
             float distance = position.distance(building->getPosition());
@@ -75,6 +91,7 @@ Building* BattleManager::findClosestBuildingOfType(Vec2 position, BuildingType t
     return closestNode;
 }
 
+// 添加兵种到管理列表
 void BattleManager::addTroop(Troop* troop)
 {
     if (!m_troops.contains(troop))
@@ -83,6 +100,7 @@ void BattleManager::addTroop(Troop* troop)
     }
 }
 
+// 从管理列表中移除兵种
 void BattleManager::removeTroop(Troop* troop)
 {
     if (m_troops.contains(troop))
@@ -91,16 +109,22 @@ void BattleManager::removeTroop(Troop* troop)
     }
 }
 
+// 查找指定范围内特定移动类型的最近兵种
 Troop* BattleManager::findClosestTroop(Vec2 position, float range, Troop::MovementType typeFilter)
 {
     Troop* closestTroop = nullptr;
     float minDistance = range;
 
-    // 设置血量、阵营
     for (Troop* troop : m_troops)
     {
-        if (!troop || troop->isDead()) continue; // 跳过已死亡士兵
-        if (troop->getMovementType() != typeFilter) continue; // 关键：只找指定移动类型的兵种
+        if (!troop || troop->isDead())
+        {
+            continue; // 跳过已死亡士兵
+        }
+        if (troop->getMovementType() != typeFilter)
+        {
+            continue; // 关键：只找指定移动类型的兵种
+        }
         float distance = position.distance(troop->getPosition());
         if (distance < minDistance)
         {
@@ -111,11 +135,15 @@ Troop* BattleManager::findClosestTroop(Vec2 position, float range, Troop::Moveme
     return closestTroop;
 }
 
+// 为防御建筑寻找最佳的攻击目标（根据建筑对空对地属性）
 Troop* BattleManager::findClosestTroopForBuilding(Building* building)
 {
-    if (!building) return nullptr;
+    if (!building)
+    {
+        return nullptr;
+    }
 
-    float range = 150.0f; // 可以从建筑属性中获取，这里暂时写死
+    float range = building->getAttackRange();  // 使用建筑的实际攻击范围
     Troop* closestTroop = nullptr;
     float minDistance = range;
 
@@ -134,7 +162,10 @@ Troop* BattleManager::findClosestTroopForBuilding(Building* building)
 
     for (Troop* troop : m_troops)
     {
-        if (!troop || troop->isDead()) continue;
+        if (!troop || troop->isDead())
+        {
+            continue;
+        }
 
         // 核心过滤逻辑
         Troop::MovementType troopType = troop->getMovementType();
@@ -155,30 +186,43 @@ Troop* BattleManager::findClosestTroopForBuilding(Building* building)
     return closestTroop;
 }
 
+// 对指定范围内的所有敌对单位造成伤害
 void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
 {
     std::vector<Building*> targetsToHit;
     std::vector<Troop*> troopsToHit;
 
+    // 筛选范围内的建筑
     for (auto building : m_buildings)
     {
-        if (building->isDead()) continue;
+        if (building->isDead())
+        {
+            continue;
+        }
         if (building->getPosition().distance(center) <= radius)
         {
             targetsToHit.push_back(building);
         }
     }
 
+    // 筛选范围内的兵种（排除空军）
     for (auto troop : m_troops)
     {
-        if (!troop || troop->isDead()) continue;
-        if (troop->getMovementType() == Troop::MovementType::AIR) continue;
+        if (!troop || troop->isDead())
+        {
+            continue;
+        }
+        if (troop->getMovementType() == Troop::MovementType::AIR)
+        {
+            continue;
+        }
         if (troop->getPosition().distance(center) <= radius)
         {
             troopsToHit.push_back(troop);
         }
     }
 
+    // 对建筑造成伤害
     for (auto building : targetsToHit)
     {
         if (!building->isDead())
@@ -187,6 +231,7 @@ void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
         }
     }
 
+    // 对兵种造成伤害
     for (auto troop : troopsToHit)
     {
         if (troop && !troop->isDead())
@@ -196,6 +241,7 @@ void BattleManager::dealAreaDamage(Vec2 center, float radius, int damage)
     }
 }
 
+// 初始化可投放兵种数据
 void BattleManager::initAvailableTroops(const std::map<TroopType, int>& availableTroops)
 {
     m_availableTroops = availableTroops;
@@ -223,19 +269,19 @@ bool BattleManager::canDeployTroop(TroopType type)
     return false;
 }
 
-// 投放兵种（减少可用数量）
+// 投放兵种（减少可用数量，增加已投放数量）
 void BattleManager::deployTroop(TroopType type)
 {
     auto it = m_availableTroops.find(type);
     if (it != m_availableTroops.end() && it->second > 0)
     {
         it->second--;
-        //增加已投放数量
+        // 增加已投放数量
         m_deployedTroops[type]++;
     }
 }
 
-// 记录士兵死亡
+// 记录士兵死亡（减少已投放数量）
 void BattleManager::onTroopDied(TroopType type)
 {
     auto it = m_deployedTroops.find(type);
@@ -291,7 +337,7 @@ std::map<TroopType, int> BattleManager::getDeathCounts() const
     return deathCounts;
 }
 
-// 获取指定兵种的剩余数量
+// 获取指定兵种的剩余可投放数量
 int BattleManager::getAvailableTroopCount(TroopType type)
 {
     auto it = m_availableTroops.find(type);
@@ -308,30 +354,39 @@ const std::map<TroopType, int>& BattleManager::getAllAvailableTroops() const
     return m_availableTroops;
 }
 
+// 获取场上所有兵种的引用
 const Vector<Troop*>& BattleManager::getTroops() const
 {
     return m_troops;
 }
 
+// 获取场上所有建筑的引用
 const Vector<Building*>& BattleManager::getBuildings() const
 {
     return m_buildings;
 }
 
+// 根据等级重新调整场上特定类型兵种的属性
 void BattleManager::rescaleTroopsForType(TroopType type, int level)
 {
     for (Troop* troop : m_troops)
     {
-        if (!troop || troop->isDead()) continue;
-        if (troop->getTroopType() != type) continue;
+        if (!troop || troop->isDead())
+        {
+            continue;
+        }
+        if (troop->getTroopType() != type)
+        {
+            continue;
+        }
         troop->rescaleStatsForLevel(level);
     }
 }
 
+// 清空所有数据（战斗结束或重置时调用）
 void BattleManager::clear()
 {
     m_buildings.clear();
-
     m_troops.clear();
 
     // 清空可部署列表
@@ -340,12 +395,19 @@ void BattleManager::clear()
     m_initialTroops.clear();
 }
 
+// 查找指定位置附近的指定类型建筑（用于存档恢复或升级任务匹配）
 Building* BattleManager::findBuildingAtPosition(Vec2 position, BuildingType type, float tolerance)
 {
     for (auto building : m_buildings)
     {
-        if (!building || building->isDead()) continue;
-        if (building->getBuildingType() != type) continue;
+        if (!building || building->isDead())
+        {
+            continue;
+        }
+        if (building->getBuildingType() != type)
+        {
+            continue;
+        }
         if (building->getPosition().distance(position) <= tolerance)
         {
             return building;

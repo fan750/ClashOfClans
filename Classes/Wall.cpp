@@ -1,8 +1,8 @@
-// Wall.cpp
 #include "Wall.h"
 
 USING_NS_CC;
 
+// 工厂方法：创建围墙对象
 Wall* Wall::create()
 {
     Wall* pRet = new(std::nothrow) Wall();
@@ -15,23 +15,24 @@ Wall* Wall::create()
     return nullptr;
 }
 
+// 初始化建筑属性
 void Wall::initBuildingProperties()
 {
-    // 1. 外观
+    // 设置外观
     std::string filename = "Wall.png";
     this->setTexture(filename);
 
-    // 2. 属性（高血量）
+    // 设置属性（高血量）
     int hp = 1000;
     this->setProperties(hp, CampType::PLAYER);
 
-    // 3. 血条设置：墙很矮，血条位置要调整，可能还需要更细更短
+    // 设置血条样式（墙较矮，需调整位置和尺寸）
     m_hpBarWidth = 2.0f;
     m_hpBarHeight = 2.0f;
     this->setHpBarOffsetY(-300.0f); // 向下偏移
     this->setHpBarOffsetX(-220.0f);
 
-    // 4. 缩放
+    // 计算缩放比例
     float targetSize = 150.0f;
     Size contentSize = this->getContentSize();
     if (contentSize.width > 0)
@@ -40,7 +41,7 @@ void Wall::initBuildingProperties()
         m_baseScale = this->getScale();
     }
 
-    // 5. 无生产，无攻击
+    // 设置无生产、无攻击
     m_productionRate = 0;
     m_attackRange = 0;
 }

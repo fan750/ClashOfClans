@@ -1,20 +1,23 @@
-// Barracks.cpp
 #include "Barracks.h"
 #include "GameManager.h"
 #include "BattleManager.h"
 #include "Troop.h"
 USING_NS_CC;
 
-const std::map<int, Barracks::BarrackUpgradeConfig>& Barracks::getBarrackUpgradeConfigs() {
-    static std::map<int, BarrackUpgradeConfig> configs = {
-        {0, {0, 0}},                              // 未建造/初始化
-        {1, {0, 10}},                             // 一级：免费，Cost上限 10
-        {2, {500, 25}},                           // 二级：500金币，Cost上限 25
-        {3, {1000, 50}}                           // 三级：1000金币，Cost上限 50
+// 获取军营升级配置表
+const std::map<int, Barracks::BarrackUpgradeConfig>& Barracks::getBarrackUpgradeConfigs()
+{
+    static std::map<int, BarrackUpgradeConfig> configs =
+    {
+        {0, {0, 0}},       // 未建造/初始化
+        {1, {0, 10}},      // 一级：免费，Cost上限 10
+        {2, {500, 25}},    // 二级：500金币，Cost上限 25
+        {3, {1000, 50}}    // 三级：1000金币，Cost上限 50
     };
     return configs;
 }
 
+// 构造函数
 Barracks::Barracks()
 {
     Troop::initStaticData();
@@ -24,6 +27,7 @@ Barracks::Barracks()
     m_currentCostUsed = 0;
 }
 
+// 工厂方法：创建军营对象
 Barracks* Barracks::create()
 {
     Barracks* pRet = new(std::nothrow) Barracks();
@@ -36,31 +40,31 @@ Barracks* Barracks::create()
     return nullptr;
 }
 
-// 重写 activateBuilding，在建筑完全放置到场景后再更新 Cost
+// 激活建筑
 void Barracks::activateBuilding()
 {
     // 调用父类的激活方法
     Building::activateBuilding();
-
 }
 
+// 初始化建筑属性
 void Barracks::initBuildingProperties()
 {
-    // 1. 外观
+    // 设置外观
     std::string filename = "Barracks.png";
     this->setTexture(filename);
 
-    // 2. 属性
+    // 设置属性
     int hp = 800;
     this->setProperties(hp, CampType::PLAYER);
 
-    // 3. 血条设置
+    // 设置血条样式与偏移
     m_hpBarWidth = 5.0f;
     m_hpBarHeight = 4.0f;
     this->setHpBarOffsetX(40.0f);
     this->setHpBarOffsetY(280.0f);
 
-    // 4. 缩放
+    // 计算缩放比例
     float targetSize = 150.0f;
     Size contentSize = this->getContentSize();
     if (contentSize.width > 0)
@@ -69,24 +73,30 @@ void Barracks::initBuildingProperties()
         m_baseScale = this->getScale();
     }
 
-    // 5. 初始化军营数据
+    // 初始化军营数据
     // 默认创建为 1 级
     m_barrackLevel = 1;
-    const auto& configs = getBarrackUpgradeConfigs(); // 使用函数获取配置
-    if (configs.find(1) != configs.end()) {
+    const auto& configs = getBarrackUpgradeConfigs(); // 获取配置
+    if (configs.find(1) != configs.end())
+    {
         m_maxCostLimit = configs.at(1).maxCostLimit;
     }
     m_currentCostUsed = 0;
 }
 
+// 设置军营等级（用于存档恢复）
 void Barracks::setBarrackLevel(int level)
 {
-    if (level < 0 || level > 3) return;
+    if (level < 0 || level > 3)
+    {
+        return;
+    }
     m_barrackLevel = level;
 
     // 根据等级设置 Cost 上限
-    const auto& configs = getBarrackUpgradeConfigs(); // 使用函数获取配置
-    if (configs.find(level) != configs.end()) {
+    const auto& configs = getBarrackUpgradeConfigs(); // 获取配置
+    if (configs.find(level) != configs.end())
+    {
         m_maxCostLimit = configs.at(level).maxCostLimit;
     }
 
@@ -94,13 +104,15 @@ void Barracks::setBarrackLevel(int level)
     updateCurrentCostUsed();
 }
 
+// 更新当前 Cost 使用量
 void Barracks::updateCurrentCostUsed()
 {
     m_currentCostUsed = 0;
     auto gm = GameManager::getInstance();
 
     // 遍历所有兵种类型，计算 Cost
-    std::vector<TroopType> troopTypes = {
+    std::vector<TroopType> troopTypes = 
+    {
         TroopType::BARBARIAN,
         TroopType::ARCHER,
         TroopType::GIANT,
@@ -108,27 +120,31 @@ void Barracks::updateCurrentCostUsed()
         TroopType::DRAGON
     };
 
-    for (auto type : troopTypes) {
+    for (auto type : troopTypes)
+    {
         int troopCost = Troop::getStaticTroopCost(type);
         int troopCount = gm->getTroopCount(type);
         m_currentCostUsed += troopCost * troopCount;
     }
 
-    CCLOG("Barracks: Cost Used %d / %d", m_currentCostUsed, m_maxCostLimit);
-
     // 发送事件通知 UI 更新
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_COST_UPDATED");
 }
 
+// 检查是否可以升级军营
 bool Barracks::canUpgradeBarrack() const
 {
     // 达到最高级 3
-    if (m_barrackLevel >= 3) return false;
+    if (m_barrackLevel >= 3)
+    {
+        return false;
+    }
 
     // 检查下一级的配置
     int nextLevel = m_barrackLevel + 1;
-    const auto& configs = getBarrackUpgradeConfigs(); // 使用函数获取配置
-    if (configs.find(nextLevel) != configs.end()) {
+    const auto& configs = getBarrackUpgradeConfigs(); // 获取配置
+    if (configs.find(nextLevel) != configs.end())
+    {
         int upgradeCost = configs.at(nextLevel).goldCost;
         int currentGold = GameManager::getInstance()->getGold();
         return currentGold >= upgradeCost;
@@ -136,32 +152,37 @@ bool Barracks::canUpgradeBarrack() const
     return false;
 }
 
+// 执行军营升级
 void Barracks::upgradeBarrack()
 {
-    if (!canUpgradeBarrack()) return;
+    if (!canUpgradeBarrack())
+    {
+        return;
+    }
 
     int nextLevel = m_barrackLevel + 1;
-    const auto& configs = getBarrackUpgradeConfigs(); // 使用函数获取配置
+    const auto& configs = getBarrackUpgradeConfigs(); // 获取配置
     auto config = configs.at(nextLevel);
 
-    // 1. 扣除升级费用
+    // 扣除升级费用
     GameManager::getInstance()->addGold(-config.goldCost);
 
-    // 2. 更新内部等级和上限
+    // 更新内部等级和上限
     m_barrackLevel = nextLevel;
     m_maxCostLimit = config.maxCostLimit;
 
-    CCLOG("Barracks upgraded to level %d, new cost limit: %d", m_barrackLevel, m_maxCostLimit);
+    // 更新 GameManager 中的存档数据
+    GameManager::getInstance()->updateBarrackLevel(this->getPosition(), m_barrackLevel);
 
-    // 3. 重新计算当前 Cost
+    // 重新计算当前 Cost
     updateCurrentCostUsed();
 
-    // 4. 播放简单的视觉反馈
+    // 播放简单的视觉反馈（缩放弹跳）
     auto scaleUp = ScaleTo::create(0.2f, this->getScale() * 1.2f);
     auto scaleDown = ScaleTo::create(0.2f, this->getScale());
     this->runAction(Sequence::create(scaleUp, scaleDown, nullptr));
 
-    // 5. 发送事件通知 UI（按钮状态更新、解锁状态更新）
+    // 发送事件通知 UI（按钮状态更新、解锁状态更新）
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_BARRACK_UPGRADED");
     Director::getInstance()->getEventDispatcher()->dispatchCustomEvent("EVENT_COST_UPDATED");
 }

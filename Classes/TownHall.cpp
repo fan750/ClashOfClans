@@ -1,9 +1,9 @@
-// TownHall.cpp
 #include "TownHall.h"
 #include "GameManager.h"
 
 USING_NS_CC;
 
+// 工厂方法：创建大本营对象
 TownHall* TownHall::create()
 {
     TownHall* pRet = new(std::nothrow) TownHall();
@@ -16,28 +16,33 @@ TownHall* TownHall::create()
     return nullptr;
 }
 
+// 初始化
 bool TownHall::init()
 {
-    if (!Building::init()) return false;
+    if (!Building::init())
+    {
+        return false;
+    }
     return true;
 }
 
+// 初始化建筑属性
 void TownHall::initBuildingProperties()
 {
-    // 1. 设置外观和基础属性
+    // 设置外观和基础属性
     std::string filename = "TownHall.png";
     this->setTexture(filename);
 
     int hp = 2000; // 大本营基础血量
     this->setProperties(hp, CampType::PLAYER); // 设置HP和阵营
 
-    // 2. 设置血条尺寸和偏移（原代码中的逻辑）
+    // 设置血条尺寸和偏移
     m_hpBarWidth = 5.0f;
     m_hpBarHeight = 4.0f;
     this->setHpBarOffsetX(-40.0f);
     this->setHpBarOffsetY(180.0f);
 
-    // 3. 设置缩放比例（假设标准大小为 150）
+    // 设置缩放比例（假设标准大小为 150）
     float targetSize = 150.0f;
     Size contentSize = this->getContentSize();
     if (contentSize.width > 0)
@@ -52,14 +57,13 @@ void TownHall::initBuildingProperties()
     m_currentStored = 0;
 }
 
+// 升级完成回调：增加全局大本营等级
 void TownHall::onUpgradeFinished()
 {
-    // 1. 先调用基类的通用升级逻辑（播放动画、加血等）
+    // 先调用基类的通用升级逻辑（播放动画、加血等）
     Building::onUpgradeFinished();
 
-    // 2. 执行大本营特有的逻辑：提升全局大本营等级
+    // 执行大本营特有的逻辑：提升全局大本营等级
     int currentLevel = GameManager::getInstance()->getTown_Hall_Level();
     GameManager::getInstance()->setTown_Hall_Level(currentLevel + 1);
-
-    CCLOG("Town Hall upgraded to Level %d", currentLevel + 1);
 }

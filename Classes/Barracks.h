@@ -1,4 +1,3 @@
-// Barracks.h
 #ifndef __BARRACKS_H__
 #define __BARRACKS_H__
 
@@ -8,46 +7,43 @@
 
 class Barracks : public Building
 {
-public:
+private:
     // 军营升级配置结构
-    struct BarrackUpgradeConfig {
-        int goldCost;            // 升级费用
+    struct BarrackUpgradeConfig
+    {
+        int goldCost;            // 升级所需金币费用
         int maxCostLimit;        // 升级后的 Cost 上限
     };
 
-    Barracks();
-    virtual ~Barracks() = default;
+    // 成员变量
+    int m_barrackLevel;          // 当前军营等级 (0-3)
+    int m_currentCostUsed;       // 当前已使用的 Cost
+    int m_maxCostLimit;          // 当前允许的最大 Cost 上限
 
-    static Barracks* create();
-
-    void activateBuilding() override;
-
-    // 获取军营功能数据
-    int getBarrackLevel() const { return m_barrackLevel; }
-    int getCurrentCostUsed() const { return m_currentCostUsed; }
-    int getMaxCostLimit() const { return m_maxCostLimit; }
-
-    // 设置军营等级（用于读取存档）
-    void setBarrackLevel(int level);
-
-    // 更新当前使用的 Cost（当招募/消耗兵种时调用）
-    void updateCurrentCostUsed();
-
-    // 检查是否可以升级军营
-    bool canUpgradeBarrack() const;
-
-    // 执行军营升级（消耗金币，提升 Cost 上限）
-    void upgradeBarrack();
+    // 私有静态辅助函数
+    static const std::map<int, BarrackUpgradeConfig>& getBarrackUpgradeConfigs(); // 获取升级配置表
 
 protected:
-    virtual void initBuildingProperties() override;
+    virtual void initBuildingProperties() override; // 初始化建筑属性
 
-private:
-    int m_barrackLevel;          // 军营等级（0-3）
-    int m_currentCostUsed;       // 当前使用的 Cost
-    int m_maxCostLimit;          // 当前 Cost 上限
+public:
+    Barracks();                                    // 构造函数
+    virtual ~Barracks() = default;                 // 析构函数
+    static Barracks* create();                     // 工厂方法：创建军营对象
+    void activateBuilding() override;              // 激活建筑
 
-    static const std::map<int, BarrackUpgradeConfig>& getBarrackUpgradeConfigs();
+    // 获取属性接口
+    int getBarrackLevel() const { return m_barrackLevel; }         // 获取军营等级
+    int getCurrentCostUsed() const { return m_currentCostUsed; }   // 获取当前 Cost 使用量
+    int getMaxCostLimit() const { return m_maxCostLimit; }         // 获取 Cost 上限
+
+    // 设置属性接口
+    void setBarrackLevel(int level);    // 设置军营等级（用于存档恢复）
+    void updateCurrentCostUsed();       // 更新当前 Cost 使用量
+
+    // 升级逻辑接口
+    bool canUpgradeBarrack() const;     // 检查是否可以升级军营
+    void upgradeBarrack();              // 执行军营升级逻辑
 };
 
 #endif // __BARRACKS_H__

@@ -1,4 +1,3 @@
-// Wall.h
 #ifndef __WALL_H__
 #define __WALL_H__
 
@@ -6,13 +5,12 @@
 
 class Wall : public Building
 {
-public:
-    static Wall* create();
-
 protected:
-    virtual void initBuildingProperties() override;
-    // 重写 updateLogic，围墙不需要每帧逻辑（基类默认实现为空，不重写也可）
-    virtual void updateLogic(float dt) override {}
+    virtual void initBuildingProperties() override; // 初始化建筑属性（外观、HP等）
+    virtual void updateLogic(float dt) override {}  // 重写更新逻辑：围墙不需要每帧逻辑
+
+public:
+    static Wall* create(); // 工厂方法：创建围墙对象
 };
 
 #endif // __WALL_H__

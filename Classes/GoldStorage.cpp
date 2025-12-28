@@ -1,9 +1,9 @@
-// GoldStorage.cpp
 #include "GoldStorage.h"
 #include "GameManager.h"
 
 USING_NS_CC;
 
+// 工厂方法：创建储金罐对象
 GoldStorage* GoldStorage::create()
 {
     GoldStorage* pRet = new(std::nothrow) GoldStorage();
@@ -16,23 +16,24 @@ GoldStorage* GoldStorage::create()
     return nullptr;
 }
 
+// 初始化建筑属性
 void GoldStorage::initBuildingProperties()
 {
-    // 1. 外观
+    // 设置外观
     std::string filename = "GoldStorage.png";
     this->setTexture(filename);
 
-    // 2. 属性
+    // 设置属性
     int hp = 600;
     this->setProperties(hp, CampType::PLAYER);
 
-    // 3. 血条设置
+    // 设置血条样式与偏移
     m_hpBarWidth = 5.0f;
     m_hpBarHeight = 4.0f;
     this->setHpBarOffsetX(300.0f);
     this->setHpBarOffsetY(880.0f);
 
-    // 4. 缩放
+    // 计算缩放比例
     float targetSize = 150.0f;
     Size contentSize = this->getContentSize();
     if (contentSize.width > 0)
@@ -41,19 +42,18 @@ void GoldStorage::initBuildingProperties()
         m_baseScale = this->getScale();
     }
 
-    // 5. 无生产，无攻击
+    // 设置生产速率为0（存储建筑不生产）
     m_productionRate = 0;
 
 }
 
+// 升级完成回调：增加全局金币容量
 void GoldStorage::onUpgradeFinished()
 {
-    // 1. 执行基类的通用升级逻辑（回血、变大、播放动画）
+    // 执行基类通用升级逻辑
     Building::onUpgradeFinished();
 
-    // 2. 执行特有逻辑：增加金币容量
+    // 增加金币容量
     int current_max = GameManager::getInstance()->getMaxGold();
     GameManager::getInstance()->modifyMaxGold(current_max + 500);
-
-    CCLOG("Gold Storage Upgraded. Max Gold: %d", GameManager::getInstance()->getMaxGold());
 }

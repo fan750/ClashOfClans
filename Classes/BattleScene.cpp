@@ -1,4 +1,3 @@
- //BattleScene.cpp
 #include "BattleScene.h"
 #include "MainModeScene.h"
 #include "BattleManager.h"
@@ -9,33 +8,41 @@
 USING_NS_CC;
 using namespace ui; // 使用 UI 命名空间
 
-Scene* BattleScene::createScene(int levelIndex) {
-    // 1. 先创建场景对象 (内部调用 init)
+// 创建场景并加载指定关卡
+Scene* BattleScene::createScene(int levelIndex)
+{
+    // 创建场景对象 (内部调用 init)
     auto scene = BattleScene::create();
 
-    // 2. 如果创建成功，加载对应关卡的数据
+    // 如果创建成功，加载对应关卡的数据
     // dynamic_cast 用于安全转换，确保 scene 是 BattleScene 类型
-    if (auto battleScene = dynamic_cast<BattleScene*>(scene)) {
+    if (auto battleScene = dynamic_cast<BattleScene*>(scene))
+    {
         battleScene->loadLevel(levelIndex);
     }
 
     return scene;
 }
 
+// 初始化战斗场景
 bool BattleScene::init()
 {
-    if (!Scene::init()) return false;
+    if (!Scene::init())
+    {
+        return false;
+    }
 
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
+    // 加载背景图
     auto background = Sprite::create("battleback1.png");
 
     if (background)
     {
-        // 2. 放在屏幕正中间
+        // 放在屏幕正中间
         background->setPosition(visibleSize / 2);
 
-        // 3.自动缩放以铺满屏幕
+        // 自动缩放以铺满屏幕
         // 获取图片原始大小
         Size bgSize = background->getContentSize();
 
@@ -47,11 +54,8 @@ bool BattleScene::init()
         float finalScale = std::max(scaleX, scaleY);
         background->setScale(finalScale);
 
-        // 4. 放在最底层 (ZOrder = -99)
+        // 放在最底层 (ZOrder = -99)
         this->addChild(background, -99);
-    }
-    else {
-        CCLOG("Error: Background image not found!");
     }
 
     // 添加投放区域可视化 - 中央禁放区域
@@ -64,7 +68,8 @@ bool BattleScene::init()
     float topEdge = visibleSize.height * 0.8f;
 
     // 绘制半透明红色矩形表示禁放区域
-    Vec2 vertices[] = {
+    Vec2 vertices[] = 
+    {
         Vec2(leftEdge, bottomEdge),
         Vec2(rightEdge, bottomEdge),
         Vec2(rightEdge, topEdge),
@@ -75,7 +80,7 @@ bool BattleScene::init()
     m_deployAreaVisual->drawPolygon(vertices, 4, Color4F(1.0f, 0.0f, 0.0f, 0.2f), 2, Color4F(1.0f, 0.0f, 0.0f, 0.5f));
     this->addChild(m_deployAreaVisual, -1); // 放在最底层
 
-    // 1. 初始化数据
+    // 初始化战斗管理器与数据
     BattleManager::getInstance()->clear();
     m_selectedType = TroopType::BARBARIAN; // 默认选野蛮人
 
@@ -89,18 +94,18 @@ bool BattleScene::init()
     availableTroops[TroopType::DRAGON] = gm->getTroopCount(TroopType::DRAGON);
     BattleManager::getInstance()->initAvailableTroops(availableTroops);
 
-    // 2. 布置敌人阵地 (保持不变)
+    // 布置敌人阵地 (基础配置)
     auto enemyTown = Building::create(BuildingType::TOWN_HALL);
     enemyTown->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
     this->addChild(enemyTown);
 
 
-    // 3. 创建提示文字
+    // 创建提示文字
     m_infoLabel = Label::createWithSystemFont("Selected: Barbarian", "Arial", 24);
     m_infoLabel->setPosition(Vec2(visibleSize.width / 2, 50)); // 放在底部中间
     this->addChild(m_infoLabel, 10);
 
-    // 4. 创建一排选择按钮
+    // 创建一排选择按钮
     // 参数：名字，颜色，类型，第几个(用于排版)
     createSelectButton("Barb", Color3B::GREEN, TroopType::BARBARIAN, 0);
     createSelectButton("Arch", Color3B::MAGENTA, TroopType::ARCHER, 1);
@@ -112,7 +117,7 @@ bool BattleScene::init()
     initTroopCountLabels();
     updateTroopCountLabels();
 
-    // 5. 撤退按钮 (保持不变)
+    // 添加撤退按钮
     auto backBtn = Button::create("back.png");
     backBtn->setScale(0.3f);
     backBtn->setPosition(Vec2(50, visibleSize.height - 50));
@@ -127,7 +132,7 @@ bool BattleScene::init()
     );
     this->addChild(backBtn);
 
-    // 6. 触摸监听
+    // 添加触摸监听
     auto listener = EventListenerTouchOneByOne::create();
     listener->onTouchBegan = CC_CALLBACK_2(BattleScene::onTouchBegan, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
@@ -137,15 +142,17 @@ bool BattleScene::init()
     return true;
 }
 
+// 每帧更新
 void BattleScene::update(float dt)
 {
     // 每帧都调用胜负检查
     checkBattleEnd();
 }
 
+// 检查战斗结束条件（胜利或失败）
 void BattleScene::checkBattleEnd()
 {
-    // 1. 检查胜利条件：敌方大本营是否被摧毁
+    // 检查胜利条件：敌方大本营是否被摧毁
     bool townHallDestroyed = true;
     for (auto building : BattleManager::getInstance()->getBuildings())
     {
@@ -158,8 +165,23 @@ void BattleScene::checkBattleEnd()
 
     if (townHallDestroyed)
     {
-        CCLOG("VICTORY!");
         this->unscheduleUpdate(); // 停止检查
+
+        // 胜利奖励逻辑开始
+        int goldReward = 0;
+        int elixirReward = 0;
+
+        switch (m_levelIndex)
+        {
+        case 1:     goldReward = 200;   elixirReward = 200;    break;
+        case 2:     goldReward = 500;   elixirReward = 500;    break;
+        case 3:     goldReward = 1000;  elixirReward = 1000;   break;
+        default:    goldReward = 200;   elixirReward = 200;    break;
+        }
+
+        // 发放奖励
+        GameManager::getInstance()->addGold(goldReward);
+        GameManager::getInstance()->addElixir(elixirReward);
 
         // 显示胜利提示
         auto visibleSize = Director::getInstance()->getVisibleSize();
@@ -178,20 +200,25 @@ void BattleScene::checkBattleEnd()
                 nullptr
             ));
         }
-        else
-        {
-            CCLOG("Error: victory.png not found!");
-        }
+
+        // 显示奖励文字
+        std::string rewardText = "Reward: " + std::to_string(goldReward) + " Gold, " + std::to_string(elixirReward) + " Elixir";
+        auto rewardLabel = Label::createWithSystemFont(rewardText, "Arial", 36);
+        rewardLabel->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.65f)); // 放在胜利图标下方
+        rewardLabel->setTextColor(Color4B::YELLOW);
+        rewardLabel->enableOutline(Color4B::BLACK, 2); // 黑色描边
+        this->addChild(rewardLabel, 1001);
 
         // 2秒后返回主界面
-        this->scheduleOnce([=](float dt) {
-            this->onBattleEnd(); // 同步死亡兵数
-            Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
+        this->scheduleOnce([=](float dt)
+            {
+                this->onBattleEnd(); // 同步死亡兵数
+                Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
             }, 2.0f, "ReturnToMain");
         return;
     }
 
-    // 2. 检查失败条件
+    // 检查失败条件
     // 条件：无可部署士兵 && 场上无存活士兵
     bool canDeployAny = false;
     auto availableTroops = BattleManager::getInstance()->getAllAvailableTroops();
@@ -216,7 +243,6 @@ void BattleScene::checkBattleEnd()
 
     if (!canDeployAny && !anyTroopAlive)
     {
-        CCLOG("DEFEAT!");
         this->unscheduleUpdate(); // 停止检查
 
         // 显示失败提示
@@ -231,27 +257,24 @@ void BattleScene::checkBattleEnd()
 
             // 添加弹出动画
             loseSprite->runAction(Sequence::create(
-                EaseBackOut::create(ScaleTo::create(0.4f,0.6f)), // 使用回弹缓动效果
+                EaseBackOut::create(ScaleTo::create(0.4f, 0.6f)), // 使用回弹缓动效果
                 nullptr
             ));
-        }
-        else
-        {
-            CCLOG("Error: defeat.png not found!");
         }
 
         // 2秒后返回主界面
         this->scheduleOnce
-        ([=](float dt) 
+        ([=](float dt)
             {
-            this->onBattleEnd(); // 同步死亡兵数
-            Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
+                this->onBattleEnd(); // 同步死亡兵数
+                Director::getInstance()->replaceScene(TransitionFade::create(1.0f, MainMode::createScene()));
             }, 2.0f, "ReturnToMain"
         );
         return;
     }
 }
 
+// 战斗结束时的数据同步
 void BattleScene::onBattleEnd()
 {
     // 获取战斗中死亡的兵种数量
@@ -376,34 +399,41 @@ void BattleScene::createSelectButton(const std::string& title, Color3B color, Tr
     btn->setPosition(Vec2(visibleSize.width - 300 + index * 60, 50));
 
     // 点击逻辑
-    btn->addClickEventListener([=](Ref*) {
-        // 1. 更新选中的类型
-        m_selectedType = type;
+    btn->addClickEventListener([=](Ref*)
+        {
+            // 更新选中的类型
+            m_selectedType = type;
 
-        // 2. 更新文字提示
-        m_infoLabel->setString("Selected: " + title);
-        m_infoLabel->setColor(color);
+            // 更新文字提示
+            m_infoLabel->setString("Selected: " + title);
+            m_infoLabel->setColor(color);
         });
 
     this->addChild(btn, 10); // ZOrder设为10，防止被兵种遮挡
 }
 
-bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
+// 处理触摸事件（投放兵种）
+bool BattleScene::onTouchBegan(Touch* touch, Event* event)
+{
     Vec2 touchLoc = touch->getLocation();
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 如果点击到了按钮区域（屏幕下方 80 像素内），就不放兵，防止误触
-    if (touchLoc.y < 80) return false;
+    if (touchLoc.y < 80)
+    {
+        return false;
+    }
 
-    // 【修改】检查投放区域限制 - 中央区域禁放
+    // 检查投放区域限制 - 中央区域禁放
     float leftEdge = visibleSize.width * 0.25f;
     float rightEdge = visibleSize.width * 0.75f;
     float bottomEdge = visibleSize.height * 0.25f;
     float topEdge = visibleSize.height * 0.75f;
 
-    // 【关键修改】如果触摸位置在中央禁放区域内，则不允许投放
+    // 如果触摸位置在中央禁放区域内，则不允许投放
     if (touchLoc.x >= leftEdge && touchLoc.x <= rightEdge &&
-        touchLoc.y >= bottomEdge && touchLoc.y <= topEdge) {
+        touchLoc.y >= bottomEdge && touchLoc.y <= topEdge)
+    {
 
         // 显示提示信息
         m_infoLabel->setString("Cannot deploy in red area!");
@@ -412,22 +442,23 @@ bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
         // 闪烁禁放区域作为提示
         m_deployAreaVisual->runAction(Sequence::create(
             Blink::create(0.4f, 2),
-            CallFunc::create([this]() {
-                // 确保恢复原始颜色
-                m_deployAreaVisual->clear();
-                // 重新绘制红色禁放区域
-                Size visibleSize = Director::getInstance()->getVisibleSize();
-                float leftEdge = visibleSize.width * 0.2f;
-                float rightEdge = visibleSize.width * 0.8f;
-                float bottomEdge = visibleSize.height * 0.2f;
-                float topEdge = visibleSize.height * 0.8f;
-                Vec2 vertices[] = {
-                    Vec2(leftEdge, bottomEdge),
-                    Vec2(rightEdge, bottomEdge),
-                    Vec2(rightEdge, topEdge),
-                    Vec2(leftEdge, topEdge)
-                };
-                m_deployAreaVisual->drawPolygon(vertices, 4, Color4F(1.0f, 0.0f, 0.0f, 0.2f), 2, Color4F(1.0f, 0.0f, 0.0f, 0.5f));
+            CallFunc::create([this]()
+                {
+                    // 确保恢复原始颜色
+                    m_deployAreaVisual->clear();
+                    // 重新绘制红色禁放区域
+                    Size visibleSize = Director::getInstance()->getVisibleSize();
+                    float leftEdge = visibleSize.width * 0.2f;
+                    float rightEdge = visibleSize.width * 0.8f;
+                    float bottomEdge = visibleSize.height * 0.2f;
+                    float topEdge = visibleSize.height * 0.8f;
+                    Vec2 vertices[] = {
+                        Vec2(leftEdge, bottomEdge),
+                        Vec2(rightEdge, bottomEdge),
+                        Vec2(rightEdge, topEdge),
+                        Vec2(leftEdge, topEdge)
+                    };
+                    m_deployAreaVisual->drawPolygon(vertices, 4, Color4F(1.0f, 0.0f, 0.0f, 0.2f), 2, Color4F(1.0f, 0.0f, 0.0f, 0.5f));
                 }),
             nullptr
         ));
@@ -437,8 +468,7 @@ bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
 
     if (!BattleManager::getInstance()->canDeployTroop(m_selectedType))
     {
-        CCLOG("No more troops of this type available!");
-        // 可以添加一个提示效果
+        // 显示提示
         m_infoLabel->setString("No more troops available!");
         m_infoLabel->setColor(Color3B::RED);
         return true;
@@ -458,6 +488,7 @@ bool BattleScene::onTouchBegan(Touch* touch, Event* event) {
     return true;
 }
 
+// 场景退出时的清理工作
 void BattleScene::onExit()
 {
     // 确保调度器被停止
@@ -473,13 +504,16 @@ void BattleScene::onExit()
 // 关卡配置逻辑
 void BattleScene::loadLevel(int levelIndex)
 {
+    // 保存关卡索引
+    m_levelIndex = levelIndex;
+
     Size visibleSize = Director::getInstance()->getVisibleSize();
     Vec2 center = visibleSize / 2;
 
 
     if (levelIndex == 1)
     {
-        // --- 第一关：新手村 ---
+        // 第一关：新手村
         // 只有 1 个大本营
         auto town = Building::create(BuildingType::TOWN_HALL);
         town->setPosition(center);
@@ -487,7 +521,7 @@ void BattleScene::loadLevel(int levelIndex)
     }
     else if (levelIndex == 2)
     {
-        // --- 第二关：初级挑战 ---
+        // 第二关：初级挑战
         // 大本营 + 1 个加农炮
         auto town = Building::create(BuildingType::TOWN_HALL);
         town->setPosition(center);
@@ -499,7 +533,7 @@ void BattleScene::loadLevel(int levelIndex)
     }
     else if (levelIndex == 3)
     {
-        // --- 第三关：攻坚战 ---
+        // 第三关：攻坚战
         // 大本营 + 2 个炮 + 围墙保护
         auto town = Building::create(BuildingType::TOWN_HALL);
         town->setPosition(center);
@@ -519,17 +553,17 @@ void BattleScene::loadLevel(int levelIndex)
         c4->setPosition(center + Vec2(-150, -50));
         this->addChild(c4);
 
-        //放两排墙
+        // 放两排墙
         for (int i = 0; i < 5; i++)
         {
             auto wall_front = Building::create(BuildingType::WALL);
-            auto wall_back= Building::create(BuildingType::WALL);
-            wall_front->setPosition(center + Vec2(i*200-400,-200));
+            auto wall_back = Building::create(BuildingType::WALL);
+            wall_front->setPosition(center + Vec2(i * 200 - 400, -200));
             wall_back->setPosition(center + Vec2(i * 200 - 400, 200));
             this->addChild(wall_front);
             this->addChild(wall_back);
         }
-        //两边也放墙
+        // 两边也放墙
         auto wall_left = Building::create(BuildingType::WALL);
         auto wall_right = Building::create(BuildingType::WALL);
         wall_left->setPosition(center + Vec2(-400, 0));
