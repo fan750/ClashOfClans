@@ -188,10 +188,10 @@ bool MainMode::init()
     shopBtn->setScale(0.1f);
     shopBtn->setTitleText("SHOP");
     shopBtn->setTitleFontSize(24);
-    shopBtn->setPosition(Vec2(visibleSize.width - 350, 125));
+    shopBtn->setPosition(Vec2(visibleSize.width*0.82f, visibleSize.height/8));
     shopBtn->addClickEventListener([=](Ref*)
         {
-            this->toggleShop();
+        this->toggleShop(); // 点击开关商店
         });
     this->addChild(shopBtn, 10);
 
@@ -202,7 +202,7 @@ bool MainMode::init()
     // 添加进攻按钮
     auto attackBtn = Button::create("attack_icon.png");
     attackBtn->setScale(0.15f);
-    attackBtn->setPosition(Vec2(visibleSize.width * 0.92f, visibleSize.height * 0.1f));
+    attackBtn->setPosition(Vec2(visibleSize.width * 0.92f, visibleSize.height/8));
     attackBtn->addClickEventListener
     ([=](Ref*)
         {
@@ -266,14 +266,11 @@ bool MainMode::init()
     TimeBtn->setScale(0.7f);
     TimeBtn->setTitleText("Accelerate");
     TimeBtn->setTitleFontSize(36);
-    TimeBtn->setPosition(Vec2(visibleSize.width - 750, 125));
-    TimeBtn->addClickEventListener([=](Ref*)
+    TimeBtn->setPosition(Vec2(visibleSize.width*0.62f, visibleSize.height/8));
+    TimeBtn->addClickEventListener([=](Ref*) 
         {
-            if (!TimeBtn->isEnabled())
-            {
-                return;
-            }
-            this->toggleTime();
+        if (!TimeBtn->isEnabled()) return;
+        this->toggleTime();
         });
     this->addChild(TimeBtn, 10);
     updateTimeButtonCooldown();
@@ -316,10 +313,13 @@ void MainMode::initShopUI()
         {"Barracks", BuildingType::BARRACKS, 500, true, "Barracks.png"}
     };
 
-    float row1_Y = 480; // 第一排的高度 (靠上)
-    float row2_Y = 40; // 第二排的高度 (靠下)
-    float start_X = 380; // 起始 X 坐标
-    float gap_X = 100; // 间距
+    // 面板高度 400
+    float row1_Y = visibleSize.height*0.4; // 第一排的高度 (靠上)
+    float row2_Y = visibleSize.height * 0.05; // 第二排的高度 (靠下)
+
+    // 起始 X 坐标和间距
+    float start_X = visibleSize.width*0.18;
+    float gap_X = visibleSize.width/20;
 
     // 第一排商品
     createShopItemButton(items[0], Vec2(start_X + 0 * gap_X, row1_Y), 0.3f);
@@ -354,7 +354,7 @@ void MainMode::initTime()
 
     auto time_btn = Button::create("accelerate.png");
     time_btn->setScale(0.2f);
-    time_btn->setPosition(Vec2(visibleSize.width * 0.4f, visibleSize.height * 0.1f));
+    time_btn->setPosition(Vec2(visibleSize.width * 0.4f, visibleSize.height * 0.15f));
     m_accelerateBtn = time_btn;
     updateTimeButtonCooldown();
 

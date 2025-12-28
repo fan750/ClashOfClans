@@ -329,50 +329,38 @@ void Building::setLevel(int level)
 // 显示升级确认面板
 void Building::showUpgradeButton()
 {
-    // 检查是否已有面板
-    if (this->getChildByName("UpgradePanel"))
-    {
-        return;
-    }
+    // 获取当前运行的场景（全局，不属于地图层）
+    auto scene = Director::getInstance()->getRunningScene();
+    if (!scene) return;
+
+    // 检查场景中是否已有面板（防止重复弹出）
+    if (scene->getChildByName("UpgradePanel")) return;
 
     // 创建面板背景
     auto panel = cocos2d::ui::Layout::create();
     panel->setName("UpgradePanel");
     panel->setBackGroundImage("barracksBoard.png");
     panel->setContentSize(Size(400, 300));
-    panel->setAnchorPoint(Vec2(0.5, 0.5));
+    panel->setAnchorPoint(Vec2(0.5, 0.5)); // 中心对齐
 
-    // 将面板位置固定在屏幕中央
+    // 获取屏幕大小
     Size visibleSize = Director::getInstance()->getVisibleSize();
-    Vec2 screenCenter = visibleSize / 2;
-    Vec2 localCenter = this->convertToNodeSpace(screenCenter);
 
-    panel->setPosition(localCenter);
+    // 位置设置在屏幕正中央
+    panel->setPosition(visibleSize / 2);
+    panel->setScale(1.5f);
 
-    // 计算位置：在建筑上方
-    Size contentSize = this->getContentSize();
-    Vec2 anchor = this->getAnchorPoint();
-    float localCenterX = contentSize.width * anchor.x;
-    float localTopY = contentSize.height * (1.0f - anchor.y);
-    panel->setPosition(Vec2(localCenterX, localTopY + 50));
+    // 将面板添加到 Scene，Z轴设为非常大的数字（比如 99999）
+    // 使之变为全局 UI，永远在最上层
+    scene->addChild(panel, 99999);
 
-    // 反向计算抵消父节点的缩放，使面板在屏幕上呈现固定大小
-    float parentScale = this->getScale();
-    if (parentScale <= 0.01f)
-    {
-        parentScale = 1.0f;
-    }
-
-    float desiredWorldScale = 1.5f;
-    panel->setScale(desiredWorldScale / parentScale);
-
-    this->addChild(panel, 300);
-
-    // 显示升级信息
+    // 显示升级信息 (保持不变)
     int cost = getUpgradeCost();
     int nextLevel = m_level + 1;
 
-    auto infoLabel = Label::createWithSystemFont("Upgrade to Lv." + std::to_string(nextLevel) + "\nCost: " + std::to_string(cost), "Arial", 40);
+    auto infoLabel = Label::createWithSystemFont(
+        "Upgrade to Lv." + std::to_string(nextLevel) + "\nCost: " + std::to_string(cost),
+        "Arial", 40);
     infoLabel->setPosition(Vec2(200, 200));
     infoLabel->setColor(Color3B::BLACK);
     infoLabel->setAlignment(TextHAlignment::CENTER);
@@ -437,7 +425,9 @@ void Building::showUpgradeButton()
             {
                 GameManager::getInstance()->addGold(-cost);
                 this->startUpgradeProcess();
-                this->hideUpgradeButton();
+
+                // 直接移除面板
+                panel->removeFromParent();
             }
         }
     );
@@ -447,12 +437,11 @@ void Building::showUpgradeButton()
     auto btnNo = cocos2d::ui::Button::create("no.png");
     btnNo->setScale(0.15f);
     btnNo->setPosition(Vec2(300, 80));
-    btnNo->addClickEventListener
-    ([this](Ref*)
+    btnNo->addClickEventListener([panel](Ref*) 
         {
-            this->hideUpgradeButton();
-        }
-    );
+        // 直接移除面板
+        panel->removeFromParent();
+        });
     panel->addChild(btnNo);
 }
 

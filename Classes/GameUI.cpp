@@ -94,7 +94,7 @@ void GameUI::initTroopLabels()
 
     // 创建入口按钮
     auto armyBtn = Button::create("troop_icon.png");
-    armyBtn->setPosition(Vec2(visibleSize.width - 550, 125));
+    armyBtn->setPosition(Vec2(visibleSize.width *0.72, visibleSize.height/8));
     armyBtn->setScale(0.15f);
     armyBtn->addClickEventListener([=](Ref*)
         {
@@ -102,12 +102,10 @@ void GameUI::initTroopLabels()
         });
     this->addChild(armyBtn);
 
-    // 创建弹窗面板
     m_armyPanel = Layout::create();
     m_armyPanel->setBackGroundImage("barracksBoard.png");
     m_armyPanel->setBackGroundImageScale9Enabled(true);
-    // 设置面板大小与缩放
-    m_armyPanel->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.8));
+    m_armyPanel->setContentSize(Size(visibleSize.width * 0.8, visibleSize.height * 0.9));
     m_armyPanel->setScale(1.3f);
     m_armyPanel->setAnchorPoint(Vec2(0.5, 0.5));
     m_armyPanel->setPosition(visibleSize / 2);
@@ -148,9 +146,9 @@ void GameUI::initTroopLabels()
         {TroopType::DRAGON,    "Dragon",    "dragon_icon.png",    5, 3}
     };
 
-    float startX = 280;
-    float startY = 800; // 起始高度稍微调高
-    float gapY = 160;    // 行间距加大
+    float startX = visibleSize.width*0.15;
+    float startY = visibleSize.height*0.65; // 起始高度稍微调高
+    float gapY = visibleSize.height/9;    // 行间距加大
 
     // 遍历创建兵种列表项
     for (int i = 0; i < troopInfos.size(); ++i)
