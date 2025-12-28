@@ -329,6 +329,42 @@ void Building::setLevel(int level)
 // 显示升级确认面板
 void Building::showUpgradeButton()
 {
+    // 1. 检查是否已经有按钮了
+    if (this->getChildByName("UpgradeBtn")) return;
+    // 如果面板已经显示，也不显示按钮
+    if (this->getChildByName("UpgradePanel")) return;
+
+    // 2. 创建升级按钮
+    auto btn = cocos2d::ui::Button::create("upgrade.png");
+    btn->setName("UpgradeBtn");
+    
+    // 3. 设置位置：在建筑上方
+    Size contentSize = this->getContentSize();
+    Vec2 anchor = this->getAnchorPoint();
+    float localCenterX = contentSize.width * anchor.x;
+    float localTopY = contentSize.height * (1.0f - anchor.y);
+    btn->setPosition(Vec2(localCenterX, localTopY + 800)); 
+
+    // 4. 抵消父节点的缩放，保持按钮大小一致
+    float parentScale = this->getScale(); 
+    if (parentScale <= 0.01f) parentScale = 1.0f;
+    float desiredWorldScale = 0.25f; 
+    btn->setScale(desiredWorldScale / parentScale);
+
+    // 5. 添加点击事件
+    btn->addClickEventListener([this](Ref*) {
+        this->showUpgradePanel();
+        // 点击后隐藏按钮
+        if (auto b = this->getChildByName("UpgradeBtn")) {
+            b->removeFromParent();
+        }
+    });
+
+    this->addChild(btn, 300);
+}
+
+void Building::showUpgradePanel()
+{
     // 获取当前运行的场景（全局，不属于地图层）
     auto scene = Director::getInstance()->getRunningScene();
     if (!scene) return;
@@ -429,6 +465,49 @@ void Building::showUpgradeButton()
                 // 直接移除面板
                 panel->removeFromParent();
             }
+            else
+            {
+                // 资金不足提示
+                panel->removeFromParent();
+                auto visibleSize = Director::getInstance()->getVisibleSize();
+                auto scene = Director::getInstance()->getRunningScene();
+                if (scene)
+                {
+                    auto alertBg = LayerColor::create(Color4B(0, 0, 0, 180), visibleSize.width, visibleSize.height);
+                    scene->addChild(alertBg, 10000);
+
+                    auto listener = EventListenerTouchOneByOne::create();
+                    listener->setSwallowTouches(true);
+                    listener->onTouchBegan = [](Touch*, Event*) { return true; };
+                    scene->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, alertBg);
+
+                    auto alertPanel = Sprite::create("barracksBoard.png");
+                    if (alertPanel)
+                    {
+                        alertPanel->setPosition(visibleSize / 2);
+                        alertPanel->setScale(1.0f);
+                        alertBg->addChild(alertPanel);
+                    }
+
+                    std::string msg = "Not Enough Gold!\nNeed: " + std::to_string(cost);
+                    auto alertLabel = Label::createWithSystemFont(msg, "Arial", 40);
+                    alertLabel->setPosition(visibleSize / 2);
+                    alertLabel->setTextColor(Color4B::BLACK);
+                    alertLabel->setAlignment(TextHAlignment::CENTER);
+                    alertBg->addChild(alertLabel);
+
+                    auto okBtn = cocos2d::ui::Button::create("yes.png");
+                    okBtn->setScale(0.1f);
+                    okBtn->setPosition(Vec2(visibleSize.width / 2, visibleSize.height * 0.4f));
+                    okBtn->addClickEventListener
+                    ([alertBg](Ref*)
+                        {
+                            alertBg->removeFromParent();
+                        }
+                    );
+                    alertBg->addChild(okBtn);
+                }
+            }
         }
     );
     panel->addChild(btnYes);
@@ -454,6 +533,12 @@ void Building::hideUpgradeButton()
         panel->removeFromParent();
     }
 
+    // 移除名为 "UpgradeBtn" 的子节点
+    auto btn = this->getChildByName("UpgradeBtn");
+    if (btn) {
+        btn->removeFromParent();
+    }
+
     // 同时也清理旧的 m_upgradeBtn (如果存在)
     if (m_upgradeBtn)
     {
@@ -470,7 +555,7 @@ void Building::hideUpgradeButton()
 // 根据金币状态更新升级按钮显示
 void Building::updateUpgradeButtonVisibility()
 {
-    if (!this->getChildByName("UpgradePanel"))
+    if (!this->getChildByName("UpgradePanel") && !this->getChildByName("UpgradeBtn"))
     {
         showUpgradeButton();
     }

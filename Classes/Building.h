@@ -65,7 +65,7 @@ public:
     virtual bool init() override;                  // 初始化
     virtual void activateBuilding();               // 激活建筑（开始工作）
 
-    // 生命周期函数
+    // 生命周期
     virtual void updateLogic(float dt) override;   // 更新逻辑
     virtual void onDeath() override;               // 死亡逻辑
     virtual void takeDamage(int damage) override;  // 受伤逻辑（播放音效）
@@ -91,6 +91,7 @@ public:
 
     // UI 交互接口
     void showUpgradeButton();                      // 显示升级按钮
+    void showUpgradePanel();                       // 显示升级面板
     void hideUpgradeButton();                      // 隐藏升级按钮
     void updateUpgradeButtonVisibility();          // 根据金币自动显示/隐藏按钮
 
