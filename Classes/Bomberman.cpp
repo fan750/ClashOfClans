@@ -16,8 +16,8 @@ void Bomberman::initProperties()
     m_minBarrackLevel = 2;
     m_movementType = Troop::MovementType::GROUND;
 
-    // 设置战斗数值（爆炸伤害高）
-    m_baseHp = 40;
+    // 设置战斗数值（高炸弹伤害）
+    m_baseHp = 1000; // 基础血量设置为1000
     m_baseDamage = 500;
     m_moveSpeed = 150.0f;
     m_attackRange = 20.0f;

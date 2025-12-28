@@ -170,6 +170,7 @@ bool MainMode::init()
                 if (item->getSelectedIndex() == 0)
                 {
                     auto engine = CocosDenshion::SimpleAudioEngine::getInstance();
+                    // 播放背景音乐，第二个参数 true 表示循环播放
                     engine->playBackgroundMusic("backgroundmusic.mp3", true);
                 }
                 else

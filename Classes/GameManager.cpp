@@ -136,13 +136,14 @@ void GameManager::updateHomeBuildingLevel(BuildingType type, Vec2 pos, int level
 {
     for (auto& b : m_homeBuildings)
     {
-        if (b.type == type && b.position.equals(pos))
+        // 使用距离判断代替精确 equals，防止浮点数误差导致找不到建筑
+        if (b.type == type && b.position.distance(pos) < 5.0f)
         {
             b.level = level;
             return;
         }
     }
-    // 如果没找到，追加一个记录，以防止丢失
+    // 若没找到，追加一条记录以防止丢失
     addHomeBuilding(type, pos, level);
 }
 
@@ -166,14 +167,15 @@ void GameManager::updateBarrackLevel(Vec2 pos, int level)
     // 更新存储的军营等级
     for (auto& building : m_homeBuildings)
     {
-        if (building.type == BuildingType::BARRACKS && building.position.equals(pos))
+        // 使用距离判断代替精确 equals
+        if (building.type == BuildingType::BARRACKS && building.position.distance(pos) < 5.0f)
         {
             building.barrackLevel = level;
             return;
         }
     }
 
-    // 如果没找到，可能是新建造的军营
+    // 若没找到，则新增一个（逻辑上不应发生，除非是新建的军营）
     BuildingData newData;
     newData.type = BuildingType::BARRACKS;
     newData.position = pos;

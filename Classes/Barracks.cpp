@@ -82,6 +82,19 @@ void Barracks::initBuildingProperties()
         m_maxCostLimit = configs.at(1).maxCostLimit;
     }
     m_currentCostUsed = 0;
+
+    // 尝试从 GameManager 恢复等级（如果已存在）
+    // 使用距离判断来匹配建筑，防止浮点数误差
+    auto gm = GameManager::getInstance();
+    const auto& buildings = gm->getHomeBuildings();
+    for (const auto& data : buildings)
+    {
+        if (data.type == BuildingType::BARRACKS && data.position.distance(this->getPosition()) < 5.0f)
+        {
+            setBarrackLevel(data.barrackLevel);
+            break;
+        }
+    }
 }
 
 // 设置军营等级（用于存档恢复）
