@@ -42,13 +42,13 @@ bool MainMode::init() {
     if (!Scene::init()) return false;
     // 只在首次启动时初始化
     if (!GameManager::getInstance()->isInitialized()) {
-        GameManager::getInstance()->initAccount(2000, 2000);
+        GameManager::getInstance()->initAccount(500, 500);
     }
 
     Size visibleSize = Director::getInstance()->getVisibleSize();
 
     // 1. 先初始化数据 (最先做！)
-    GameManager::getInstance()->initAccount(2000, 2000);
+    GameManager::getInstance()->initAccount(500, 500);
     m_pendingBuilding = nullptr;
     m_selectedBuilding = nullptr;
     m_isConfirming = false;
