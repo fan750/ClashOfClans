@@ -1,14 +1,16 @@
 1.项目总体介绍
 
+这是一款类部落冲突游戏,实现了多类兵种,多类建筑,多张地图,游戏音乐,游戏音效,自动战斗系统.目前已在安卓系统成功运行.
+
 🏰 部落征服者：战略与荣耀
 欢迎来到《部落征服者》！这是一款融合了策略经营与热血战斗的即时战略游戏，由Cocos2d-x引擎精心打造。在这里，你将扮演一位部落首领，从一片荒芜之地开始，一步步建设你的家园，训练强大的军队，并踏上远征之路，征服敌人，夺取资源与荣耀！
 
 ✨ 游戏特色
-双模式体验：自由切换 经营模式 🏗️ 与 进攻模式 ⚔️，体验建造与征服的双重乐趣！
+双模式体验：自由切换 经营模式 🏗️ 与 进攻模式 ⚔️，体验建造与征服的双重乐趣！(没有设置防御模式因此大本营无需建造防御设施)
 
 丰富建筑系统：8种功能各异的建筑，每种都可升级强化，打造独一无二的部落城池。
 
-多样兵种搭配：5种特色士兵，从近战到远程，从地面到空中，策略组合决胜千里！
+多样兵种搭配：5种特色士兵，包含近战/远程,地面/飞行单位，策略组合决胜千里！
 
 渐进式远征挑战：3道PVE关卡，难度逐步提升，挑战你的战术与运营能力！
 
@@ -17,7 +19,14 @@
 🏗️ 经营模式：建设你的部落
 在经营模式下，你可以安心规划领地、升级建筑、训练士兵，为远征做好万全准备！
 
+进入游戏左上角有音乐设置,控制背景音乐开关
+
+右上角显示金币和圣水数目以及存储上限
+
+右下角四个按钮有不同的功能:Accelerate键负责实现加速逻辑;Troop键查看士兵数目;Shop控制商店面板;Attack发起进攻,如果没有训练士兵,不允许发起Attack
+
 🏠 建筑一览
+shop中能购买以下建筑(陷阱不在此列,但第三关设置有陷阱)
 建筑	功能说明	升级效果
 大本营 🏛️	部落核心，开局自带，限制其他建筑等级	提升所有建筑等级上限
 弓箭塔 🏹	防御设施，自动攻击范围内敌人	提升攻击伤害
@@ -50,6 +59,8 @@
 陷阱 🕳️：默认隐形，士兵进入范围后显形并持续造成伤害。
 
 城墙：阻碍前进，需要优先破坏或绕过。
+
+屏障:限制士兵防止范围
 
 🪖 士兵系统
 在军营中训练士兵，升级他们，打造无敌军团！
@@ -115,21 +126,57 @@ classDiagram
     
     场景层
     
-    -class MainModeScene 
+    -class MainModeScene     //主场景 大本营所在地
     
-    -class BattleScene
+    -class BattleScene       //战斗场景
     
-    -class OpenScene
+    -class OpenScene        //游戏开始场景
     
-    -class LevelMapScene
+    -class LevelMapScene    //关卡选择场景
     
-    实体层
+    实体层(基类)
     
-    -class GameEntity 
+    -class GameEntity       //所有具有属性的对象所在类
     
-    -class Building 
+    -class Building         //Building基类
     
-    -class Troop
+    -class Troop            //Troop基类
+
+    实体层(继承类)
+
+    class Buildings        
+
+    -class Archertower       //弓箭塔
+
+    -class Barracks          //军营
+
+    -class Cannon            //加农炮
+
+    -class ElixirCollector   //圣水收集器
+
+    -class ElixirStorage    //圣水存储器
+
+    -class GoldMine          //金矿
+
+    -class GoldStorage       //金库
+
+    -class TownHall          //大本营
+
+    -class Trap              //陷阱
+
+    -class Wall              //城墙
+
+    class Trops:
+
+    -class Barbarian         //野蛮人
+
+    -class Archer            //弓箭手
+
+    -class Bomberman        //炸弹人
+
+    -class dragon            //飞龙
+
+    -class giant            //巨人
     
     UI层
     
@@ -295,16 +342,70 @@ classDiagram
 
 类与多态 (Classes & Polymorphism)
 
-位置: GameEntity.h/cpp, Building.h/cpp, MainModeScene.cpp
+在该项目中，类与多态的使用主要体现在游戏实体的设计上，特别是建筑（Building）和部队（Troop）的继承体系中。
+1. 建筑系统 (Building 继承体系)
+•	基类 Building:
 
-•	继承: Building 类继承自 GameEntity 类，复用了血条管理、HP 属性等基础功能。
+•	继承自 GameEntity（游戏实体基类）。
 
-•	虚函数 (Virtual Functions):
+•	定义了所有建筑共有的属性和行为，如生命值、等级、升级逻辑、建造动画、资源生产加速等。
 
-•	GameEntity 定义了 virtual void updateLogic(float dt)。
+•	提供了虚函数接口供子类重写，实现多态行为。
 
-•	Building 重写 (override) 了该函数，实现了特有的生产资源和防御塔攻击逻辑。
+•	工厂模式: Building::create(BuildingType type) 是一个静态工厂方法，根据传入的 BuildingType 枚举值，实例化并返回具体的子类对象（如 GoldMine、Cannon 等）。
 
-•	运行时多态 (RTTI):
+•	多态接口:
 
-•	代码: 在 MainModeScene::onTouchBegan 中，使用 dynamic_cast 将基类指针 Node* 安全转换为派生类指针 Building*。
+•	initBuildingProperties(): 纯虚函数（在基类中声明为 = 0，但在提供的代码片段中似乎有默认实现或被设计为必须重写），用于初始化特定建筑的属性（如纹理、血条位置、特定数值）。
+
+•	updateLogic(float dt): 基类提供了通用的加速逻辑，子类（如 GoldMine）重写此函数来实现特定的逻辑（如资源生产、攻击冷却）。
+
+•	onUpgradeFinished(): 基类处理通用的升级效果（等级提升、视觉更新、播放音效），子类可以通过重写或在基类逻辑基础上扩展来实现特定升级效果（如 GoldStorage 增加存储上限）。
+
+•	collectResource(): 基类默认返回 0，资源类建筑（GoldMine, ElixirCollector）重写此函数以返回当前产出的资源量。
+
+•	具体子类:
+
+•	TownHall (大本营): 核心建筑。
+
+•	GoldMine / ElixirCollector (资源生产): 重写了 updateLogic 来处理资源随时间的产出。
+
+•	GoldStorage / ElixirStorage (资源存储): 影响全局资源上限。
+
+•	Cannon / ArcherTower (防御塔): 拥有攻击逻辑。
+
+•	Barracks (军营): 拥有训练部队的逻辑和特有的等级系统 (barrackLevel)。
+
+•	Wall (围墙): 纯防御结构。
+
+•	Trap (陷阱): 特殊防御单位。
+
+3. 部队系统 (Troop 继承体系)
+
+•	基类 Troop:
+
+•	继承自 GameEntity。
+
+•	定义了移动、攻击、寻路等通用行为。
+
+•	具体子类 :
+
+•	Barbarian (野蛮人)
+
+•	Archer (弓箭手)
+
+•	Giant (巨人)
+
+•	Bomberman (炸弹人)
+
+•	Dragon (龙)
+
+•	这些子类会重写基类的攻击方式（近战/远程）、偏好目标（如巨人优先攻击防御建筑）、属性数值等。
+
+5. 游戏管理器 (GameManager)
+   
+•	GameManager 类本身不体现多态，但它管理着多态对象的集合。
+
+•	m_homeBuildings 存储了 BuildingData，虽然这是数据结构，但在场景加载时（如 MainModeScene），会根据这些数据使用 Building::create 工厂方法恢复出具体的多态 Building 对象。
+
+•	completeBuildingUpgrade 中使用 BattleManager::getInstance()->findBuildingAtPosition 查找到通用的 Building* 指针，然后调用虚函数 onUpgradeFinished()，这是典型的多态应用——管理器不需要知道具体是哪种建筑，只需调用统一接口即可触发正确的升级行为。。
